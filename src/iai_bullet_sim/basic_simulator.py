@@ -1,118 +1,8 @@
 import pybullet as pb
 import random
 from collections import namedtuple
-from iai_bullet_sim.utils import res_pkg_path, rot3_to_quat
+from iai_bullet_sim.utils import res_pkg_path, rot3_to_quat, Vector3, Quaternion, Frame
 from pprint import pprint
-
-class JointDriver(object):
-	def update_positions(self, robot_data, positions_dict):
-		pass
-	def update_velocities(self, robot_data, velocities_dict):
-		pass
-	def update_effort(self, robot_data, effort_dict):
-		pass
-
-class MultiBody(object):
-	def __init__(self, simulator, bulletId, color, joints={}, initial_pos=[0,0,0], initial_rot=[0,0,0,1], initial_joint_state=None, joint_driver=JointDriver()):
-		self.simulator      = simulator
-		self.bulletId       = bulletId
-		self.color          = color
-		self.joints         = joints
-		
-		self.initial_pos    = initial_pos
-		self.initial_rot    = initial_rot
-		self.initial_joint_state = initial_joint_state if initial_joint_state != None else {joint: 0.0 for joint, info in self.joints.items() if info.type != pb.JOINT_FIXED}
-		
-		self.joint_driver   = joint_driver
-		
-		self.__index_joint_map      = {info.jointIndex: joint for joint, info in self.joints.items()}
-		self.__index_joint_map[-1]  = None
-		
-		self.__link_index_map = {info.linkName: info.jointIndex for info in self.joints.values()}
-		self.__link_index_map[None] = -1
-		
-		self.__index_link_map = {i: ln for ln, i in self.link_index_map.items()}
-		self.__joint_sensors = set()
-
-	def get_link_state(self, link=None):
-		if link not in self.link_index_map:
-			raise Exception('Link "{}" is not defined'.format(link))
-
-		zero_vector = Vector3(0,0,0)
-		if link == None:
-			pos, quat = pb.getBasePositionAndOrientation(self.bulletId)
-			frame = Frame(Vector3(*pos), Quaternion(*quat))
-			return LinkState(frame, frame, frame, zero_vector, zero_vector)
-		else:
-			ls = pb.getLinkState(self.bulletId, self.link_index_map[link], compute_vel)
-			return LinkState(Frame(Vector3(*ls[0]), Quaternion(*ls[1])),
-							 Frame(Vector3(*ls[2]), Quaternion(*ls[3])),
-							 Frame(Vector3(*ls[4]), Quaternion(*ls[5])),
-							 zero_vector,
-							 zero_vector)
-
-	def get_joint_state(self):
-
-
-
-Vector3 = namedtuple('Vector3', ['x', 'y', 'z'])
-Quaternion = namedtuple('Quaternion', ['x', 'y', 'z', 'w'])
-Frame  = namedtuple('Frame', ['position', 'quaterion'])
-ReactionForces  = namedtuple('ReactionForces', ['f', 'm'])
-
-JointInfo = namedtuple('JointInfo', ['jointIndex', 'jointName', 'jointType', 'qIndex', 'uIndex',
-									 'flags', 'jointDamping', 'jointFriction', 'jointLowerLimit',
-									 'jointUpperLimit', 'jointMaxForce', 'jointMaxVelocity', 'linkName',
-									 'jointAxis', 'parentFramePos', 'parentFrameOrn', 'parentIndex'])
-
-JointState = namedtuple('JointState', ['position', 'velocity', 'reactionForce', 'appliedMotorTorque'])
-
-LinkState  = namedtuple('LinkState', ['CoMFrame', 'localInertialFrame', 'worldFrame', 'linearVelocity', 'angularVelocity'])
-
-Constraint = namedtuple('Constraint', ['bulletId', 'bodyParent', 'bodyChild', 'linkParent', 'linkChild',
-						  			   'jointType', 'jointAxis', 'parentJointPosition', 'childJointPosition',
-						  			   'parentJointOrientation', 'childJointOrientation'])
-
-VisualShape = namedtuple('VisualShape', ['bulletId', 'linkIndex', 'geometryType', 'dimensions', 'filename', 'localPosition', 'localOrientation', 'rgba'])
-CollisionShape = namedtuple('CollisionShape', ['bulletId', 'linkIndex', 'geometryType', 'dimensions', 'filename', 'localPosition', 'localOrientation'])
-
-AABB = namedtuple('AABB', ['min', 'max'])
-
-
-def vec_add(a, b):
-	return Vector3(a[0] + b[0], a[1] + b[1], a[2] + b[2])
-
-def vec_sub(a, b):
-	return Vector3(a[0] - b[0], a[1] - b[1], a[2] - b[2])
-
-def vec_scale(a, x):
-	return Vector3(a.x * x, a.y * x, a.z * x)
-
-def invert_transform(frame_tuple):
-	temp = pb.invertTransform(list(frame_tuple.position), list(frame_tuple.quaterion))
-	return Frame(Vector3(*temp[0]), Quaternion(*temp[1]))
-
-def frame_tuple_to_sym_frame(frame_tuple):
-	return frame3_quaternion(frame_tuple.quaterion.x,
-							 frame_tuple.quaterion.y,
-							 frame_tuple.quaterion.z,
-							 frame_tuple.quaterion.w,
-							 point3(*frame_tuple.position))
-
-class ContactPoint(object):
-	def __init__(self, bodyA, bodyB, linkA, linkB, posOnA, posOnB, normalOnB, dist, normalForce):
-		self.bodyA = bodyA
-		self.bodyB = bodyB
-		self.linkA = linkA
-		self.linkB = linkB
-		self.posOnA = posOnA
-		self.posOnB = posOnB
-		self.normalOnB = normalOnB
-		self.dist = dist
-		self.normalForce = normalForce
-
-	def __leq__(self, other):
-		return self.dist <= other.dist
 
 
 def hsva_to_rgba(h, s, v, a):
@@ -140,118 +30,244 @@ def vec3_to_list(vec):
 	return [vec[0], vec[1], vec[2]]
 
 
-
-class FetchDriver(JointDriver):
+class JointDriver(object):
 	def update_positions(self, robot_data, positions_dict):
-		if 'gripper_joint' in positions_dict:
-			gstate = positions_dict['gripper_joint']
-			positions_dict['r_gripper_finger_joint'] = 0.5 * gstate
-			positions_dict['l_gripper_finger_joint'] = 0.5 * gstate
+		pass
 	def update_velocities(self, robot_data, velocities_dict):
-		if 'gripper_joint' in velocities_dict:
-			gstate = velocities_dict['gripper_joint']
-			velocities_dict['r_gripper_finger_joint'] = 0.5 * gstate
-			velocities_dict['l_gripper_finger_joint'] = 0.5 * gstate
-
+		pass
 	def update_effort(self, robot_data, effort_dict):
-		if 'gripper_joint' in effort_dict:
-			gstate = effort_dict['gripper_joint']
-			effort_dict['r_gripper_finger_joint'] = 0.5 * gstate
-			effort_dict['l_gripper_finger_joint'] = 0.5 * gstate
+		pass
+
+class MultiBody(object):
+	def __init__(self, simulator, bulletId, color, joints={}, initial_pos=[0,0,0], initial_rot=[0,0,0,1], initial_joint_state=None, joint_driver=JointDriver()):
+		self.simulator      = simulator
+		self.__bulletId     = bulletId
+		self.color          = color
+		self.joints         = joints
+		self.joint_sensors  = set()
+
+		self.initial_pos    = initial_pos
+		self.initial_rot    = initial_rot
+		self.initial_joint_state = initial_joint_state if initial_joint_state != None else {joint: 0.0 for joint, info in self.joints.items() if info.type != pb.JOINT_FIXED}
+		
+		self.joint_driver   = joint_driver
+		
+		self.__index_joint_map       = {info.jointIndex: joint for joint, info in self.joints.items()}
+		self.__index_joint_map[-1]   = None
+		self.__dynamic_joint_indices = [info.jointIndex for info in self.joints.values() if info.jointType != pb.JOINT_FIXED]
+
+		self.__link_index_map = {info.linkName: info.jointIndex for info in self.joints.values()}
+		self.__link_index_map[None] = -1
+		
+		self.__index_link_map = {i: ln for ln, i in self.__link_index_map.items()}#
+
+		self.__current_pose = None
+		self.__last_sim_pose_update = -1
+
+		self.__joint_state = None
+		self.__last_sim_js_update = -1
 
 
-class BulletSimulator(object):
+	def reset(self):
+		pb.resetBasePositionAndOrientation(self.bulletId, self.initial_pos, self.initial_rot)
+		self.set_joint_positions(self.initial_joint_state)
+		self.__last_sim_pose_update = -1
+		self.__last_sim_js_update = -1
+
+	def get_link_state(self, link=None):
+		if link not in self.__link_index_map:
+			raise Exception('Link "{}" is not defined'.format(link))
+
+		zero_vector = Vector3(0,0,0)
+		if link == None:
+			pos, quat = pb.getBasePositionAndOrientation(self.__bulletId)
+			frame = Frame(Vector3(*pos), Quaternion(*quat))
+			return LinkState(frame, frame, frame, zero_vector, zero_vector)
+		else:
+			ls = pb.getLinkState(self.__bulletId, self.__link_index_map[link], compute_vel)
+			return LinkState(Frame(Vector3(*ls[0]), Quaternion(*ls[1])),
+							 Frame(Vector3(*ls[2]), Quaternion(*ls[3])),
+							 Frame(Vector3(*ls[4]), Quaternion(*ls[5])),
+							 zero_vector,
+							 zero_vector)
+
+	def get_AABB(self, bodyId, linkId=None):
+		res = pb.getAABB(self.__bulletId, self.__link_index_map[linkId])
+		return AABB(Vector3(*res[0]), Vector3(*res[1]))
+
+	def joint_state(self):
+		if self.simulator.get_n_update() != self.__last_sim_js_update:
+			new_js = [JointState(*x) for x in pb.getJointStates(self.__bulletId, self.__dynamic_joint_indices)]
+			self.__joint_state = {self.__index_joint_map[self.__dynamic_joint_indices[x]]: new_js[x] for x in range(len(new_js))}
+
+		return self.__joint_state
+
+	def pose(self):
+		if self.simulator.get_n_update() != self.__last_sim_pose_update:
+			temp = pb.getBasePositionAndOrientation(self.__bulletId)
+			self.__current_pose = Frame(temp[0], temp[1])
+		return self.__current_pose
+
+	def enable_joint_sensor(self, joint_name, enable=True):
+		pb.enableJointForceTorqueSensor(self.__bulletId, self.joints[joint_name].jointIndex, enable)
+		if enable:
+			self.joint_sensors.add(joint_name)
+		else:
+			self.joint_sensors.remove(joint_name)
+
+
+	def get_sensor_states(self):
+		self.joint_state()
+
+		return {sensor: self.__joint_state[sensor].reactionForce for sensor in self.joint_sensors}
+
+
+	def set_pose(self, pose, override_initial=False):
+		pos  = pose.position
+		quat = pose.quaternion
+		pb.resetBasePositionAndOrientation(self.__bulletId, pos, quat)
+		if override_initial:
+			self.initial_pos = pos
+			self.initial_rot = quat
+
+
+	def set_joint_positions(self, state, override_initial=False):
+		for j, p in state.items():
+			pb.resetJointState(self.__bulletId, self.joints[j].jointIndex, p)
+		if override_initial:
+			self.initial_joint_state = state
+
+
+	def apply_joint_pos_cmds(self, cmd):
+		cmd_indices = []
+		cmd_pos     = []
+		self.joint_driver.update_positions(self, next_cmd)
+		for jname in cmd.keys():
+			cmd_indices.append(self.joints[jname].jointIndex)
+			cmd_pos.append(cmd[jname])
+
+		pb.setJointMotorControlArray(self.__bulletId, cmd_indices, pb.POSITION_CONTROL, targetPositions=cmd_pos)
+
+
+	def apply_joint_vel_cmds(self, cmd):
+		cmd_indices = []
+		cmd_vels    = []
+		self.joint_driver.update_velocities(self, next_cmd)
+		for jname in cmd.keys():
+			cmd_indices.append(self.joints[jname].jointIndex)
+			cmd_vels.append(cmd[jname])
+
+		pb.setJointMotorControlArray(self.__bulletId, cmd_indices, pb.VELOCITY_CONTROL, targetVelocities=cmd_vels)
+
+
+ReactionForces  = namedtuple('ReactionForces', ['f', 'm'])
+
+JointInfo = namedtuple('JointInfo', ['jointIndex', 'jointName', 'jointType', 'qIndex', 'uIndex',
+									 'flags', 'jointDamping', 'jointFriction', 'jointLowerLimit',
+									 'jointUpperLimit', 'jointMaxForce', 'jointMaxVelocity', 'linkName',
+									 'jointAxis', 'parentFramePos', 'parentFrameOrn', 'parentIndex'])
+
+class JointState(object):
+	def __init__(self, pos, vel, rForce, appliedTorque):
+		self.position = pos
+		self.velocity = vel
+		self.reactionForce = ReactionForces(rForce[:3], rForce[3:])
+		self.appliedMotorTorque = appliedTorque
+
+LinkState  = namedtuple('LinkState', ['CoMFrame', 'localInertialFrame', 'worldFrame', 'linearVelocity', 'angularVelocity'])
+
+Constraint = namedtuple('Constraint', ['bulletId', 'bodyParent', 'bodyChild', 'linkParent', 'linkChild',
+						  			   'jointType', 'jointAxis', 'parentJointPosition', 'childJointPosition',
+						  			   'parentJointOrientation', 'childJointOrientation'])
+
+VisualShape = namedtuple('VisualShape', ['bulletId', 'linkIndex', 'geometryType', 'dimensions', 'filename', 'localPosition', 'localOrientation', 'rgba'])
+CollisionShape = namedtuple('CollisionShape', ['bulletId', 'linkIndex', 'geometryType', 'dimensions', 'filename', 'localPosition', 'localOrientation'])
+
+AABB = namedtuple('AABB', ['min', 'max'])
+
+
+def vec_add(a, b):
+	return Vector3(a[0] + b[0], a[1] + b[1], a[2] + b[2])
+
+def vec_sub(a, b):
+	return Vector3(a[0] - b[0], a[1] - b[1], a[2] - b[2])
+
+def vec_scale(a, x):
+	return Vector3(a.x * x, a.y * x, a.z * x)
+
+def invert_transform(frame_tuple):
+	temp = pb.invertTransform(list(frame_tuple.position), list(frame_tuple.quaternion))
+	return Frame(Vector3(*temp[0]), Quaternion(*temp[1]))
+
+
+class ContactPoint(object):
+	def __init__(self, bodyA, bodyB, linkA, linkB, posOnA, posOnB, normalOnB, dist, normalForce):
+		self.bodyA = bodyA
+		self.bodyB = bodyB
+		self.linkA = linkA
+		self.linkB = linkB
+		self.posOnA = posOnA
+		self.posOnB = posOnB
+		self.normalOnB = normalOnB
+		self.dist = dist
+		self.normalForce = normalForce
+
+	def __leq__(self, other):
+		return self.dist <= other.dist
+
+
+class BasicSimulator(object):
 	def __init__(self, tick_rate):
-		self.bodyIds   = set()
-		self.bulletIds_to_bodyIds = {}
 		self.bodies    = {}
 		self.constraints = {}
-		self.watchdogs = {}
 		self.tick_rate = tick_rate
 		self.time_step = 1.0 / self.tick_rate
+		self.__n_updates = 0
 
 		self.__h = random.random()
 		self.__nextId = 0
 		self.__joint_types = {'FIXED': pb.JOINT_FIXED, 'PRISMATIC': pb.JOINT_PRISMATIC, 'HINGE': pb.JOINT_POINT2POINT}
+
+	def get_n_update(self):
+		return self.__n_updates
 
 	def __gen_next_color(self):
 		self.__h += 0.618033988749895
 		self.__h %= 1.0
 		return hsva_to_rgba(self.__h, 0.7, 0.95, 1.0)
 
-	def init(self, gravity=[0,0,-9.81], mode=pb.DIRECT):
-		self.physicsClient = pb.connect(mode)#or p.DIRECT for non-graphical version
+	def init(self, gravity=[0,0,-9.81], mode='direct'):
+		self.physicsClient = pb.connect({'gui': pb.GUI, 'direct': pb.DIRECT}[mode])#or p.DIRECT for non-graphical version
 		pb.setGravity(*gravity)
 		pb.setTimeStep(self.time_step)
 
 	def kill(self):
 		pb.disconnect()
 
-	def apply_joint_vel_cmds(self, bodyId, next_cmd):
-		cmd_indices = []
-		cmd_vels    = []
-		robot_data  = self.bodies[bodyId]
-		robot_data.joint_driver.update_velocities(robot_data, next_cmd)
-		for jname in next_cmd.keys():
-			cmd_indices.append(robot_data.joints[jname].jointIndex)
-			cmd_vels.append(next_cmd[jname])
-
-		pb.setJointMotorControlArray(robot_data.bulletId, cmd_indices, pb.VELOCITY_CONTROL, targetVelocities=cmd_vels)
-
-	# @profile
-	def set_joint_positions(self, bodyId, state):
-		body_data = self.bodies[bodyId]
-		for j, p in state.items():
-			pb.resetJointState(body_data.bulletId, body_data.joints[j].jointIndex, p)
-
 	def update(self):
 		pb.stepSimulation()
-
-	def set_real_time(self, realTime=True):
-		pb.setRealTimeSimulation(realTime)
-
-	def enable_joint_sensor(self, bodyId, joint_name, enable=True):
-		body = self.bodies[bodyId]
-		pb.enableJointForceTorqueSensor(body.bulletId, body.joints[joint_name].jointIndex, enable)
-		if enable:
-			body.joint_sensors.add(joint_name)
-		else:
-			body.joint_sensors.remove(joint_name)
-
-	def get_joint_state(self, bodyId, sim_indices=None):
-		body_data   = self.bodies[bodyId]
-		if sim_indices == None:
-			sim_indices = [j.jointIndex for k, j in body_data.joints.items() if k != None and j.jointType != pb.JOINT_FIXED]
-		new_js = [JointState(*x) for x in pb.getJointStates(body_data.bulletId, sim_indices)]
-		return {body_data.index_joint_map[sim_indices[x]]: new_js[x] for x in range(len(new_js))}
-
-	def get_sensor_state(self, bodyId):
-		body_data   = self.bodies[bodyId]
-		sim_indices = {body_data.joints[j].jointIndex: j for j in body_data.joint_sensors}
-		new_ss = [ReactionForces(x[:3], x[3:]) for x in pb.getJointStates(body_data.bulletId, sim_indices)]
-		return {sim_indices[x]: new_ss[x] for x in range(len(new_ss))}
+		self.__n_updates += 1
 
 	def reset(self):
 		for bodyId in self.bodies.keys():
 			self.reset_body(bodyId)
 
-	def reset_body(self, bodyId):
-		body_data = self.bodies[bodyId]
-		pb.resetBasePositionAndOrientation(body_data.bulletId, body_data.initial_pos, body_data.initial_rot)
-		self.set_joint_positions(bodyId, body_data.initial_joint_state)
-
-	def load_robot(self, urdf_path, pos=[0,0,0], rot=[0,0,0,1], joint_driver=JointDriver()):
-		res_urdf_path = res_pkg_path(urdf_path, self.resolver)
+	def load_urdf(self, urdf_path, pos=[0,0,0], rot=[0,0,0,1], joint_driver=JointDriver(), useFixedBase=0, name_override=None):
+		res_urdf_path = res_pkg_path(urdf_path)
 		print('Simulator: {}'.format(res_urdf_path))
 		robotBId = pb.loadURDF(res_urdf_path,
-							 pos,
-							 rot,
-							 useFixedBase=0,
-							 flags=pb.URDF_USE_SELF_COLLISION_EXCLUDE_PARENT) #
-		base_link, robotId = pb.getBodyInfo(robotBId)
-		self.bodyIds.add(robotId)
-		if robotId == 'fetch' and type(joint_driver) == JointDriver:
-			joint_driver = FetchDriver()
+							   pos,
+							   rot,
+							   useFixedBase,
+							   flags=pb.URDF_USE_SELF_COLLISION_EXCLUDE_PARENT) #
+		base_link, oBodyId = pb.getBodyInfo(robotBId)
+		bodyId = oBodyId
+		counter = 0
+		while bodyId in self.bodies.keys():
+			counter +=1
+			bodyId = '{}_{}'.format(oBodyId, counter)
+
+
 		joint_map = {None: JointInfo(-1, None, None, None, None,
 									 None, None, None, None,
 									 None, None, None, base_link,
@@ -265,10 +281,11 @@ class BulletSimulator(object):
 			if joint.jointType != pb.JOINT_FIXED:
 				joint_initial[joint.jointName] = 0.0
 
-		self.bodies[robotId] = MultiBody(self, robotBId, self.__gen_next_color(), joint_map, pos, rot, joint_initial, joint_driver)
-		self.bulletIds_to_bodyIds[robotBId] = robotId
-		print('created new robot with id {}'.format(robotId))
-		return robotId
+		new_body = MultiBody(self, robotBId, self.__gen_next_color(), joint_map, pos, rot, joint_initial, joint_driver)
+		self.bodies[bodyId] = new_body
+		print('created new robot with id {}'.format(bodyId))
+		return new_body
+
 
 	def set_object_pose(self, bodyId, pose, override_initial=False):
 		pos  = vec3_to_list(pos_of(pose))
@@ -277,6 +294,7 @@ class BulletSimulator(object):
 		if override_initial:
 			self.bodies[bodyId].initial_pos = pos
 			self.bodies[bodyId].initial_rot = quat
+
 
 	def add_object(self, dl_object):
 		color = self.__gen_next_color()
@@ -308,6 +326,7 @@ class BulletSimulator(object):
 			self.bulletIds_to_bodyIds[objBId] = Id
 			return Id
 		raise Exception('Cannot generate Bullet-body for object which is not rigid. Object: {}'.format(str(dl_object)))
+
 
 	def create_constraint(self, constraintId, parentBody, childBody,
 						  parentLink=None, childLink=None,
@@ -364,11 +383,6 @@ class BulletSimulator(object):
 							 Frame(Vector3(*ls[4]), Quaternion(*ls[5])),
 							 zero_vector,
 							 zero_vector)
-
-	# @profile
-	def get_AABB(self, bodyId, linkId=None):
-		res = pb.getAABB(self.bodies[bodyId].bulletId, self.bodies[bodyId].link_index_map[linkId])
-		return AABB(Vector3(*res[0]), Vector3(*res[1]))
 
 	# @profile
 	def get_overlapping(self, aabb, filter=set()):
