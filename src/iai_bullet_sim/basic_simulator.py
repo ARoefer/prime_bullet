@@ -39,27 +39,40 @@ class JointDriver(object):
 		pass
 
 class MultiBody(object):
-	def __init__(self, simulator, bulletId, color, joints={}, initial_pos=[0,0,0], initial_rot=[0,0,0,1], initial_joint_state=None, joint_driver=JointDriver()):
+	def __init__(self, simulator, bulletId, color, initial_pos=[0,0,0], initial_rot=[0,0,0,1], joint_driver=JointDriver()):
 		self.simulator      = simulator
 		self.__bulletId     = bulletId
 		self.color          = color
-		self.joints         = joints
+		self.joints         = {}
+		self.joint_idx_name_map = {}
 		self.joint_sensors  = set()
+		self.joint_driver   = joint_driver
+		self.link_index_map = {}
 
 		self.initial_pos    = initial_pos
 		self.initial_rot    = initial_rot
-		self.initial_joint_state = initial_joint_state if initial_joint_state != None else {joint: 0.0 for joint, info in self.joints.items() if info.type != pb.JOINT_FIXED}
-		
-		self.joint_driver   = joint_driver
+		self.initial_joint_state = {}
+
+		multibodyName, base_link = pb.getBodyInfo(self.__bulletId)
+		self.base_link = base_link
+		self.link_index_map[self.base_link] = -1
+
+		for x in range(pb.getNumJoints(self.__bulletId)):
+			joint = JointInfo(*pb.getJointInfo(self.__bulletId, x))
+			self.joints[joint.jointName] = joint
+			if joint.jointType != pb.JOINT_FIXED:
+				self.initial_joint_state[joint.jointName] = min(max(joint.lowerLimit, 0.0), joint.upperLimit)
+
 		
 		self.__index_joint_map       = {info.jointIndex: joint for joint, info in self.joints.items()}
-		self.__index_joint_map[-1]   = None
 		self.__dynamic_joint_indices = [info.jointIndex for info in self.joints.values() if info.jointType != pb.JOINT_FIXED]
+		print('dynamic joint indices: {}'.format(str(self.__dynamic_joint_indices)))
 
+
+		self.links = {info.linkName for info in self.joints.values()}
+		self.links.add(self.base_link)
 		self.__link_index_map = {info.linkName: info.jointIndex for info in self.joints.values()}
-		self.__link_index_map[None] = -1
-		
-		self.__index_link_map = {i: ln for ln, i in self.__link_index_map.items()}#
+		self.__link_index_map[self.base_link] = -1
 
 		self.__current_pose = None
 		self.__last_sim_pose_update = -1
@@ -68,6 +81,9 @@ class MultiBody(object):
 		self.__last_sim_js_update = -1
 
 
+	def bId(self):
+		return self.__bulletId
+
 	def reset(self):
 		pb.resetBasePositionAndOrientation(self.bulletId, self.initial_pos, self.initial_rot)
 		self.set_joint_positions(self.initial_joint_state)
@@ -75,11 +91,11 @@ class MultiBody(object):
 		self.__last_sim_js_update = -1
 
 	def get_link_state(self, link=None):
-		if link not in self.__link_index_map:
+		if link is not None and link not in self.__link_index_map:
 			raise Exception('Link "{}" is not defined'.format(link))
 
 		zero_vector = Vector3(0,0,0)
-		if link == None:
+		if link == None or link == self.base_link:
 			pos, quat = pb.getBasePositionAndOrientation(self.__bulletId)
 			frame = Frame(Vector3(*pos), Quaternion(*quat))
 			return LinkState(frame, frame, frame, zero_vector, zero_vector)
@@ -141,7 +157,7 @@ class MultiBody(object):
 	def apply_joint_pos_cmds(self, cmd):
 		cmd_indices = []
 		cmd_pos     = []
-		self.joint_driver.update_positions(self, next_cmd)
+		self.joint_driver.update_positions(self, cmd)
 		for jname in cmd.keys():
 			cmd_indices.append(self.joints[jname].jointIndex)
 			cmd_pos.append(cmd[jname])
@@ -152,27 +168,37 @@ class MultiBody(object):
 	def apply_joint_vel_cmds(self, cmd):
 		cmd_indices = []
 		cmd_vels    = []
-		self.joint_driver.update_velocities(self, next_cmd)
+		self.joint_driver.update_velocities(self, cmd)
 		for jname in cmd.keys():
 			cmd_indices.append(self.joints[jname].jointIndex)
 			cmd_vels.append(cmd[jname])
 
 		pb.setJointMotorControlArray(self.__bulletId, cmd_indices, pb.VELOCITY_CONTROL, targetVelocities=cmd_vels)
 
+	def apply_joint_effort_cmds(self, cmd):
+		cmd_indices = []
+		cmd_torques = []
+		self.joint_driver.update_effort(self, cmd)
+		for jname in cmd.keys():
+			cmd_indices.append(self.joints[jname].jointIndex)
+			cmd_torques.append(cmd[jname])
+
+		pb.setJointMotorControlArray(self.__bulletId, cmd_indices, pb.TORQUE_CONTROL, forces=cmd_torques)
+
 
 ReactionForces  = namedtuple('ReactionForces', ['f', 'm'])
 
 JointInfo = namedtuple('JointInfo', ['jointIndex', 'jointName', 'jointType', 'qIndex', 'uIndex',
-									 'flags', 'jointDamping', 'jointFriction', 'jointLowerLimit',
-									 'jointUpperLimit', 'jointMaxForce', 'jointMaxVelocity', 'linkName',
-									 'jointAxis', 'parentFramePos', 'parentFrameOrn', 'parentIndex'])
+									 'flags', 'jointDamping', 'jointFriction', 'lowerLimit',
+									 'upperLimit', 'maxEffort', 'maxVelocity', 'linkName',
+									 'axis', 'parentFramePos', 'parentFrameOrn', 'parentIndex'])
 
 class JointState(object):
 	def __init__(self, pos, vel, rForce, appliedTorque):
 		self.position = pos
 		self.velocity = vel
 		self.reactionForce = ReactionForces(rForce[:3], rForce[3:])
-		self.appliedMotorTorque = appliedTorque
+		self.effort = appliedTorque
 
 LinkState  = namedtuple('LinkState', ['CoMFrame', 'localInertialFrame', 'worldFrame', 'linearVelocity', 'angularVelocity'])
 
@@ -223,10 +249,14 @@ class BasicSimulator(object):
 		self.tick_rate = tick_rate
 		self.time_step = 1.0 / self.tick_rate
 		self.__n_updates = 0
+		self.__bId_IdMap = {}
 
 		self.__h = random.random()
 		self.__nextId = 0
 		self.__joint_types = {'FIXED': pb.JOINT_FIXED, 'PRISMATIC': pb.JOINT_PRISMATIC, 'HINGE': pb.JOINT_POINT2POINT}
+
+		self.__pre_physics_callbacks  = set()
+		self.__post_physics_callbacks = set()
 
 	def get_n_update(self):
 		return self.__n_updates
@@ -245,46 +275,64 @@ class BasicSimulator(object):
 		pb.disconnect()
 
 	def update(self):
+		for cb in self.__pre_physics_callbacks:
+			cb()
+		
 		pb.stepSimulation()
 		self.__n_updates += 1
+		
+		for cb in self.__post_physics_callbacks:
+			cb()
+
 
 	def reset(self):
-		for bodyId in self.bodies.keys():
-			self.reset_body(bodyId)
+		for body in self.bodies.values():
+			self.reset(body)
+
+	def register_object(self, obj):
+		base_link, bodyName = pb.getBodyInfo(obj.bId())
+		bodyId =  bodyName
+		counter = 0
+		while bodyId in self.bodies:
+			bodyId = '{}.{}'.format(bodyName, counter)
+			counter += 1
+		self.bodies[bodyId] = obj
+		self.__bId_IdMap[obj.bId()] = bodyId
+		return bodyId
+
+	def register_pre_physics_cb(self, callback):
+		self.__pre_physics_callbacks.add(callback)
+
+	def register_post_physics_cb(self, callback):
+		self.__post_physics_callbacks.add(callback)
+
+	def deregister_pre_physics_cb(self, callback):
+		self.__pre_physics_callbacks.remove(callback)
+
+	def deregister_post_physics_cb(self, callback):
+		self.__post_physics_callbacks.remove(callback)
+
 
 	def load_urdf(self, urdf_path, pos=[0,0,0], rot=[0,0,0,1], joint_driver=JointDriver(), useFixedBase=0, name_override=None):
 		res_urdf_path = res_pkg_path(urdf_path)
 		print('Simulator: {}'.format(res_urdf_path))
-		robotBId = pb.loadURDF(res_urdf_path,
-							   pos,
-							   rot,
-							   useFixedBase,
-							   flags=pb.URDF_USE_SELF_COLLISION_EXCLUDE_PARENT) #
-		base_link, oBodyId = pb.getBodyInfo(robotBId)
-		bodyId = oBodyId
-		counter = 0
-		while bodyId in self.bodies.keys():
-			counter +=1
-			bodyId = '{}_{}'.format(oBodyId, counter)
 
+		new_body = MultiBody(self, pb.loadURDF(res_urdf_path,
+							 	               pos,
+							                   rot,
+							                   0,              # MAXIMAL COORDINATES, DO NOT TOUCH!
+							                   useFixedBase,
+							                   flags=pb.URDF_USE_SELF_COLLISION), self.__gen_next_color(), pos, rot, joint_driver)
+		
 
-		joint_map = {None: JointInfo(-1, None, None, None, None,
-									 None, None, None, None,
-									 None, None, None, base_link,
-									 None, None, None, None)}
-		joint_idx_name_map = {-1: None}
-		joint_initial = {}
-		for x in range(pb.getNumJoints(robotBId)):
-			joint = JointInfo(*pb.getJointInfo(robotBId, x))
-			joint_idx_name_map[x] = joint.jointName
-			joint_map[joint.jointName] = joint
-			if joint.jointType != pb.JOINT_FIXED:
-				joint_initial[joint.jointName] = 0.0
-
-		new_body = MultiBody(self, robotBId, self.__gen_next_color(), joint_map, pos, rot, joint_initial, joint_driver)
-		self.bodies[bodyId] = new_body
+		bodyId = self.register_object(new_body)
 		print('created new robot with id {}'.format(bodyId))
 		return new_body
+
+	def get_body_id(self, bulletId):
+		if bulletId in self.__bId_IdMap:
+			return self.__bId_IdMap[bulletId]
+		return None
 
 
 	def set_object_pose(self, bodyId, pose, override_initial=False):
