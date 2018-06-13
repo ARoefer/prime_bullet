@@ -4,10 +4,10 @@
   <param name="robot_description"
     textfile="$(find iai_table_robot_description)/robots/ur5_table.urdf" />
 
-  <node pkg="iai_bullet_sim" type="simulator_sandbox.py" name="simulator" output="screen">
-    <!-- <rosparam command="load" file="$(find fetch_giskard)/test_data/fetch_sim_config.yaml" />
-    <remap from="~joint_states" to="joint_states" /> -->
-  </node>
+  <!-- <node pkg="iai_bullet_sim" type="simulator_sandbox.py" name="simulator" output="screen">
+    <rosparam command="load" file="$(find fetch_giskard)/test_data/fetch_sim_config.yaml" />
+    <remap from="~joint_states" to="joint_states" />
+  </node> -->
 
   <node pkg="robot_state_publisher" type="robot_state_publisher"
         name="robot_state_publisher">
