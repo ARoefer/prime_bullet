@@ -98,7 +98,7 @@ class AFAPSimulator(SimulatorNode):
 if __name__ == '__main__':
 	rospy.init_node('iai_bullet_sim')
 
-	sn = Loopback	Simulator(50)
+	sn = LoopbackSimulator(50)
 
 	print('System should have ticked')
 

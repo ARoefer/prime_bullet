@@ -67,7 +67,7 @@ class MultiBody(object):
 		
 		self.__index_joint_map       = {info.jointIndex: joint for joint, info in self.joints.items()}
 		self.__dynamic_joint_indices = [info.jointIndex for info in self.joints.values() if info.jointType != pb.JOINT_FIXED]
-		print('dynamic joint indices: {}'.format(str(self.__dynamic_joint_indices)))
+		print('dynamic joints:\n  {}'.format('\n  '.join([info.jointName for info in self.joints.values() if info.jointType != pb.JOINT_FIXED])))
 
 
 		self.links = {info.linkName for info in self.joints.values()}
@@ -152,7 +152,7 @@ class MultiBody(object):
 		for j, p in state.items():
 			pb.resetJointState(self.__bulletId, self.joints[j].jointIndex, p)
 		if override_initial:
-			self.initial_joint_state = state
+			self.initial_joint_state.update(state)
 
 
 	def apply_joint_pos_cmds(self, cmd):
