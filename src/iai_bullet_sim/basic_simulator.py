@@ -39,7 +39,7 @@ class JointDriver(object):
 		pass
 
 class MultiBody(object):
-	def __init__(self, simulator, bulletId, color, initial_pos=[0,0,0], initial_rot=[0,0,0,1], joint_driver=JointDriver()):
+	def __init__(self, simulator, bulletId, color, initial_pos=[0,0,0], initial_rot=[0,0,0,1], joint_driver=JointDriver(), urdf_file=None):
 		self.simulator      = simulator
 		self.__bulletId     = bulletId
 		self.color          = color
@@ -48,6 +48,7 @@ class MultiBody(object):
 		self.joint_sensors  = set()
 		self.joint_driver   = joint_driver
 		self.link_index_map = {}
+		self.urdf_file      = urdf_file
 
 		self.initial_pos    = initial_pos
 		self.initial_rot    = initial_rot
@@ -322,7 +323,7 @@ class BasicSimulator(object):
 							                   rot,
 							                   0,              # MAXIMAL COORDINATES, DO NOT TOUCH!
 							                   useFixedBase,
-							                   flags=pb.URDF_USE_SELF_COLLISION), self.__gen_next_color(), pos, rot, joint_driver)
+							                   flags=pb.URDF_USE_SELF_COLLISION), self.__gen_next_color(), pos, rot, joint_driver, urdf_path)
 		
 
 		bodyId = self.register_object(new_body)
@@ -517,3 +518,48 @@ class BasicSimulator(object):
 			return colId#, visId
 		else:
 			raise Exception('Cannot create Bullet-shapes for {}'.format(str(dl_shape)))
+
+	def load_world(self, world_dict):
+		if 'objects' in world_dict:
+			if type(world_dict['objects']) != list:
+				raise Exception('Field "objects" in world dictionary needs to be of type list.')
+
+			for od in world_dict['objects']:
+				type  = od['type']
+				name  = od['name']
+				i_pos = od['initial_pose']['position']
+				i_rot = od['initial_pose']['orientation']
+
+				if type == 'multibody':
+					urdf_path = od['urdf_path']
+					fixed_base = od['fixed_base']
+					initial_joint_state = od['joint_position']
+					new_obj = self.load_urdf(urdf_path, i_pos, i_rot, joint_driver=JointDriver(), fixed_base, name_override=name)
+					new_obj.set_joint_positions(initial_joint_state, True)
+					for s in od['sensors']:
+						new_obj.enable_joint_sensor(s, True)
+				else:
+					raise Exception('Unknown object type "{}"'.format(type))
+
+	def save_world(self, use_current_state_as_init=False):
+		out = {'objects': [], 'constraints': []}
+
+		for bname, b in self.bodies.items():
+			if type(b) == MultiBody:
+				od = {'name': bname, 
+					  'type': 'multibody', 
+					  'initial_pose': {
+					  	'position': b.initial_pos,
+					  	'rotation': b.initial_rot}, 
+				  	  'urdf_path': b.urdf_file,
+				  	  'initial_joint_state': b.initial_joint_state,
+				  	  'fixed_base': True} # TODO: Update this!
+		  		out['objects'].append(od)
+			else:
+				raise Exception('Can not serialize type "{}"'.format(str(type(b))))
+
+
+		for cname, c in self.constraints.items():
+			pass
+
+		return out		
