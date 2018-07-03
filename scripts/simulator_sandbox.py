@@ -6,7 +6,7 @@ from rosgraph_msgs.msg import Clock as ClockMsg
 from std_msgs.msg import Empty as EmptyMsg
 
 from iai_bullet_sim.basic_simulator import BasicSimulator
-from iai_bullet_sim.ros_modules import JSPublisher, SensorPublisher, JointVelocityController, JointVelocityTieInController
+from iai_bullet_sim.ros_modules import JSPublisher, SensorPublisher, JointVelocityController, JointVelocityTieInController, TrajectoryPositionController
 
 from blessed import Terminal
 
@@ -28,28 +28,14 @@ class SimulatorNode(object):
 		ur5Id = self.sim.get_body_id(self.ur5.bId())
 		self.ur5_js_pub = JSPublisher(self.ur5, ur5Id)
 		self.ur5_sensor_pub = SensorPublisher(self.ur5, ur5Id)
-		self.ur5_cmd_sub = JointVelocityController(self.ur5, ur5Id)
-		self.sim.register_pre_physics_cb(self.ur5_cmd_sub.tick)
-		self.sim.register_post_physics_cb(self.ur5_js_pub.update)
-		self.sim.register_post_physics_cb(self.ur5_sensor_pub.update)
+		self.ur5_traj_controller = TrajectoryPositionController(self.ur5, ur5Id)
+		self.sim.register_plugin(self.ur5_js_pub)
+		self.sim.register_plugin(self.ur5_sensor_pub)
+		self.sim.register_plugin(self.ur5_traj_controller)
 
 
 	def tick(self, timer_event):
 		self.sim.update()
-
-
-class LoopbackSimulator(SimulatorNode):
-	def __init__(self, tick_rate=50):
-		super(LoopbackSimulator, self).__init__(tick_rate)
-
-	def load_world(self, world):
-		super(LoopbackSimulator, self).load_world(world)
-
-		self.sim.deregister_pre_physics_cb(self.ur5_cmd_sub.tick)
-		ur5Id = self.sim.get_body_id(self.ur5.bId())
-		self.ur5_cmd_sub = JointVelocityTieInController(self.ur5, ur5Id)
-		self.sim.register_pre_physics_cb(self.ur5_cmd_sub.tick)
-		self.ur5_cmd_sub.register_callback(self.tick)
 
 
 class FixedTickSimulator(SimulatorNode):
@@ -98,9 +84,7 @@ class AFAPSimulator(SimulatorNode):
 if __name__ == '__main__':
 	rospy.init_node('iai_bullet_sim')
 
-	sn = LoopbackSimulator(50)
-
-	print('System should have ticked')
+	sn = FixedTickSimulator(50)
 
 	while not rospy.is_shutdown():
 		pass #sn.tick(None)
