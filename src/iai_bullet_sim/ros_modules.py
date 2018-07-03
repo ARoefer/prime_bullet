@@ -1,7 +1,11 @@
 import rospy
+from collections import OrderedDict
+
 from geometry_msgs.msg import WrenchStamped as WrenchMsg
 from sensor_msgs.msg import JointState as JointStateMsg
+from trajectory_msgs.msg import JointTrajectory as JointTrajectoryMsg
 
+from iai_bullet_sim.basic_simulator import SimulatorPlugin
 
 class Watchdog(object):
 	def __init__(self, timeout=rospy.Duration(0.1)):
@@ -15,12 +19,13 @@ class Watchdog(object):
 		return rospy.Time.now() - self.last_tick > self.timeout
 
 
-class JSPublisher(object):
+class JSPublisher(SimulatorPlugin):
 	def __init__(self, multibody, topic_prefix=''):
-		self.publisher = rospy.Publisher('{}/joint_state'.format(topic_prefix), JointStateMsg, queue_size=1)
+		super(JSPublisher, self).__init__('JointState Publisher')
+		self.publisher = rospy.Publisher('{}/joint_state'.format(topic_prefix), JointStateMsg, queue_size=1, tcp_nodelay=True)
 		self.body = multibody
 
-	def update(self):
+	def post_physics_update(self, simulator, deltaT):
 		new_js = self.body.joint_state()
 		msg = JointStateMsg()
 		msg.header.stamp = rospy.Time.now()
@@ -31,14 +36,16 @@ class JSPublisher(object):
 			msg.effort.append(state.effort)
 		self.publisher.publish(msg)
 
-class SensorPublisher(object):
+
+class SensorPublisher(SimulatorPlugin):
 	def __init__(self, multibody, topic_prefix):
+		super(SensorPublisher, self).__init__('Sensor Publisher')
 		self.publishers = {}
 		for sensor in multibody.joint_sensors:
-			self.publishers[sensor] = rospy.Publisher('{}/sensors/{}'.format(topic_prefix, sensor), WrenchMsg, queue_size=1)
+			self.publishers[sensor] = rospy.Publisher('{}/sensors/{}'.format(topic_prefix, sensor), WrenchMsg, queue_size=1, tcp_nodelay=True)
 		self.body = multibody
 
-	def update(self):
+	def post_physics_update(self, simulator, deltaT):
 		msg = WrenchMsg()
 		msg.header.stamp = rospy.Time.now()
 		for sensor, state in self.body.get_sensor_states().items():
@@ -52,21 +59,19 @@ class SensorPublisher(object):
 			self.publishers[sensor].publish(msg)
 
 
-class CommandSubscriber(object):
-	def __init__(self, multibody, topic, topic_type=JointStateMsg):
+class CommandSubscriber(SimulatorPlugin):
+	def __init__(self, name, multibody, topic, topic_type=JointStateMsg):
+		super(CommandSubscriber, self).__init__(name)
 		self.body = multibody
 		self.subscriber = rospy.Subscriber(topic, topic_type, callback=self.cmd_callback, queue_size=1)
 
 	def cmd_callback(self, cmd_msg):
 		raise (NotImplemented)
 
-	def tick(self):
-		pass
-
 
 class WatchdoggedJointController(CommandSubscriber):
-	def __init__(self, multibody, topic, watchdog_timeout):
-		super(WatchdoggedJointController, self).__init__(multibody, topic, JointStateMsg)
+	def __init__(self, name, multibody, topic, watchdog_timeout):
+		super(WatchdoggedJointController, self).__init__(name, multibody, topic, JointStateMsg)
 		self.watchdogs = {}
 		self.next_cmd  = {}
 		for joint in self.body.joints.keys():
@@ -76,14 +81,14 @@ class WatchdoggedJointController(CommandSubscriber):
 
 class JointPositionController(WatchdoggedJointController):
 	def __init__(self, multibody, topic_prefix, watchdog_timeout=0.2):
-		super(JointVelocityController, self).__init__(multibody, '{}/commands/joint_positions'.format(topic_prefix), watchdog_timeout)
+		super(JointVelocityController, self).__init__('Watchdogged Joint Position Controller', multibody, '{}/commands/joint_positions'.format(topic_prefix), watchdog_timeout)
 
 	def cmd_callback(self, cmd_msg):
 		for x in range(len(cmd_msg.name)):
 			self.watchdogs[cmd_msg.name[x]].tick(cmd_msg.header.stamp)
 			self.next_cmd[cmd_msg.name[x]] = cmd_msg.position[x]
 
-	def tick(self):
+	def pre_physics_update(self, simulator, deltaT):
 		for jname in self.next_cmd.keys():
 			if jname in self.watchdogs and self.watchdogs[jname].barks():
 				self.next_cmd[jname] = self.body.joint_state()[jname].position # Stop the joint where it is
@@ -93,14 +98,14 @@ class JointPositionController(WatchdoggedJointController):
 
 class JointVelocityController(WatchdoggedJointController):
 	def __init__(self, multibody, topic_prefix, watchdog_timeout=0.2):
-		super(JointVelocityController, self).__init__(multibody, '{}/commands/joint_velocities'.format(topic_prefix), watchdog_timeout)
+		super(JointVelocityController, self).__init__('Watchdogged Joint Velocity Controller', multibody, '{}/commands/joint_velocities'.format(topic_prefix), watchdog_timeout)
 
 	def cmd_callback(self, cmd_msg):
 		for x in range(len(cmd_msg.name)):
 			self.watchdogs[cmd_msg.name[x]].tick(cmd_msg.header.stamp)
 			self.next_cmd[cmd_msg.name[x]] = cmd_msg.velocity[x]
 
-	def tick(self):
+	def pre_physics_update(self, simulator, deltaT):
 		for jname in self.next_cmd.keys():
 			if jname in self.watchdogs and self.watchdogs[jname].barks():
 				self.next_cmd[jname] = 0
@@ -130,3 +135,32 @@ class JointVelocityTieInController(JointVelocityController):
 
 	def deregister_callback(self, callback):
 		self.__callbacks.remove(callback)
+
+
+class TrajectoryPositionController(CommandSubscriber):
+	def __init__(self, multibody, topic_prefix):
+		super(TrajectoryPositionController, self).__init__('Trajectory Position Controller', multibody, '{}/commands/joint_trajectory'.format(topic_prefix), JointTrajectoryMsg)
+		self.trajectory = None
+		self.t_start = None
+		self.__t_index = 0
+
+	def cmd_callback(self, cmd_msg):
+		print('Received new trajectory with {} points'.format(len(cmd_msg.points)))
+		self.trajectory = []
+		for point in cmd_msg.points:
+			self.trajectory.append((point.time_from_start
+, {cmd_msg.joint_names[x]: point.positions[x] for x in range(len(cmd_msg.joint_names))}))
+		self.trajectory = sorted(self.trajectory)
+		self.t_start = rospy.Time.now()
+		self.__t_index = 0
+		self.body.set_joint_positions(self.trajectory[0][1])
+
+	def pre_physics_update(self, simulator, deltaT):
+		if self.trajectory is None:
+			return
+
+		tss = rospy.Time.now() - self.t_start
+		if self.trajectory[self.__t_index][0] < tss and self.__t_index < len(self.trajectory) - 1:
+			self.__t_index += 1
+
+		self.body.apply_joint_pos_cmds(self.trajectory[self.__t_index][1])

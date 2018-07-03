@@ -256,8 +256,7 @@ class BasicSimulator(object):
 		self.__nextId = 0
 		self.__joint_types = {'FIXED': pb.JOINT_FIXED, 'PRISMATIC': pb.JOINT_PRISMATIC, 'HINGE': pb.JOINT_POINT2POINT}
 
-		self.__pre_physics_callbacks  = set()
-		self.__post_physics_callbacks = set()
+		self.__plugins = set()
 
 	def get_n_update(self):
 		return self.__n_updates
@@ -276,14 +275,14 @@ class BasicSimulator(object):
 		pb.disconnect()
 
 	def update(self):
-		for cb in self.__pre_physics_callbacks:
-			cb()
+		for plugin in self.__plugins:
+			plugin.pre_physics_update(self, self.time_step)
 		
 		pb.stepSimulation()
 		self.__n_updates += 1
 		
-		for cb in self.__post_physics_callbacks:
-			cb()
+		for plugin in self.__plugins:
+			plugin.post_physics_update(self, self.time_step)
 
 
 	def reset(self):
@@ -301,18 +300,11 @@ class BasicSimulator(object):
 		self.__bId_IdMap[obj.bId()] = bodyId
 		return bodyId
 
-	def register_pre_physics_cb(self, callback):
-		self.__pre_physics_callbacks.add(callback)
+	def register_plugin(self, plugin):
+		self.__plugins.add(plugin)
 
-	def register_post_physics_cb(self, callback):
-		self.__post_physics_callbacks.add(callback)
-
-	def deregister_pre_physics_cb(self, callback):
-		self.__pre_physics_callbacks.remove(callback)
-
-	def deregister_post_physics_cb(self, callback):
-		self.__post_physics_callbacks.remove(callback)
-
+	def deregister_plugin(self, plugin):
+		self.__plugins.remove(plugin)
 
 	def load_urdf(self, urdf_path, pos=[0,0,0], rot=[0,0,0,1], joint_driver=JointDriver(), useFixedBase=0, name_override=None):
 		res_urdf_path = res_pkg_path(urdf_path)
@@ -493,32 +485,6 @@ class BasicSimulator(object):
 							 c[9])                                                              # Normal force
 				for c in contacts]
 
-	#def create_fixed_constraint(self, bodyA, bodyB, linkA=None, linkB=None):
-
-	# Returns (colId, visId, type)
-	def __create_vc_shapes(self, dl_shape, base_frame, color):
-		if not DLRigidObject.is_a(dl_shape):
-			raise Exception('Cannot create Bullet-shapes for {} because it is not even a rigid body.'.format(str(dl_shape)))
-
-		# rel_link_tf = base_frame.inv() * dl_shape.pose
-		# rel_pos = pos(rel_link_tf)
-		# rel_rot =
-		if DLCube.is_a(dl_shape):
-			half_extents = [dl_shape.length * 0.5, dl_shape.width * 0.5, dl_shape.height * 0.5]
-			colId = pb.createCollisionShape(pb.GEOM_BOX, halfExtents=half_extents)
-			#visId = pb.createVisualShape(pb.GEOM_BOX, halfExtents=half_extents, rgbaColor=color)
-			return colId#, visId
-		elif DLCylinder.is_a(dl_shape):
-			colId = pb.createCollisionShape(pb.GEOM_CYLINDER, radius=dl_shape.radius, height=dl_shape.height*0.5)
-			#visId = pb.createVisualShape(pb.GEOM_CYLINDER, radius=dl_shape.radius, height=dl_shape.height)#, rgbaColor=color)
-			return colId#, visId
-		elif DLSphere.is_a(dl_shape):
-			colId = pb.createCollisionShape(pb.GEOM_SPHERE, radius=dl_shape.radius)
-			#visId = pb.createVisualShape(pb.GEOM_SPHERE, radius=dl_shape.radius, rgbaColor=color)
-			return colId#, visId
-		else:
-			raise Exception('Cannot create Bullet-shapes for {}'.format(str(dl_shape)))
-
 	def load_world(self, world_dict):
 		if 'objects' in world_dict:
 			if type(world_dict['objects']) != list:
@@ -534,7 +500,7 @@ class BasicSimulator(object):
 					urdf_path = od['urdf_path']
 					fixed_base = od['fixed_base']
 					initial_joint_state = od['joint_position']
-					new_obj = self.load_urdf(urdf_path, i_pos, i_rot, joint_driver=JointDriver(), fixed_base, name_override=name)
+					new_obj = self.load_urdf(urdf_path, i_pos, i_rot, joint_driver=JointDriver(), useFixedBase=fixed_base, name_override=name)
 					new_obj.set_joint_positions(initial_joint_state, True)
 					for s in od['sensors']:
 						new_obj.enable_joint_sensor(s, True)
@@ -563,3 +529,20 @@ class BasicSimulator(object):
 			pass
 
 		return out		
+
+
+class SimulatorPlugin(object):
+	"""docstring for SimulatorPlugin"""
+	def __init__(self, name):
+		super(SimulatorPlugin, self).__init__()
+		self.__name = name
+
+	def pre_physics_update(self, simulator, deltaT):
+		pass
+
+	def post_physics_update(self, simulator, deltaT):
+		pass
+
+	def __str__(self):
+		return self.__name
+		
