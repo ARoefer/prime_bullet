@@ -19,6 +19,8 @@ class SimulatorNode(object):
 
 		self.load_world(None)
 
+	def init(self, config_dictionary):
+
 
 	def load_world(self, world):
 		plane = self.sim.load_urdf('package://iai_bullet_sim/urdf/plane.urdf', useFixedBase=1)
@@ -36,6 +38,8 @@ class SimulatorNode(object):
 
 	def tick(self, timer_event):
 		self.sim.update()
+
+	def to_dict(self, ):
 
 
 class FixedTickSimulator(SimulatorNode):
