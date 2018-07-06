@@ -3,7 +3,7 @@ from collections import namedtuple
 from iai_bullet_sim.utils import Vector3, Quaternion, Frame
 
 BULLET_GEOM_TYPES = {pb.GEOM_SPHERE: 'sphere', pb.GEOM_BOX: 'box', pb.GEOM_CYLINDER: 'cylinder', pb.GEOM_CAPSULE: 'capsule'}
-GEOM_TYPES = {k: v for k, v in GEOM_TYPE_MAP.items()}
+GEOM_TYPES = {v: k for k, v in BULLET_GEOM_TYPES.items()}
 
 
 class RigidBody(object):

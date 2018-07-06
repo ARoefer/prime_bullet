@@ -2,8 +2,8 @@ import pybullet as pb
 import random
 from collections import namedtuple
 from iai_bullet_sim.utils import res_pkg_path, rot3_to_quat, Vector3, Quaternion, Frame
-from iai_bullet_sim.multibody import MultiBody
-from iai_bullet_sim.rigid_body import RigidBody, GEOM_TYPES
+from iai_bullet_sim.multibody import MultiBody, JointDriver
+from iai_bullet_sim.rigid_body import RigidBody, GEOM_TYPES, BULLET_GEOM_TYPES
 from pprint import pprint
 
 
@@ -98,7 +98,7 @@ class BasicSimulator(object):
 
 	def init(self, mode='direct'):
 		self.physicsClient = pb.connect({'gui': pb.GUI, 'direct': pb.DIRECT}[mode])#or p.DIRECT for non-graphical version
-		pb.setGravity(*gravity)
+		pb.setGravity(*self.gravity)
 		pb.setTimeStep(self.time_step)
 
 
@@ -133,16 +133,28 @@ class BasicSimulator(object):
 		for body in self.bodies.values():
 			self.reset(body)
 
-	def register_object(self, obj):
-		base_link, bodyName = pb.getBodyInfo(obj.bId())
-		bodyId =  bodyName
-		counter = 0
-		while bodyId in self.bodies:
-			bodyId = '{}.{}'.format(bodyName, counter)
-			counter += 1
-		self.bodies[bodyId] = obj
-		self.__bId_IdMap[obj.bId()] = bodyId
-		return bodyId
+	def register_object(self, obj, name_override=None):
+		if name_override is None:
+			if isinstance(obj, MultiBody):
+				base_link, bodyId = pb.getBodyInfo(obj.bId())
+			elif isinstance(obj, RigidBody):
+				bodyId = obj.type
+			counter = 0
+			while bodyId in self.bodies:
+				bodyId = '{}.{}'.format(bodyName, counter)
+				counter += 1
+
+			self.bodies[bodyId] = obj
+			self.__bId_IdMap[obj.bId()] = bodyId
+			return bodyId
+		else:
+			if name_override in self.bodies:
+				raise Exception('Id "{}" is already taken.'.format(name_override))
+			
+			self.bodies[name_override] = obj
+			self.__bId_IdMap[obj.bId()] = name_override
+			return name_override
+
 
 	def register_plugin(self, plugin):
 		self.__plugins.add(plugin)
@@ -162,13 +174,38 @@ class BasicSimulator(object):
 							                   flags=pb.URDF_USE_SELF_COLLISION), self.__gen_next_color(), pos, rot, joint_driver, urdf_path)
 		
 
-		bodyId = self.register_object(new_body)
-		print('created new robot with id {}'.format(bodyId))
+		bodyId = self.register_object(new_body, name_override)
+		print('Created new multibody with id {}'.format(bodyId))
 		return new_body
 
-	def create_object(self, geom_type, half_extents=[0.5,0.5,0.5], radius=0.5, height=1, color=[1,1,1], pos=[0,0,0], rot=[0,0,0,1], name_override=None):
 
-		if geom_type not in GEOM_TYPE_MAP_INVERSE:
+	def create_sphere(self, radius=0.5, pos=[0,0,0], rot=[0,0,0,1], mass=1, color=None, name_override=None):
+		return self.create_object(BULLET_GEOM_TYPES[pb.GEOM_SPHERE], radius=radius, pos=pos, rot=rot, mass=mass, color=color, name_override=name_override)
+
+	def create_box(self, half_extents=[0.5]*3, pos=[0,0,0], rot=[0,0,0,1], mass=1, color=None, name_override=None):
+		return self.create_object(BULLET_GEOM_TYPES[pb.GEOM_BOX], half_extents=half_extents, pos=pos, rot=rot, mass=mass, color=color, name_override=name_override)
+
+	def create_cylinder(self, radius=0.5, height=1, pos=[0,0,0], rot=[0,0,0,1], mass=1, color=None, name_override=None):
+		return self.create_object(BULLET_GEOM_TYPES[pb.GEOM_CYLINDER], radius=radius, height=height, pos=pos, rot=rot, mass=mass, color=color, name_override=name_override)
+
+	def create_capsule(self, radius=0.5, height=1, pos=[0,0,0], rot=[0,0,0,1], mass=1, color=None, name_override=None):
+		return self.create_object(BULLET_GEOM_TYPES[pb.GEOM_CAPSULE], radius=radius, height=height, pos=pos, rot=rot, mass=mass, color=color, name_override=name_override)
+
+
+	def create_object(self, geom_type, half_extents=[0.5,0.5,0.5], radius=0.5, height=1, pos=[0,0,0], rot=[0,0,0,1], mass=1, color=None, name_override=None):
+
+		if geom_type not in GEOM_TYPES:
+			raise Exception('Unknown geometry type "{}". Options are: {}'.format(geom_type, ', '.join(geom_type.keys())))
+
+		if color is None:
+			color = self.__gen_next_color()
+
+		new_body = RigidBody(self, 
+							 pb.createRigidBody(GEOM_TYPES[geom_type], radius, half_extents, height, mass, pos, rot, color),
+							 geom_type, color, pos, rot, half_extents, radius, height, mass)
+		bodyId = self.register_object(new_body, name_override)
+		print('Created new rigid body with id {}'.format(bodyId))
+		return new_body
 
 
 	def get_body_id(self, bulletId):

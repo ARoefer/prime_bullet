@@ -29,9 +29,16 @@ class SimulatorNode(object):
 		self.ur5_js_pub = JSPublisher(self.ur5, ur5Id)
 		self.ur5_sensor_pub = SensorPublisher(self.ur5, ur5Id)
 		self.ur5_traj_controller = TrajectoryPositionController(self.ur5, ur5Id)
+
+		sphere   = self.sim.create_sphere(pos=[1,0,3], mass=100)
+		box      = self.sim.create_box(pos=[3,0,3], mass=100)
+		cylinder = self.sim.create_cylinder(pos=[5,0,3], mass=100)
+		capsule  = self.sim.create_capsule(pos=[7,0,3], mass=100)
+
 		self.sim.register_plugin(self.ur5_js_pub)
 		self.sim.register_plugin(self.ur5_sensor_pub)
 		self.sim.register_plugin(self.ur5_traj_controller)
+
 
 
 	def tick(self, timer_event):
