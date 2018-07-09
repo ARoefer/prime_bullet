@@ -46,7 +46,8 @@ class SimulatorNode(object):
 	def tick(self, timer_event):
 		self.sim.update()
 
-	def to_dict(self, ):
+	def to_dict(self):
+		
 
 
 class FixedTickSimulator(SimulatorNode):
