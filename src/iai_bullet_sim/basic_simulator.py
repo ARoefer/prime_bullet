@@ -368,6 +368,8 @@ class BasicSimulator(object):
 					new_obj.set_joint_positions(initial_joint_state, True)
 					for s in od['sensors']:
 						new_obj.enable_joint_sensor(s, True)
+				elif type == 'rigid_body':
+					self.create_object(od['geom_type'], od['extents'], od['radius'], od['height'], i_pos, i_rot, od['mass'], od['color'], name)
 				else:
 					raise Exception('Unknown object type "{}"'.format(type))
 
@@ -375,7 +377,7 @@ class BasicSimulator(object):
 		out = {'objects': [], 'constraints': [], 'plugins': []}
 
 		for bname, b in self.bodies.items():
-			if type(b) == MultiBody:
+			if isinstance(b, MultiBody):
 				od = {'name': bname, 
 					  'type': 'multibody', 
 					  'initial_pose': {
@@ -384,6 +386,19 @@ class BasicSimulator(object):
 				  	  'urdf_path': b.urdf_file,
 				  	  'initial_joint_state': b.initial_joint_state,
 				  	  'fixed_base': True} # TODO: Update this!
+		  		out['objects'].append(od)
+	  		elif isinstance(b, RigidBody):
+	  			od = {'name': bname, 
+					  'type': 'rigid_body',
+					  'geom_type': b.type,
+					  'initial_pose': {
+					  	'position': b.initial_pos,
+					  	'rotation': b.initial_rot}, 
+				  	  'color': b.color,
+				  	  'mass': b.mass,
+				  	  'extents': b.halfExtents,
+				  	  'radius': b.radius,
+				  	  'height': b.height} # TODO: Update this!
 		  		out['objects'].append(od)
 			else:
 				raise Exception('Can not serialize type "{}"'.format(str(type(b))))
