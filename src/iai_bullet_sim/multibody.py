@@ -36,7 +36,6 @@ class MultiBody(object):
 		self.joint_idx_name_map = {}
 		self.joint_sensors  = set()
 		self.joint_driver   = joint_driver
-		self.link_index_map = {}
 		self.urdf_file      = urdf_file
 
 		self.initial_pos    = initial_pos
@@ -45,7 +44,6 @@ class MultiBody(object):
 
 		multibodyName, base_link = pb.getBodyInfo(self.__bulletId)
 		self.base_link = base_link
-		self.link_index_map[self.base_link] = -1
 
 		for x in range(pb.getNumJoints(self.__bulletId)):
 			joint = JointInfo(*pb.getJointInfo(self.__bulletId, x))
@@ -61,13 +59,15 @@ class MultiBody(object):
 
 		self.links = {info.linkName for info in self.joints.values()}
 		self.links.add(self.base_link)
-		self.__link_index_map = {info.linkName: info.jointIndex for info in self.joints.values()}
-		self.__link_index_map[self.base_link] = -1
+		self.link_index_map = {info.linkName: info.jointIndex for info in self.joints.values()}
+		self.link_index_map[self.base_link] = -1
+		self.index_link_map = {i: l for l, i in self.link_index_map.items()}
 
 		self.__current_pose = None
 		self.__last_sim_pose_update = -1
 
-		self.__joint_state = None
+		# Initialize empty JS for objects without dynamic joints
+		self.__joint_state = None if len(self.__dynamic_joint_indices) > 0 else {}
 		self.__last_sim_js_update = -1
 
 
@@ -81,7 +81,7 @@ class MultiBody(object):
 		self.__last_sim_js_update = -1
 
 	def get_link_state(self, link=None):
-		if link is not None and link not in self.__link_index_map:
+		if link is not None and link not in self.link_index_map:
 			raise Exception('Link "{}" is not defined'.format(link))
 
 		zero_vector = Vector3(0,0,0)
@@ -90,7 +90,7 @@ class MultiBody(object):
 			frame = Frame(Vector3(*pos), Quaternion(*quat))
 			return LinkState(frame, frame, frame, zero_vector, zero_vector)
 		else:
-			ls = pb.getLinkState(self.__bulletId, self.__link_index_map[link], compute_vel)
+			ls = pb.getLinkState(self.__bulletId, self.link_index_map[link], compute_vel)
 			return LinkState(Frame(Vector3(*ls[0]), Quaternion(*ls[1])),
 							 Frame(Vector3(*ls[2]), Quaternion(*ls[3])),
 							 Frame(Vector3(*ls[4]), Quaternion(*ls[5])),
@@ -98,11 +98,12 @@ class MultiBody(object):
 							 zero_vector)
 
 	def get_AABB(self, linkId=None):
-		res = pb.getAABB(self.__bulletId, self.__link_index_map[linkId])
+		res = pb.getAABB(self.__bulletId, self.link_index_map[linkId])
 		return AABB(Vector3(*res[0]), Vector3(*res[1]))
 
 	def joint_state(self):
-		if self.simulator.get_n_update() != self.__last_sim_js_update:
+		# Avoid unnecessary updates and updates for objects without dynamic joints
+		if self.simulator.get_n_update() != self.__last_sim_js_update and len(self.__dynamic_joint_indices) > 0:
 			new_js = [JointState(*x) for x in pb.getJointStates(self.__bulletId, self.__dynamic_joint_indices)]
 			self.__joint_state = {self.__index_joint_map[self.__dynamic_joint_indices[x]]: new_js[x] for x in range(len(new_js))}
 
@@ -134,8 +135,8 @@ class MultiBody(object):
 		pb.resetBasePositionAndOrientation(self.__bulletId, pos, quat)
 		self.__last_sim_pose_update = -1
 		if override_initial:
-			self.initial_pos = pos
-			self.initial_rot = quat
+			self.initial_pos = list(pos)
+			self.initial_rot = list(quat)
 
 
 	def set_joint_positions(self, state, override_initial=False):
@@ -176,3 +177,9 @@ class MultiBody(object):
 			cmd_torques.append(cmd[jname])
 
 		pb.setJointMotorControlArray(self.__bulletId, cmd_indices, pb.TORQUE_CONTROL, forces=cmd_torques)
+
+	def get_contacts(self, other_body=None, own_link=None, other_link=None):
+		return self.simulator.get_contacts(self, other_body, own_link, other_link)
+
+	def get_closest_points(self, other_body=None, own_link=None, other_link=None):
+		return self.simulator.get_closest_points(self, other_body, own_link, other_link)

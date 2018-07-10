@@ -114,21 +114,31 @@ class BasicSimulator(object):
 		if self.physicsClient is not None:
 			pb.setGravity(*gravity)
 
+	def stop(self):
+		for plugin in self.__plugins:
+			plugin.disable(self)
 
 	def kill(self):
 		pb.disconnect()
 
-	def update(self):
+	def pre_update(self):
 		for plugin in self.__plugins:
 			plugin.pre_physics_update(self, self.time_step)
 		
+	def physics_update(self):
 		pb.stepSimulation()
 		self.__n_updates += 1
 		
+	def post_update(self):
 		for plugin in self.__plugins:
 			plugin.post_physics_update(self, self.time_step)
 
-
+	def update(self):
+		self.pre_update()
+		self.physics_update()
+		self.post_update()		
+		
+		
 	def reset(self):
 		for body in self.bodies.values():
 			self.reset(body)
@@ -140,6 +150,7 @@ class BasicSimulator(object):
 			elif isinstance(obj, RigidBody):
 				bodyId = obj.type
 			counter = 0
+			bodyName = bodyId
 			while bodyId in self.bodies:
 				bodyId = '{}.{}'.format(bodyName, counter)
 				counter += 1
@@ -274,20 +285,7 @@ class BasicSimulator(object):
 		else:
 			raise (NotImplementedError)
 
-	# @profile
-	def get_link_state(self, bodyId, link, compute_vel=0):
-		zero_vector = Vector3(0,0,0)
-		if link == None:
-			pos, quat = pb.getBasePositionAndOrientation(self.bodies[bodyId].bulletId)
-			frame = Frame(Vector3(*pos), Quaternion(*quat))
-			return LinkState(frame, frame, frame, zero_vector, zero_vector)
-		else:
-			ls = pb.getLinkState(self.bodies[bodyId].bulletId, self.bodies[bodyId].link_index_map[link], compute_vel)
-			return LinkState(Frame(Vector3(*ls[0]), Quaternion(*ls[1])),
-							 Frame(Vector3(*ls[2]), Quaternion(*ls[3])),
-							 Frame(Vector3(*ls[4]), Quaternion(*ls[5])),
-							 zero_vector,
-							 zero_vector)
+
 
 	# @profile
 	def get_overlapping(self, aabb, filter=set()):
@@ -295,14 +293,14 @@ class BasicSimulator(object):
 		if raw_overlap == None:
 			return []
 
-		return [(self.bulletIds_to_bodyIds[bulletId], self.bodies[self.bulletIds_to_bodyIds[bulletId]].index_joint_map[linkIdx]) for bulletId, linkIdx in raw_overlap if self.bulletIds_to_bodyIds[bulletId] not in filter]
+		return [self.__get_obj_link_tuple(bulletId, linkIdx) for bulletId, linkIdx in raw_overlap if self.bodies[self.__bId_IdMap[bulletId]] not in filter]
 
 	# @profile
 	def get_contacts(self, bodyA=None, bodyB=None, linkA=None, linkB=None):
-		bulletA = self.bodies[bodyA].bulletId if bodyA != None else -1
-		bulletB = self.bodies[bodyB].bulletId if bodyB != None else -1
-		bulletLA = self.bodies[bodyA].link_index_map[linkA] if bodyA != None and linkA != None else -1
-		bulletLB = self.bodies[bodyB].link_index_map[linkB] if bodyB != None and linkB != None else -1
+		bulletA = bodyA.bId() if bodyA != None else -1
+		bulletB = bodyB.bId() if bodyB != None else -1
+		bulletLA = bodyA.link_index_map[linkA] if bodyA != None and linkA != None and isinstance(bodyA, MultiBody) else -1
+		bulletLB = bodyB.link_index_map[linkB] if bodyB != None and linkB != None and isinstance(bodyB, MultiBody) else -1
 		contacts = []
 		if bulletLA == -1 and bulletLB == -1:
 			contacts = pb.getContactPoints(bulletA, bulletB)
@@ -312,23 +310,15 @@ class BasicSimulator(object):
 			contacts = pb.getContactPoints(bulletA, bulletB, linkIndexB=bulletLB)
 		else:
 			contacts = pb.getContactPoints(bulletA, bulletB, bulletLA, bulletLB)
-		return [ContactPoint(self.bulletIds_to_bodyIds[c[1]],                                   # Body A
-							 self.bulletIds_to_bodyIds[c[2]],                                   # Body B
-							 self.bodies[self.bulletIds_to_bodyIds[c[1]]].index_link_map[c[3]], # Link of A
-							 self.bodies[self.bulletIds_to_bodyIds[c[2]]].index_link_map[c[4]], # Link of B
-							 Vector3(*c[5]),                                                # Point on A
-							 Vector3(*c[6]),                                                # Point on B
-							 Vector3(*c[7]),                                                # Normal from B to A
-							 c[8],                                                              # Distance
-							 c[9])                                                              # Normal force
-				for c in contacts]
+		return [self.__create_contact_point(c) for c in contacts]
+
 
 	# @profile
 	def get_closest_points(self, bodyA, bodyB, linkA=None, linkB=None, dist=0.2):
-		bulletA = self.bodies[bodyA].bulletId
-		bulletB = self.bodies[bodyB].bulletId
-		bulletLA = self.bodies[bodyA].link_index_map[linkA] if bodyA != None and linkA != None else -1
-		bulletLB = self.bodies[bodyB].link_index_map[linkB] if bodyB != None and linkB != None else -1
+		bulletA = bodyA.bId() if bodyA != None else -1
+		bulletB = bodyB.bId() if bodyB != None else -1
+		bulletLA = bodyA.link_index_map[linkA] if bodyA != None and linkA != None and isinstance(bodyA, MultiBody) else -1
+		bulletLB = bodyB.link_index_map[linkB] if bodyB != None and linkB != None and isinstance(bodyB, MultiBody) else -1
 		contacts = []
 		if bulletLA == -1 and bulletLB == -1:
 			contacts = pb.getClosestPoints(bulletA, bulletB, distance=dist)
@@ -338,16 +328,8 @@ class BasicSimulator(object):
 			contacts = pb.getClosestPoints(bulletA, bulletB, linkIndexB=bulletLB, distance=dist)
 		else:
 			contacts = pb.getClosestPoints(bulletA, bulletB, dist, bulletLA, bulletLB)
-		return [ContactPoint(self.bulletIds_to_bodyIds[c[1]],                                   # Body A
-							 self.bulletIds_to_bodyIds[c[2]],                                   # Body B
-							 self.bodies[self.bulletIds_to_bodyIds[c[1]]].index_link_map[c[3]], # Link of A
-							 self.bodies[self.bulletIds_to_bodyIds[c[2]]].index_link_map[c[4]], # Link of B
-							 Vector3(*c[5]),                                                # Point on A
-							 Vector3(*c[6]),                                                # Point on B
-							 Vector3(*c[7]),                                                # Normal from B to A
-							 c[8],                                                              # Distance
-							 c[9])                                                              # Normal force
-				for c in contacts]
+		return [self.__create_contact_point(c) for c in contacts]
+
 
 	def load_world(self, world_dict):
 		if 'objects' in world_dict:
@@ -355,48 +337,62 @@ class BasicSimulator(object):
 				raise Exception('Field "objects" in world dictionary needs to be of type list.')
 
 			for od in world_dict['objects']:
-				type  = od['type']
+				otype  = od['type']
 				name  = od['name']
 				i_pos = od['initial_pose']['position']
-				i_rot = od['initial_pose']['orientation']
+				i_rot = od['initial_pose']['rotation']
 
-				if type == 'multibody':
+				if otype == 'multibody':
 					urdf_path = od['urdf_path']
 					fixed_base = od['fixed_base']
-					initial_joint_state = od['joint_position']
+					initial_joint_state = od['initial_joint_state']
 					new_obj = self.load_urdf(urdf_path, i_pos, i_rot, joint_driver=JointDriver(), useFixedBase=fixed_base, name_override=name)
 					new_obj.set_joint_positions(initial_joint_state, True)
 					for s in od['sensors']:
 						new_obj.enable_joint_sensor(s, True)
-				elif type == 'rigid_body':
+				elif otype == 'rigid_body':
 					self.create_object(od['geom_type'], od['extents'], od['radius'], od['height'], i_pos, i_rot, od['mass'], od['color'], name)
 				else:
-					raise Exception('Unknown object type "{}"'.format(type))
+					raise Exception('Unknown object type "{}"'.format(otype))
+		if 'constraints' in world_dict:
+			pass
+
 
 	def save_world(self, use_current_state_as_init=False):
-		out = {'objects': [], 'constraints': [], 'plugins': []}
+		out = {'objects': [], 'constraints': []}
 
 		for bname, b in self.bodies.items():
 			if isinstance(b, MultiBody):
+				in_pos = b.pose().position if use_current_state_as_init else b.initial_pos
+				in_rot = b.pose().quaternion if use_current_state_as_init else b.initial_rot
+				if use_current_state_as_init:
+					in_js = {j: p.position for j, p in b.joint_state().items()}
+				else:
+					in_js = b.initial_joint_state
+
 				od = {'name': bname, 
 					  'type': 'multibody', 
 					  'initial_pose': {
-					  	'position': b.initial_pos,
-					  	'rotation': b.initial_rot}, 
+					  	'position': list(in_pos),
+					  	'rotation': list(in_rot)}, 
 				  	  'urdf_path': b.urdf_file,
-				  	  'initial_joint_state': b.initial_joint_state,
-				  	  'fixed_base': True} # TODO: Update this!
+				  	  'initial_joint_state': in_js,
+				  	  'fixed_base': True,
+				  	  'sensors': list(b.joint_sensors)} # TODO: Update this!
 		  		out['objects'].append(od)
 	  		elif isinstance(b, RigidBody):
+	  			in_pos = b.pose().position if use_current_state_as_init else b.initial_pos
+				in_rot = b.pose().quaternion if use_current_state_as_init else b.initial_rot
+
 	  			od = {'name': bname, 
 					  'type': 'rigid_body',
 					  'geom_type': b.type,
 					  'initial_pose': {
-					  	'position': b.initial_pos,
-					  	'rotation': b.initial_rot}, 
-				  	  'color': b.color,
+					  	'position': list(in_pos),
+					  	'rotation': list(in_rot)}, 
+				  	  'color': list(b.color),
 				  	  'mass': b.mass,
-				  	  'extents': b.halfExtents,
+				  	  'extents': list(b.halfExtents),
 				  	  'radius': b.radius,
 				  	  'height': b.height} # TODO: Update this!
 		  		out['objects'].append(od)
@@ -410,16 +406,22 @@ class BasicSimulator(object):
 		return out		
 
 	def load_simulator(self, config_dict, plugin_registry):
-		self.set_tick_rate(config_dict['tick_rate'])
-		self.set_gravity(config_dict['gravity'])
-		self.load_world(config_dict['world'])
+		if 'tick_rate' in config_dict:
+			self.set_tick_rate(config_dict['tick_rate'])
+		
+		if 'gravity' in config_dict:
+			self.set_gravity(config_dict['gravity'])
+		
+		if 'world' in config_dict:
+			self.load_world(config_dict['world'])
 
-		for plugin_dict in config_dict['plugins']:
-			if plugin_dict['plugin_type'] not in plugin_registry:
-				print('Unknown plugin type: {}'.format(plugin_dict['plugin_type']))
-				continue
+		if 'plugins' in config_dict:
+			for plugin_dict in config_dict['plugins']:
+				if plugin_dict['plugin_type'] not in plugin_registry:
+					print('Unknown plugin type: {}'.format(plugin_dict['plugin_type']))
+					continue
 
-			self.register_plugin(plugin_registry[plugin_dict['plugin_type']].factory(self, plugin_dict))
+				self.register_plugin(plugin_registry[plugin_dict['plugin_type']].factory(self, plugin_dict))
 
 	def save_simulator(self, use_current_state_as_init=False):
 		out = {'tick_rate': self.tick_rate,
@@ -429,9 +431,28 @@ class BasicSimulator(object):
 
 		for plugin in self.__plugins:
 			pdict = {'plugin_type': str(type(plugin))}
-			pdict.update(plugin.to_dict())
+			pdict.update(plugin.to_dict(self))
 			out['plugins'].append(pdict)
 		return out
+
+
+	def __create_contact_point(self, bcp):
+		bodyA, linkA = self.__get_obj_link_tuple(c[1], c[3])
+		bodyB, linkB = self.__get_obj_link_tuple(c[2], c[4])
+		return ContactPoint(bodyA,          # Body A
+							bodyB,          # Body B
+							linkA, 			# Link of A
+							linkB, 			# Link of B
+							Vector3(*c[5]), # Point on A
+							Vector3(*c[6]), # Point on B
+							Vector3(*c[7]), # Normal from B to A
+							c[8],           # Distance
+							c[9])           # Normal force
+
+	def __get_obj_link_tuple(self, bulletId, linkIdx):
+		body = self.bodies[self.__bId_IdMap[bulletId]]
+		link = body.index_link_map[linkIdx] if isinstance(body, MultiBody) else None
+		return (body, link)
 
 
 class SimulatorPlugin(object):
@@ -446,6 +467,12 @@ class SimulatorPlugin(object):
 	def post_physics_update(self, simulator, deltaT):
 		pass
 
+	def disable(self, simulator):
+		pass
+
 	def __str__(self):
 		return self.__name
+
+	def to_dict(self, simulator):
+		raise (NotImplementedError)
 		

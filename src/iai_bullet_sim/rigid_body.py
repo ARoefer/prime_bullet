@@ -50,5 +50,12 @@ class RigidBody(object):
 		pb.resetBasePositionAndOrientation(self.__bulletId, pos, quat)
 		self.__last_sim_pose_update = -1
 		if override_initial:
-			self.initial_pos = pos
-			self.initial_rot = quat
+			self.initial_pos = list(pos)
+			self.initial_rot = list(quat)
+
+
+	def get_contacts(self, other_body=None, other_link=None):
+		return self.simulator.get_contacts(self, other_body, None, other_link)
+
+	def get_closest_points(self, other_body=None, other_link=None):
+		return self.simulator.get_closest_points(self, other_body, None, other_link)

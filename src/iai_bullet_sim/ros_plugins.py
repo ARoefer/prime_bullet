@@ -22,8 +22,9 @@ class Watchdog(object):
 class JSPublisher(SimulatorPlugin):
 	def __init__(self, multibody, topic_prefix=''):
 		super(JSPublisher, self).__init__('JointState Publisher')
-		self.publisher = rospy.Publisher('{}/joint_state'.format(topic_prefix), JointStateMsg, queue_size=1, tcp_nodelay=True)
+		self.publisher = rospy.Publisher('{}/joint_states'.format(topic_prefix), JointStateMsg, queue_size=1, tcp_nodelay=True)
 		self.body = multibody
+		self.topic_prefix = topic_prefix
 
 	def post_physics_update(self, simulator, deltaT):
 		new_js = self.body.joint_state()
@@ -36,17 +37,35 @@ class JSPublisher(SimulatorPlugin):
 			msg.effort.append(state.effort)
 		self.publisher.publish(msg)
 
+	def disable(self, simulator):
+		self.publisher.unregister()
+
+	def to_dict(self, simulator):
+		return {'body': simulator.get_body_id(self.body.bId()),
+				'topic_prefix': self.topic_prefix}
+
+	@classmethod
+	def factory(cls, simulator, init_dict):
+		body = simulator.get_body(init_dict['body'])
+		if body is None:
+			raise Exception('Body "{}" does not exist in the context of the given simulation.'.format(init_dict['body']))
+		return SensorPublisher(body, init_dict['topic_prefix'])
+
 
 class SensorPublisher(SimulatorPlugin):
-	def __init__(self, multibody, topic_prefix):
+	def __init__(self, multibody, topic_prefix=''):
 		super(SensorPublisher, self).__init__('Sensor Publisher')
 		self.publishers = {}
 		for sensor in multibody.joint_sensors:
 			self.publishers[sensor] = rospy.Publisher('{}/sensors/{}'.format(topic_prefix, sensor), WrenchMsg, queue_size=1, tcp_nodelay=True)
 		self.body = multibody
 		self.__topic_prefix = topic_prefix
+		self.__enabled = True
 
 	def post_physics_update(self, simulator, deltaT):
+		if self.__enabled is False:
+			return
+
 		msg = WrenchMsg()
 		msg.header.stamp = rospy.Time.now()
 		for sensor, state in self.body.get_sensor_states().items():
@@ -59,15 +78,20 @@ class SensorPublisher(SimulatorPlugin):
 			msg.wrench.torque.z = state.m[2] 
 			self.publishers[sensor].publish(msg)
 
+	def disable(self, simulator):
+		self.__enabled = False
+		for publisher in self.publishers.values():
+			publisher.unregister()
+
 	def to_dict(self, simulator):
-		return {'body': simulator.get_body_id(self.body),
-				'topic_prefix': self.topic_prefix}
+		return {'body': simulator.get_body_id(self.body.bId()),
+				'topic_prefix': self.__topic_prefix}
 
 	@classmethod
 	def factory(cls, simulator, init_dict):
-		body = simulator.get_body(init_dict['name'])
+		body = simulator.get_body(init_dict['body'])
 		if body is None:
-			raise Exception('Body "{}" does not exist in the context of the given simulation.'.format(init_dict['name']))
+			raise Exception('Body "{}" does not exist in the context of the given simulation.'.format(init_dict['body']))
 		return SensorPublisher(body, init_dict['topic_prefix'])
 
 
@@ -76,9 +100,14 @@ class CommandSubscriber(SimulatorPlugin):
 		super(CommandSubscriber, self).__init__(name)
 		self.body = multibody
 		self.subscriber = rospy.Subscriber(topic, topic_type, callback=self.cmd_callback, queue_size=1)
+		self._enabled = True
 
 	def cmd_callback(self, cmd_msg):
 		raise (NotImplemented)
+
+	def disable(self, simulator):
+		self._enabled = False
+		self.subscriber.unregister()
 
 
 class WatchdoggedJointController(CommandSubscriber):
@@ -93,7 +122,7 @@ class WatchdoggedJointController(CommandSubscriber):
 
 
 class JointPositionController(WatchdoggedJointController):
-	def __init__(self, multibody, topic_prefix, watchdog_timeout=0.2):
+	def __init__(self, multibody, topic_prefix='', watchdog_timeout=0.2):
 		super(JointVelocityController, self).__init__('Watchdogged Joint Position Controller', multibody, '{}/commands/joint_positions'.format(topic_prefix), watchdog_timeout)
 		self.__topic_prefix = topic_prefix
 
@@ -103,28 +132,29 @@ class JointPositionController(WatchdoggedJointController):
 			self.next_cmd[cmd_msg.name[x]] = cmd_msg.position[x]
 
 	def pre_physics_update(self, simulator, deltaT):
-		for jname in self.next_cmd.keys():
-			if jname in self.watchdogs and self.watchdogs[jname].barks():
-				self.next_cmd[jname] = self.body.joint_state()[jname].position # Stop the joint where it is
+		if self._enabled:
+			for jname in self.next_cmd.keys():
+				if jname in self.watchdogs and self.watchdogs[jname].barks():
+					self.next_cmd[jname] = self.body.joint_state()[jname].position # Stop the joint where it is
 
 		self.body.apply_joint_pos_cmds(self.next_cmd)
 
-
 	def to_dict(self, simulator):
-		return {'body': simulator.get_body_id(self.body),
+		return {'body': simulator.get_body_id(self.body.bId()),
 				'topic_prefix': self.__topic_prefix,
 				'watchdog_timeout': self.watchdog_timeout}
 
 	@classmethod
 	def factory(cls, simulator, init_dict):
-		body = simulator.get_body(init_dict['name'])
+		body = simulator.get_body(init_dict['body'])
 		if body is None:
-			raise Exception('Body "{}" does not exist in the context of the given simulation.'.format(init_dict['name']))
+			raise Exception('Body "{}" does not exist in the context of the given simulation.'.format(init_dict['body']))
 		return JointPositionController(body, init_dict['topic_prefix'], init_dict['watchdog_timeout'])
 
 class JointVelocityController(WatchdoggedJointController):
-	def __init__(self, multibody, topic_prefix, watchdog_timeout=0.2):
+	def __init__(self, multibody, topic_prefix='', watchdog_timeout=0.2):
 		super(JointVelocityController, self).__init__('Watchdogged Joint Velocity Controller', multibody, '{}/commands/joint_velocities'.format(topic_prefix), watchdog_timeout)
+		self.__topic_prefix = topic_prefix
 
 	def cmd_callback(self, cmd_msg):
 		for x in range(len(cmd_msg.name)):
@@ -132,34 +162,35 @@ class JointVelocityController(WatchdoggedJointController):
 			self.next_cmd[cmd_msg.name[x]] = cmd_msg.velocity[x]
 
 	def pre_physics_update(self, simulator, deltaT):
-		for jname in self.next_cmd.keys():
-			if jname in self.watchdogs and self.watchdogs[jname].barks():
-				self.next_cmd[jname] = 0
+		if self._enabled:
+			for jname in self.next_cmd.keys():
+				if jname in self.watchdogs and self.watchdogs[jname].barks():
+					self.next_cmd[jname] = 0
 
 		self.body.apply_joint_vel_cmds(self.next_cmd)
 
 	def to_dict(self, simulator):
-		return {'body': simulator.get_body_id(self.body),
+		return {'body': simulator.get_body_id(self.body.bId()),
 				'topic_prefix': self.__topic_prefix,
 				'watchdog_timeout': self.watchdog_timeout}
 
 	@classmethod
 	def factory(cls, simulator, init_dict):
-		body = simulator.get_body(init_dict['name'])
+		body = simulator.get_body(init_dict['body'])
 		if body is None:
-			raise Exception('Body "{}" does not exist in the context of the given simulation.'.format(init_dict['name']))
+			raise Exception('Body "{}" does not exist in the context of the given simulation.'.format(init_dict['body']))
 		return JointVelocityController(body, init_dict['topic_prefix'], init_dict['watchdog_timeout'])
 
 
 # This controller is supposed to publish the differences between the given commands and the state of the simulation
 class JointVelocityDeltaContoller(JointVelocityController):
-	def __init__(self, multibody, topic_prefix, watchdog_timeout=0.3):
+	def __init__(self, multibody, topic_prefix='', watchdog_timeout=0.3):
 		super(JointVelocityDeltaController, self).__init__(multibody, topic_prefix, watchdog_timeout)
 		raise (NotImplemented)
 
 
 class JointVelocityTieInController(JointVelocityController):
-	def __init__(self, multibody, topic_prefix, watchdog_timeout=0.2):
+	def __init__(self, multibody, topic_prefix='', watchdog_timeout=0.2):
 		super(JointVelocityTieInController, self).__init__(multibody, topic_prefix, watchdog_timeout)
 		self.__callbacks = set()
 
@@ -176,11 +207,12 @@ class JointVelocityTieInController(JointVelocityController):
 
 
 class TrajectoryPositionController(CommandSubscriber):
-	def __init__(self, multibody, topic_prefix):
+	def __init__(self, multibody, topic_prefix=''):
 		super(TrajectoryPositionController, self).__init__('Trajectory Position Controller', multibody, '{}/commands/joint_trajectory'.format(topic_prefix), JointTrajectoryMsg)
 		self.trajectory = None
 		self.t_start = None
 		self.__t_index = 0
+		self.__topic_prefix = topic_prefix
 
 	def cmd_callback(self, cmd_msg):
 		print('Received new trajectory with {} points'.format(len(cmd_msg.points)))
@@ -194,7 +226,7 @@ class TrajectoryPositionController(CommandSubscriber):
 		self.body.set_joint_positions(self.trajectory[0][1])
 
 	def pre_physics_update(self, simulator, deltaT):
-		if self.trajectory is None:
+		if self.trajectory is None or self._enabled is False:
 			return
 
 		tss = rospy.Time.now() - self.t_start
@@ -204,12 +236,16 @@ class TrajectoryPositionController(CommandSubscriber):
 		self.body.apply_joint_pos_cmds(self.trajectory[self.__t_index][1])
 
 	def to_dict(self, simulator):
-		return {'body': simulator.get_body_id(self.body),
+		return {'body': simulator.get_body_id(self.body.bId()),
 				'topic_prefix': self.__topic_prefix}
 
 	@classmethod
 	def factory(cls, simulator, init_dict):
-		body = simulator.get_body(init_dict['name'])
+		body = simulator.get_body(init_dict['body'])
 		if body is None:
-			raise Exception('Body "{}" does not exist in the context of the given simulation.'.format(init_dict['name']))
+			raise Exception('Body "{}" does not exist in the context of the given simulation.'.format(init_dict['body']))
 		return TrajectoryPositionController(body, init_dict['topic_prefix'])
+
+
+PLUGIN_LIST = [JSPublisher, SensorPublisher, JointPositionController, JointVelocityController, TrajectoryPositionController] 
+PLUGINS = {str(p): p for p in PLUGIN_LIST}
