@@ -8,25 +8,42 @@ from trajectory_msgs.msg import JointTrajectory as JointTrajectoryMsg
 from iai_bullet_sim.basic_simulator import SimulatorPlugin
 
 class Watchdog(object):
+	"""Watchdog class. Barks if not ticked for long enough."""
 	def __init__(self, timeout=rospy.Duration(0.1)):
+		"""Constructor. Sets time after which the dog barks."""
 		self.last_tick = rospy.Time()
 		self.timeout = timeout
 
 	def tick(self, last_tick):
+		"""Sets the last time the dog was ticked."""
 		self.last_tick = last_tick
 
 	def barks(self):
+		"""Returns True, if last tick was long enough ago."""
 		return rospy.Time.now() - self.last_tick > self.timeout
 
 
 class JSPublisher(SimulatorPlugin):
+	"""Plugin which publishes an object's joint state to a topic.
+	The joint state will be published to [prefix]/joint_states.
+	"""
 	def __init__(self, multibody, topic_prefix=''):
+		"""Initializes the plugin.
+
+		multibody    -- Object to observe.
+		topic_prefix -- Prefix for the topic to publish to.
+		"""
 		super(JSPublisher, self).__init__('JointState Publisher')
 		self.publisher = rospy.Publisher('{}/joint_states'.format(topic_prefix), JointStateMsg, queue_size=1, tcp_nodelay=True)
 		self.body = multibody
 		self.topic_prefix = topic_prefix
+		self.__enabled = True
 
 	def post_physics_update(self, simulator, deltaT):
+		"""Publishes the current joint state."""
+		if self.__enabled is False:
+			return
+
 		new_js = self.body.joint_state()
 		msg = JointStateMsg()
 		msg.header.stamp = rospy.Time.now()
@@ -38,14 +55,18 @@ class JSPublisher(SimulatorPlugin):
 		self.publisher.publish(msg)
 
 	def disable(self, simulator):
+		"""Disables the publisher."""
+		self.__enabled = False
 		self.publisher.unregister()
 
 	def to_dict(self, simulator):
+		"""Serializes this plugin to a dictionary."""
 		return {'body': simulator.get_body_id(self.body.bId()),
 				'topic_prefix': self.topic_prefix}
 
 	@classmethod
 	def factory(cls, simulator, init_dict):
+		"""Instantiates the plugin from a dictionary in the context of a simulator."""
 		body = simulator.get_body(init_dict['body'])
 		if body is None:
 			raise Exception('Body "{}" does not exist in the context of the given simulation.'.format(init_dict['body']))
@@ -53,7 +74,15 @@ class JSPublisher(SimulatorPlugin):
 
 
 class SensorPublisher(SimulatorPlugin):
+	"""Plugin which publishes an object's sensor read outs to a topic per sensor.
+	The sensor data will be published to [prefix]/sensors/[sensor] as geometry_msgs/WrenchStamped.
+	"""
 	def __init__(self, multibody, topic_prefix=''):
+		"""Initializes the plugin.
+
+		multibody    -- Object to observe.
+		topic_prefix -- Prefix for the topics.
+		"""
 		super(SensorPublisher, self).__init__('Sensor Publisher')
 		self.publishers = {}
 		for sensor in multibody.joint_sensors:
@@ -63,6 +92,7 @@ class SensorPublisher(SimulatorPlugin):
 		self.__enabled = True
 
 	def post_physics_update(self, simulator, deltaT):
+		"""Publishes the current sensor states."""
 		if self.__enabled is False:
 			return
 
@@ -79,16 +109,19 @@ class SensorPublisher(SimulatorPlugin):
 			self.publishers[sensor].publish(msg)
 
 	def disable(self, simulator):
+		"""Disables the publishers."""
 		self.__enabled = False
 		for publisher in self.publishers.values():
 			publisher.unregister()
 
 	def to_dict(self, simulator):
+		"""Serializes this plugin to a dictionary."""
 		return {'body': simulator.get_body_id(self.body.bId()),
 				'topic_prefix': self.__topic_prefix}
 
 	@classmethod
 	def factory(cls, simulator, init_dict):
+		"""Instantiates the plugin from a dictionary in the context of a simulator."""
 		body = simulator.get_body(init_dict['body'])
 		if body is None:
 			raise Exception('Body "{}" does not exist in the context of the given simulation.'.format(init_dict['body']))
@@ -96,21 +129,34 @@ class SensorPublisher(SimulatorPlugin):
 
 
 class CommandSubscriber(SimulatorPlugin):
+	"""Superclass for plugins which subscribe to a command topic."""
 	def __init__(self, name, multibody, topic, topic_type=JointStateMsg):
+		"""Initializes the plugin.
+
+		name         -- Name of the plugin.
+		multibody    -- Object to observe.
+		topic        -- Topic to subscribe to.
+		topic_type   -- Message type of the topic.
+		"""
 		super(CommandSubscriber, self).__init__(name)
 		self.body = multibody
 		self.subscriber = rospy.Subscriber(topic, topic_type, callback=self.cmd_callback, queue_size=1)
 		self._enabled = True
 
 	def cmd_callback(self, cmd_msg):
+		"""Implements the command processing behavior."""
 		raise (NotImplemented)
 
 	def disable(self, simulator):
+		"""Disables the plugin and subscriber."""
 		self._enabled = False
 		self.subscriber.unregister()
 
 
 class WatchdoggedJointController(CommandSubscriber):
+	"""Superclass for per joint controller.
+
+	"""
 	def __init__(self, name, multibody, topic, watchdog_timeout):
 		super(WatchdoggedJointController, self).__init__(name, multibody, topic, JointStateMsg)
 		self.watchdogs = {}
