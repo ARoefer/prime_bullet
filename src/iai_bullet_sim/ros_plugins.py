@@ -154,10 +154,18 @@ class CommandSubscriber(SimulatorPlugin):
 
 
 class WatchdoggedJointController(CommandSubscriber):
-	"""Superclass for per joint controller.
-
+	"""Superclass for joint-level controllers.
+	Instantiates a watchdog per joint and subscribes to a command topic.
+	The topic is always of type sensor_msgs/JointState.
 	"""
 	def __init__(self, name, multibody, topic, watchdog_timeout):
+		"""Initializes a joint-level controller, subscribing to the given topic.
+		
+		name             -- Name of the controller
+		multibody        -- Body to control
+		topic            -- Topic to subscribe to
+		watchdog_timeout -- Timeout for the watchdogs
+		"""
 		super(WatchdoggedJointController, self).__init__(name, multibody, topic, JointStateMsg)
 		self.watchdogs = {}
 		self.next_cmd  = {}
@@ -168,92 +176,144 @@ class WatchdoggedJointController(CommandSubscriber):
 
 
 class JointPositionController(WatchdoggedJointController):
+	"""Joint-level controller which accepts joint positions as goals."""
 	def __init__(self, multibody, topic_prefix='', watchdog_timeout=0.2):
+		"""Initializes the controller. Subscribes to [prefix]/commands/joint_positions.
+		
+		multibody        -- Body to control
+		topic_prefix     -- Prefix for the command topic
+		watchdog_timeout -- Timeout for the watchdogs
+		"""
 		super(JointVelocityController, self).__init__('Watchdogged Joint Position Controller', multibody, '{}/commands/joint_positions'.format(topic_prefix), watchdog_timeout)
 		self.__topic_prefix = topic_prefix
 
 	def cmd_callback(self, cmd_msg):
+		"""Handles the incoming command message."""
 		for x in range(len(cmd_msg.name)):
 			self.watchdogs[cmd_msg.name[x]].tick(cmd_msg.header.stamp)
 			self.next_cmd[cmd_msg.name[x]] = cmd_msg.position[x]
 
 	def pre_physics_update(self, simulator, deltaT):
+		"""Applies the current command as joint goal for the simulated joints.
+		If a joint's watchdog barks, the joint is commanded to hold its position.
+		""" 
 		if self._enabled:
 			for jname in self.next_cmd.keys():
 				if jname in self.watchdogs and self.watchdogs[jname].barks():
 					self.next_cmd[jname] = self.body.joint_state()[jname].position # Stop the joint where it is
 
-		self.body.apply_joint_pos_cmds(self.next_cmd)
+			self.body.apply_joint_pos_cmds(self.next_cmd)
 
 	def to_dict(self, simulator):
+		"""Serializes this plugin to a dictionary."""
 		return {'body': simulator.get_body_id(self.body.bId()),
 				'topic_prefix': self.__topic_prefix,
 				'watchdog_timeout': self.watchdog_timeout}
 
 	@classmethod
 	def factory(cls, simulator, init_dict):
+		"""Instantiates the plugin from a dictionary in the context of a simulator."""
 		body = simulator.get_body(init_dict['body'])
 		if body is None:
 			raise Exception('Body "{}" does not exist in the context of the given simulation.'.format(init_dict['body']))
 		return JointPositionController(body, init_dict['topic_prefix'], init_dict['watchdog_timeout'])
 
+
 class JointVelocityController(WatchdoggedJointController):
+	"""Joint-level controller which accepts joint velocities as goals."""
 	def __init__(self, multibody, topic_prefix='', watchdog_timeout=0.2):
+		"""Initializes the controller. Subscribes to [prefix]/commands/joint_velocities.
+		
+		multibody        -- Body to control
+		topic_prefix     -- Prefix for the command topic
+		watchdog_timeout -- Timeout for the watchdogs
+		"""
 		super(JointVelocityController, self).__init__('Watchdogged Joint Velocity Controller', multibody, '{}/commands/joint_velocities'.format(topic_prefix), watchdog_timeout)
 		self.__topic_prefix = topic_prefix
 
 	def cmd_callback(self, cmd_msg):
+		"""Handles the incoming command message."""
 		for x in range(len(cmd_msg.name)):
 			self.watchdogs[cmd_msg.name[x]].tick(cmd_msg.header.stamp)
 			self.next_cmd[cmd_msg.name[x]] = cmd_msg.velocity[x]
 
 	def pre_physics_update(self, simulator, deltaT):
+		"""Applies the current command as joint goal for the simulated joints.
+		If a joint's watchdog barks, the joint is commanded to stop.
+		""" 
 		if self._enabled:
 			for jname in self.next_cmd.keys():
 				if jname in self.watchdogs and self.watchdogs[jname].barks():
 					self.next_cmd[jname] = 0
 
-		self.body.apply_joint_vel_cmds(self.next_cmd)
+			self.body.apply_joint_vel_cmds(self.next_cmd)
 
 	def to_dict(self, simulator):
+		"""Serializes this plugin to a dictionary."""
 		return {'body': simulator.get_body_id(self.body.bId()),
 				'topic_prefix': self.__topic_prefix,
 				'watchdog_timeout': self.watchdog_timeout}
 
 	@classmethod
 	def factory(cls, simulator, init_dict):
+		"""Instantiates the plugin from a dictionary in the context of a simulator."""
 		body = simulator.get_body(init_dict['body'])
 		if body is None:
 			raise Exception('Body "{}" does not exist in the context of the given simulation.'.format(init_dict['body']))
 		return JointVelocityController(body, init_dict['topic_prefix'], init_dict['watchdog_timeout'])
 
 
-# This controller is supposed to publish the differences between the given commands and the state of the simulation
 class JointVelocityDeltaContoller(JointVelocityController):
+	"""Joint-level controller which accepts joint velocities as goals and 
+	publishes the delta between those goals and the current joint velocities.
+	"""
 	def __init__(self, multibody, topic_prefix='', watchdog_timeout=0.3):
+		"""Initializes the controller. 
+		Subscribes to [prefix]/commands/joint_velocities.
+		Publishes to [prefix]/delta/joint_velocities.
+		
+		multibody        -- Body to control
+		topic_prefix     -- Prefix for the command topic
+		watchdog_timeout -- Timeout for the watchdogs
+		"""
 		super(JointVelocityDeltaController, self).__init__(multibody, topic_prefix, watchdog_timeout)
-		raise (NotImplemented)
+		self.delta_publisher = rospy.Publisher('{}/delta/joint_velocities'.format(topic_prefix), JointStateMsg, queue_size=1, tcp_nodelay=True)
 
+	def post_physics_update(self, simulator, deltaT):
+		"""Computes the delta between the given commands and 
+		the current joint velocities and publishes the result.
+		"""
+		if self._enabled:
+			deltaMsg = JointStateMsg()
+			deltaMsg.header.stamp = rospy.Time.now()
+			js = self.body.joint_state()
+			deltaMsg.position = [0]*len(self.next_cmd)
+			deltaMsg.effort = deltaMsg.position
+			for j, dv in self.next_cmd.items():
+				deltaMsg.name.append(j)
+				deltaMsg.velocity.append(dv - js[j].velocity)
+			self.delta_publisher.publish(deltaMsg)
 
-class JointVelocityTieInController(JointVelocityController):
-	def __init__(self, multibody, topic_prefix='', watchdog_timeout=0.2):
-		super(JointVelocityTieInController, self).__init__(multibody, topic_prefix, watchdog_timeout)
-		self.__callbacks = set()
-
-	def cmd_callback(self, cmd_msg):
-		super(JointVelocityTieInController, self).cmd_callback(cmd_msg)
-		for cb in self.__callbacks:
-			cb(cmd_msg)
-
-	def register_callback(self, callback):
-		self.__callbacks.add(callback)
-
-	def deregister_callback(self, callback):
-		self.__callbacks.remove(callback)
+	@classmethod
+	def factory(cls, simulator, init_dict):
+		"""Instantiates the plugin from a dictionary in the context of a simulator."""
+		body = simulator.get_body(init_dict['body'])
+		if body is None:
+			raise Exception('Body "{}" does not exist in the context of the given simulation.'.format(init_dict['body']))
+		return JointVelocityDeltaController(body, init_dict['topic_prefix'], init_dict['watchdog_timeout'])
 
 
 class TrajectoryPositionController(CommandSubscriber):
+	"""Controller which accepts a trajectory_msgs/JointTrajectory as command.
+	It will pass the positional part of the trajectory on to the joints.
+	It does not interpolate between trajectory points.
+	"""
 	def __init__(self, multibody, topic_prefix=''):
+		"""Initializes the controller. Subscribes to [prefix]/commands/joint_trajectory.
+		
+		multibody        -- Body to control
+		topic_prefix     -- Prefix for the command topic
+		"""
 		super(TrajectoryPositionController, self).__init__('Trajectory Position Controller', multibody, '{}/commands/joint_trajectory'.format(topic_prefix), JointTrajectoryMsg)
 		self.trajectory = None
 		self.t_start = None
@@ -261,6 +321,7 @@ class TrajectoryPositionController(CommandSubscriber):
 		self.__topic_prefix = topic_prefix
 
 	def cmd_callback(self, cmd_msg):
+		"""Handles the incoming command message."""
 		print('Received new trajectory with {} points'.format(len(cmd_msg.points)))
 		self.trajectory = []
 		for point in cmd_msg.points:
@@ -272,6 +333,9 @@ class TrajectoryPositionController(CommandSubscriber):
 		self.body.set_joint_positions(self.trajectory[0][1])
 
 	def pre_physics_update(self, simulator, deltaT):
+		"""Applies the current trajectory positions as commands to the joints.
+		Will command the joints to remain in their last position, even after the trajectory has been fully executed.
+		""" 
 		if self.trajectory is None or self._enabled is False:
 			return
 
@@ -282,16 +346,19 @@ class TrajectoryPositionController(CommandSubscriber):
 		self.body.apply_joint_pos_cmds(self.trajectory[self.__t_index][1])
 
 	def to_dict(self, simulator):
+		"""Serializes this plugin to a dictionary."""
 		return {'body': simulator.get_body_id(self.body.bId()),
 				'topic_prefix': self.__topic_prefix}
 
 	@classmethod
 	def factory(cls, simulator, init_dict):
+		"""Instantiates the plugin from a dictionary in the context of a simulator."""
 		body = simulator.get_body(init_dict['body'])
 		if body is None:
 			raise Exception('Body "{}" does not exist in the context of the given simulation.'.format(init_dict['body']))
 		return TrajectoryPositionController(body, init_dict['topic_prefix'])
 
-
-PLUGIN_LIST = [JSPublisher, SensorPublisher, JointPositionController, JointVelocityController, TrajectoryPositionController] 
+# List of plugins provided by this file.
+PLUGIN_LIST = [JSPublisher, SensorPublisher, JointPositionController, JointVelocityController, JointVelocityDeltaContoller, TrajectoryPositionController] 
+# Map of plugin type names to their classes.
 PLUGINS = {str(p): p for p in PLUGIN_LIST}
