@@ -42,13 +42,13 @@ class MultiBody(object):
 	def __init__(self, simulator, bulletId, color, initial_pos=[0,0,0], initial_rot=[0,0,0,1], joint_driver=JointDriver(), urdf_file=None):
 		"""Constructs a multibody.
 		
-		simulator: The simulator managing this object
-		bulletId: The Id of the corresponding bullet object
-		color: A color override for this object
-		initial_pos: This object's initial location
-		initial_rot: This object's initial rotation
-		joint_driver: A joint driver instance, which might modify the object's joints
-		urdf_file: The URDF this object was loaded from. This may be a path in the ROS package syntax
+		simulator    -- The simulator managing this object
+		bulletId     -- The Id of the corresponding bullet object
+		color        -- A color override for this object
+		initial_pos  -- This object's initial location
+		initial_rot  -- This object's initial rotation
+		joint_driver -- A joint driver instance, which might modify the object's joints
+		urdf_file    -- The URDF this object was loaded from. This may be a path in the ROS package syntax
 		"""
 		self.simulator      = simulator
 		self.__bulletId     = bulletId
@@ -162,7 +162,7 @@ class MultiBody(object):
 	def set_pose(self, pose, override_initial=False):
 		"""Sets the current pose of the object.
 
-		override_initial: Additionally set the given pose as initial pose.
+		override_initial -- Additionally set the given pose as initial pose.
 		"""
 		pos  = pose.position
 		quat = pose.quaternion
@@ -176,7 +176,7 @@ class MultiBody(object):
 	def set_joint_positions(self, state, override_initial=False):
 		"""Sets the current joint positions of the object.
 
-		override_initial: Additionally set the given positions as initial positions.
+		override_initial -- Additionally set the given positions as initial positions.
 		"""
 		for j, p in state.items():
 			pb.resetJointState(self.__bulletId, self.joints[j].jointIndex, p)
@@ -223,9 +223,9 @@ class MultiBody(object):
 		"""Gets the contacts this body had during the last physics step.
 		The contacts can be filtered by other bodies, their links and this body's own links.
 		
-		other_body: Other body to filter by
-		own_link:   Own link to filter by
-		other_link: Other object's link to filter by.
+		other_body -- Other body to filter by
+		own_link   -- Own link to filter by
+		other_link -- Other object's link to filter by.
 		"""
 		return self.simulator.get_contacts(self, other_body, own_link, other_link)
 
@@ -233,8 +233,8 @@ class MultiBody(object):
 		"""Gets the closest points of this body to its environment.
 		The closest points can be filtered by other bodies, their links and this body's own links.
 		
-		other_body: Other body to filter by
-		own_link:   Own link to filter by
-		other_link: Other object's link to filter by
+		other_body -- Other body to filter by
+		own_link   -- Own link to filter by
+		other_link -- Other object's link to filter by
 		"""
 		return self.simulator.get_closest_points(self, other_body, own_link, other_link)

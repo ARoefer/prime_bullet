@@ -88,8 +88,8 @@ class BasicSimulator(object):
 	def __init__(self, tick_rate=50, gravity=[0,0,-9.81]):
 		"""Constructs a simulator.
 
-		tick_rate: Ticks ideally performed per second.
-		gravity: Gravity force for the simulation.
+		tick_rate -- Ticks ideally performed per second.
+		gravity   -- Gravity force for the simulation.
 		"""
 		self.physicsClient = None
 		self.bodies      = {}
@@ -120,7 +120,7 @@ class BasicSimulator(object):
 	def init(self, mode='direct'):
 		"""Initializes the connection to Bullet.
 
-		mode: Mode of the connection. Options: gui | direct
+		mode -- Mode of the connection. Options: gui | direct
 		"""
 		self.physicsClient = pb.connect({'gui': pb.GUI, 'direct': pb.DIRECT}[mode])#or p.DIRECT for non-graphical version
 		pb.setGravity(*self.gravity)
@@ -182,8 +182,8 @@ class BasicSimulator(object):
 		Unless a specific name is given, the simulator will automatically assign one to the object.
 		If the specific name is already taken an exception will be raised.
 
-		obj: Object to register with the simulator.
-		name_override: Name to assign to the object.
+		obj           -- Object to register with the simulator.
+		name_override -- Name to assign to the object.
 		"""
 		if name_override is None:
 			if isinstance(obj, MultiBody):
@@ -219,12 +219,12 @@ class BasicSimulator(object):
 	def load_urdf(self, urdf_path, pos=[0,0,0], rot=[0,0,0,1], joint_driver=JointDriver(), useFixedBase=0, name_override=None):
 		"""Loads an Object from a URDF and registers it with this simulator.
 
-		urdf_path: Path of the file as local or global path, or as ROS package URI.
-		pos: Position to create the object at.
-		rot: Rotation to create the object with.
-		joint_driver: Custom joint driver for custom joint behavior.
-		useFixedBase: Should the base of the object be fixed in space?
-		name_override: Custom name to assign to this object during registration.
+		urdf_path     -- Path of the file as local or global path, or as ROS package URI.
+		pos           -- Position to create the object at.
+		rot           -- Rotation to create the object with.
+		joint_driver  -- Custom joint driver for custom joint behavior.
+		useFixedBase  -- Should the base of the object be fixed in space?
+		name_override -- Custom name to assign to this object during registration.
 		"""
 		res_urdf_path = res_pkg_path(urdf_path)
 		print('Simulator: {}'.format(res_urdf_path))
@@ -243,20 +243,69 @@ class BasicSimulator(object):
 
 
 	def create_sphere(self, radius=0.5, pos=[0,0,0], rot=[0,0,0,1], mass=1, color=None, name_override=None):
+		"""Creates and registers a spherical rigid body.
+		
+		radius        -- Sphere's radius
+		pos           -- Position to create the object at
+		rot           -- Rotation to create the object with
+		mass          -- Mass of the object
+		color         -- Color of the object
+		name_override -- Name for the object to be registered with.
+		"""
 		return self.create_object(BULLET_GEOM_TYPES[pb.GEOM_SPHERE], radius=radius, pos=pos, rot=rot, mass=mass, color=color, name_override=name_override)
 
 	def create_box(self, half_extents=[0.5]*3, pos=[0,0,0], rot=[0,0,0,1], mass=1, color=None, name_override=None):
+		"""Creates and registers a box shaped rigid body.
+		
+		half_extents  -- Half the edge lengths of the box
+		pos           -- Position to create the object at
+		rot           -- Rotation to create the object with
+		mass          -- Mass of the object
+		color         -- Color of the object
+		name_override -- Name for the object to be registered with.
+		"""
 		return self.create_object(BULLET_GEOM_TYPES[pb.GEOM_BOX], half_extents=half_extents, pos=pos, rot=rot, mass=mass, color=color, name_override=name_override)
 
 	def create_cylinder(self, radius=0.5, height=1, pos=[0,0,0], rot=[0,0,0,1], mass=1, color=None, name_override=None):
+		"""Creates and registers a cylindrical rigid body.
+		
+		radius        -- Cylinder's radius
+		height        -- Height of the cylinder
+		pos           -- Position to create the object at
+		rot           -- Rotation to create the object with
+		mass          -- Mass of the object
+		color         -- Color of the object
+		name_override -- Name for the object to be registered with.
+		"""
 		return self.create_object(BULLET_GEOM_TYPES[pb.GEOM_CYLINDER], radius=radius, height=height, pos=pos, rot=rot, mass=mass, color=color, name_override=name_override)
 
 	def create_capsule(self, radius=0.5, height=1, pos=[0,0,0], rot=[0,0,0,1], mass=1, color=None, name_override=None):
+		"""Creates and registers a capsule shaped rigid body.
+		
+		radius        -- Capsule's radius
+		height        -- Height of the capsule
+		pos           -- Position to create the object at
+		rot           -- Rotation to create the object with
+		mass          -- Mass of the object
+		color         -- Color of the object
+		name_override -- Name for the object to be registered with.
+		"""
 		return self.create_object(BULLET_GEOM_TYPES[pb.GEOM_CAPSULE], radius=radius, height=height, pos=pos, rot=rot, mass=mass, color=color, name_override=name_override)
 
 
 	def create_object(self, geom_type, half_extents=[0.5,0.5,0.5], radius=0.5, height=1, pos=[0,0,0], rot=[0,0,0,1], mass=1, color=None, name_override=None):
-
+		"""Creates and registers a rigid body.
+		
+		geom_type     -- Type of object. box | sphere | cylinder | capsule
+		half_extents  -- Half the edge lengths of the box
+		radius        -- Radius for spheres, cylinders and capsules
+		height        -- Height of the cylinder and capsule
+		pos           -- Position to create the object at
+		rot           -- Rotation to create the object with
+		mass          -- Mass of the object
+		color         -- Color of the object
+		name_override -- Name for the object to be registered with.
+		"""
 		if geom_type not in GEOM_TYPES:
 			raise Exception('Unknown geometry type "{}". Options are: {}'.format(geom_type, ', '.join(geom_type.keys())))
 
@@ -272,46 +321,16 @@ class BasicSimulator(object):
 
 
 	def get_body_id(self, bulletId):
+		"""Returns the name of the object associated with a specific Bullet Id."""
 		if bulletId in self.__bId_IdMap:
 			return self.__bId_IdMap[bulletId]
 		return None
 
 	def get_body(self, bodyId):
+		"""Returns the object associated with a name."""
 		if bodyId in self.bodies:
 			return self.bodies[bodyId]
 		return None
-
-
-	def add_object(self, dl_object):
-		color = self.__gen_next_color()
-		if DLCompoundObject.is_a(dl_object):
-			raise Exception('Compund objects are not supported at this time.')
-		elif DLRigidObject.is_a(dl_object):
-			Id = ''
-			if DLIded.is_a(dl_object):
-				Id = dl_object.id
-			else:
-				Id = 'body_{}'.format(self.__nextId)
-				self.__nextId += 1
-			if Id in self.bodies:
-				self.set_object_pose(Id, dl_object.pose, True)
-				return Id
-
-			cId = self.__create_vc_shapes(dl_object, dl_object.pose, color)#, vId
-			pos = vec3_to_list(pos_of(dl_object.pose))
-			rot = list(rot3_to_quat(dl_object.pose))
-			objBId = pb.createMultiBody(dl_object.mass, cId, -1, pos, rot)
-
-			obj_data = BodyData(objBId, color, {None: JointInfo(-1, None, None, None, None,
-									                            None, None, None, None,
-								    	                        None, None, None, Id,
-									                            None, None, None, None)},
-								pos, rot, {}, None)
-			self.bodyIds.add(Id)
-			self.bodies[Id] = obj_data
-			self.bulletIds_to_bodyIds[objBId] = Id
-			return Id
-		raise Exception('Cannot generate Bullet-body for object which is not rigid. Object: {}'.format(str(dl_object)))
 
 
 	def create_constraint(self, constraintId, parentBody, childBody,
@@ -319,6 +338,7 @@ class BasicSimulator(object):
 						  jointType='FIXED', jointAxis=[1,0,0],
 						  parentJointPosition=[0,0,0], childJointPosition=[0,0,0],
 						  parentJointOrientation=[0,0,0,1], childJointOrientation=[0,0,0,1]):
+		raise (NotImplementedError)
 		if constraintId not in self.constraints:
 			parent = self.bodies[parentBody]
 			child  = self.bodies[childBody]
@@ -341,6 +361,11 @@ class BasicSimulator(object):
 
 	# @profile
 	def get_overlapping(self, aabb, filter=set()):
+		"""Returns all objects overlapping the given bounding box.
+
+		aabb   -- Axis aligned bounding box to check against.
+		filter -- All objects in this set get filtered from the results.
+		"""
 		raw_overlap = pb.getOverlappingObjects(vec3_to_list(aabb.min), vec3_to_list(aabb.max))
 		if raw_overlap == None:
 			return []
@@ -349,6 +374,13 @@ class BasicSimulator(object):
 
 	# @profile
 	def get_contacts(self, bodyA=None, bodyB=None, linkA=None, linkB=None):
+		"""Returns all contacts generated during the last physics step.
+
+		bodyA -- All returned contacts will involve this object.
+		bodyB -- All returned contacts will only be between this object and bodyA.
+		linkA -- All contact will involve this link of bodyA. 
+		linkB -- All returned will involve this link of bodyB
+		"""
 		bulletA = bodyA.bId() if bodyA != None else -1
 		bulletB = bodyB.bId() if bodyB != None else -1
 		bulletLA = bodyA.link_index_map[linkA] if bodyA != None and linkA != None and isinstance(bodyA, MultiBody) else -1
@@ -367,6 +399,13 @@ class BasicSimulator(object):
 
 	# @profile
 	def get_closest_points(self, bodyA, bodyB, linkA=None, linkB=None, dist=0.2):
+		"""Returns all the closest points between two objects.
+
+		bodyA -- First body.
+		bodyB -- Second body.
+		linkA -- Closest point will be on this link of bodyA. 
+		linkB -- Closest point will be on this link of bodyB.
+		"""
 		bulletA = bodyA.bId() if bodyA != None else -1
 		bulletB = bodyB.bId() if bodyB != None else -1
 		bulletLA = bodyA.link_index_map[linkA] if bodyA != None and linkA != None and isinstance(bodyA, MultiBody) else -1
@@ -384,6 +423,7 @@ class BasicSimulator(object):
 
 
 	def load_world(self, world_dict):
+		"""Loads a world configuration from a dictionary."""
 		if 'objects' in world_dict:
 			if type(world_dict['objects']) != list:
 				raise Exception('Field "objects" in world dictionary needs to be of type list.')
@@ -411,6 +451,10 @@ class BasicSimulator(object):
 
 
 	def save_world(self, use_current_state_as_init=False):
+		"""Serializes the positional state of the simulation to a dictionary.
+
+		use_current_state_as_init -- Should the current state, or the initial state be serialized.
+		"""
 		out = {'objects': [], 'constraints': []}
 
 		for bname, b in self.bodies.items():
@@ -458,6 +502,11 @@ class BasicSimulator(object):
 		return out		
 
 	def load_simulator(self, config_dict, plugin_registry):
+		"""Loads a simulator configuration from a dictionary.
+
+		config_dict     -- Simulator configuration.
+		plugin_registry -- Dictionary of plugin types to their respective classes. Used to instantiate plugins.
+		"""
 		if 'tick_rate' in config_dict:
 			self.set_tick_rate(config_dict['tick_rate'])
 		
@@ -476,6 +525,10 @@ class BasicSimulator(object):
 				self.register_plugin(plugin_registry[plugin_dict['plugin_type']].factory(self, plugin_dict))
 
 	def save_simulator(self, use_current_state_as_init=False):
+		"""Saves the simulator's state to a dictionary.
+
+		use_current_state_as_init -- Should the current state, or the initial state be serialized.
+		"""
 		out = {'tick_rate': self.tick_rate,
 			   'gravity': self.gravity,
 			   'world': self.save_world(use_current_state_as_init), 
@@ -489,6 +542,7 @@ class BasicSimulator(object):
 
 
 	def __create_contact_point(self, bcp):
+		"""Internal. Turns a bullet contact point into a ContactPoint."""
 		bodyA, linkA = self.__get_obj_link_tuple(c[1], c[3])
 		bodyB, linkB = self.__get_obj_link_tuple(c[2], c[4])
 		return ContactPoint(bodyA,          # Body A
@@ -502,29 +556,36 @@ class BasicSimulator(object):
 							c[9])           # Normal force
 
 	def __get_obj_link_tuple(self, bulletId, linkIdx):
+		"""Internal. Turns a bullet id and a link index into a tuple of the corresponding object and the link's name."""
 		body = self.bodies[self.__bId_IdMap[bulletId]]
 		link = body.index_link_map[linkIdx] if isinstance(body, MultiBody) else None
 		return (body, link)
 
 
 class SimulatorPlugin(object):
-	"""docstring for SimulatorPlugin"""
+	"""Superclass for simulator plugins.
+	Implement a method class method "factory(cls, simulator, init_dict)" as factory method for your class.
+	"""
 	def __init__(self, name):
 		super(SimulatorPlugin, self).__init__()
 		self.__name = name
 
 	def pre_physics_update(self, simulator, deltaT):
+		"""Implements pre physics step behavior."""
 		pass
 
 	def post_physics_update(self, simulator, deltaT):
+		"""Implements post physics step behavior."""
 		pass
 
 	def disable(self, simulator):
+		"""Stops the execution of this plugin."""
 		pass
 
 	def __str__(self):
 		return self.__name
 
 	def to_dict(self, simulator):
+		"""Serializes this plugin to a dictionary."""
 		raise (NotImplementedError)
 		

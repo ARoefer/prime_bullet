@@ -14,16 +14,16 @@ class RigidBody(object):
 	def __init__(self, simulator, bulletId, geom_type, color, initial_pos=[0,0,0], initial_rot=[0,0,0,1], halfExtents=[0.5,0.5,0.5], radius=0.5, height=1, mass=1):
 		"""Constructs a rigid body.
 		
-		simulator: The simulator managing this object
-		bulletId: The Id of the corresponding bullet object
-		geom_type: Shape of this object. sphere | box | cylinder | capsule 
-		color: A color override for this object
-		initial_pos: This object's initial location
-		initial_rot: This object's initial rotation
-		halfExtents: Half edge lengths for box type.
-		radius: Radius for sphere, cylinder and capsule
-		height: Total height of cylinder and capsule.
-		mass: Mass of the object. 0 = static 
+		simulator   -- The simulator managing this object
+		bulletId    -- The Id of the corresponding bullet object
+		geom_type   -- Shape of this object. sphere | box | cylinder | capsule 
+		color       -- A color override for this object
+		initial_pos -- This object's initial location
+		initial_rot -- This object's initial rotation
+		halfExtents -- Half edge lengths for box type.
+		radius      -- Radius for sphere, cylinder and capsule
+		height      -- Total height of cylinder and capsule.
+		mass        -- Mass of the object. 0 = static 
 		"""
 		if geom_type not in GEOM_TYPES:
 			raise Exception('Rigid body type needs to be {}'.format(' or '.join(['"{}"'.format(t) for t in GEOM_TYPES])))
@@ -68,7 +68,7 @@ class RigidBody(object):
 	def set_pose(self, pose, override_initial=False):
 		"""Sets the current pose of the object.
 
-		override_initial: Additionally set the given pose as initial pose.
+		override_initial -- Additionally set the given pose as initial pose.
 		"""
 		pos  = pose.position
 		quat = pose.quaternion
@@ -83,8 +83,8 @@ class RigidBody(object):
 		"""Gets the contacts this body had during the last physics step.
 		The contacts can be filtered by other bodies and their links.
 		
-		other_body: Other body to filter by
-		other_link: Other object's link to filter by.
+		other_body -- Other body to filter by
+		other_link -- Other object's link to filter by.
 		"""
 		return self.simulator.get_contacts(self, other_body, None, other_link)
 
@@ -92,7 +92,7 @@ class RigidBody(object):
 		"""Gets the closest points of this body to its environment.
 		The closest points can be filtered by other bodies and their links.
 		
-		other_body: Other body to filter by
-		other_link: Other object's link to filter by
+		other_body -- Other body to filter by
+		other_link -- Other object's link to filter by
 		"""
 		return self.simulator.get_closest_points(self, other_body, None, other_link)
