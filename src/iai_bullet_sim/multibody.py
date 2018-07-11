@@ -3,32 +3,53 @@ from collections import namedtuple
 from iai_bullet_sim.utils import Vector3, Quaternion, Frame
 
 class JointDriver(object):
+	"""Joint drivers modify given velocity and effort commands to match robot specific joint behavior.
+	"""
 	def update_positions(self, robot_data, positions_dict):
+		"""Updates a given position command."""
 		pass
 	def update_velocities(self, robot_data, velocities_dict):
+		"""Updates a given velocity command."""
 		pass
 	def update_effort(self, robot_data, effort_dict):
+		"""Updates a given effort command."""
 		pass
 
 class JointState(object):
+	"""Represents the state of an individual bullet joint."""
 	def __init__(self, pos, vel, rForce, appliedTorque):
 		self.position = pos
 		self.velocity = vel
 		self.reactionForce = ReactionForces(rForce[:3], rForce[3:])
 		self.effort = appliedTorque
 
+# Reaction force structure. Assigns names to bullet's info structure.
 ReactionForces  = namedtuple('ReactionForces', ['f', 'm'])
 
+# Joint info structure. Assigns names to bullet's info structure.
 JointInfo = namedtuple('JointInfo', ['jointIndex', 'jointName', 'jointType', 'qIndex', 'uIndex',
 									 'flags', 'jointDamping', 'jointFriction', 'lowerLimit',
 									 'upperLimit', 'maxEffort', 'maxVelocity', 'linkName',
 									 'axis', 'parentFramePos', 'parentFrameOrn', 'parentIndex'])
 
+# Link state structure. Assigns names to bullet's info structure.
 LinkState  = namedtuple('LinkState', ['CoMFrame', 'localInertialFrame', 'worldFrame', 'linearVelocity', 'angularVelocity'])
 
 
 class MultiBody(object):
+	"""Wrapper class giving object oriented access to PyBullet's multibodies.
+	"""
 	def __init__(self, simulator, bulletId, color, initial_pos=[0,0,0], initial_rot=[0,0,0,1], joint_driver=JointDriver(), urdf_file=None):
+		"""Constructs a multibody.
+		
+		simulator: The simulator managing this object
+		bulletId: The Id of the corresponding bullet object
+		color: A color override for this object
+		initial_pos: This object's initial location
+		initial_rot: This object's initial rotation
+		joint_driver: A joint driver instance, which might modify the object's joints
+		urdf_file: The URDF this object was loaded from. This may be a path in the ROS package syntax
+		"""
 		self.simulator      = simulator
 		self.__bulletId     = bulletId
 		self.color          = color
@@ -72,22 +93,26 @@ class MultiBody(object):
 
 
 	def bId(self):
+		"""Returns the corresponding bullet Id"""
 		return self.__bulletId
 
 	def reset(self):
+		"""Resets this object's pose and joints to their initial configuration."""
 		pb.resetBasePositionAndOrientation(self.__bulletId, self.initial_pos, self.initial_rot)
 		self.set_joint_positions(self.initial_joint_state)
 		self.__last_sim_pose_update = -1
 		self.__last_sim_js_update = -1
 
 	def get_link_state(self, link=None):
+		"""Returns the state of the named link.
+		If None is passed as link, the object's pose is returned as LinkState
+		"""
 		if link is not None and link not in self.link_index_map:
 			raise Exception('Link "{}" is not defined'.format(link))
 
 		zero_vector = Vector3(0,0,0)
 		if link == None or link == self.base_link:
-			pos, quat = pb.getBasePositionAndOrientation(self.__bulletId)
-			frame = Frame(Vector3(*pos), Quaternion(*quat))
+			frame = self.pose()
 			return LinkState(frame, frame, frame, zero_vector, zero_vector)
 		else:
 			ls = pb.getLinkState(self.__bulletId, self.link_index_map[link], compute_vel)
@@ -98,10 +123,12 @@ class MultiBody(object):
 							 zero_vector)
 
 	def get_AABB(self, linkId=None):
+		"""Returns the bounding box of a named link."""
 		res = pb.getAABB(self.__bulletId, self.link_index_map[linkId])
 		return AABB(Vector3(*res[0]), Vector3(*res[1]))
 
 	def joint_state(self):
+		"""Returns the object's current joint state."""
 		# Avoid unnecessary updates and updates for objects without dynamic joints
 		if self.simulator.get_n_update() != self.__last_sim_js_update and len(self.__dynamic_joint_indices) > 0:
 			new_js = [JointState(*x) for x in pb.getJointStates(self.__bulletId, self.__dynamic_joint_indices)]
@@ -110,12 +137,14 @@ class MultiBody(object):
 		return self.__joint_state
 
 	def pose(self):
+		"""Returns the object's current pose in the form of a Frame."""
 		if self.simulator.get_n_update() != self.__last_sim_pose_update:
 			temp = pb.getBasePositionAndOrientation(self.__bulletId)
 			self.__current_pose = Frame(temp[0], temp[1])
 		return self.__current_pose
 
 	def enable_joint_sensor(self, joint_name, enable=True):
+		"""Activates or deactivates the force-torque sensor for a given joint."""
 		pb.enableJointForceTorqueSensor(self.__bulletId, self.joints[joint_name].jointIndex, enable)
 		if enable:
 			self.joint_sensors.add(joint_name)
@@ -124,12 +153,17 @@ class MultiBody(object):
 
 
 	def get_sensor_states(self):
+		"""Returns a dict of all sensors and their current readout."""
 		self.joint_state()
 
 		return {sensor: self.__joint_state[sensor].reactionForce for sensor in self.joint_sensors}
 
 
 	def set_pose(self, pose, override_initial=False):
+		"""Sets the current pose of the object.
+
+		override_initial: Additionally set the given pose as initial pose.
+		"""
 		pos  = pose.position
 		quat = pose.quaternion
 		pb.resetBasePositionAndOrientation(self.__bulletId, pos, quat)
@@ -140,6 +174,10 @@ class MultiBody(object):
 
 
 	def set_joint_positions(self, state, override_initial=False):
+		"""Sets the current joint positions of the object.
+
+		override_initial: Additionally set the given positions as initial positions.
+		"""
 		for j, p in state.items():
 			pb.resetJointState(self.__bulletId, self.joints[j].jointIndex, p)
 		self.__last_sim_js_update = -1
@@ -148,6 +186,7 @@ class MultiBody(object):
 
 
 	def apply_joint_pos_cmds(self, cmd):
+		"""Sets the joints' position goals."""
 		cmd_indices = []
 		cmd_pos     = []
 		self.joint_driver.update_positions(self, cmd)
@@ -159,6 +198,7 @@ class MultiBody(object):
 
 
 	def apply_joint_vel_cmds(self, cmd):
+		"""Sets the joints' velocity goals."""
 		cmd_indices = []
 		cmd_vels    = []
 		self.joint_driver.update_velocities(self, cmd)
@@ -169,6 +209,7 @@ class MultiBody(object):
 		pb.setJointMotorControlArray(self.__bulletId, cmd_indices, pb.VELOCITY_CONTROL, targetVelocities=cmd_vels)
 
 	def apply_joint_effort_cmds(self, cmd):
+		"""Sets the joints' torque goals."""
 		cmd_indices = []
 		cmd_torques = []
 		self.joint_driver.update_effort(self, cmd)
@@ -179,7 +220,21 @@ class MultiBody(object):
 		pb.setJointMotorControlArray(self.__bulletId, cmd_indices, pb.TORQUE_CONTROL, forces=cmd_torques)
 
 	def get_contacts(self, other_body=None, own_link=None, other_link=None):
+		"""Gets the contacts this body had during the last physics step.
+		The contacts can be filtered by other bodies, their links and this body's own links.
+		
+		other_body: Other body to filter by
+		own_link:   Own link to filter by
+		other_link: Other object's link to filter by.
+		"""
 		return self.simulator.get_contacts(self, other_body, own_link, other_link)
 
 	def get_closest_points(self, other_body=None, own_link=None, other_link=None):
+		"""Gets the closest points of this body to its environment.
+		The closest points can be filtered by other bodies, their links and this body's own links.
+		
+		other_body: Other body to filter by
+		own_link:   Own link to filter by
+		other_link: Other object's link to filter by
+		"""
 		return self.simulator.get_closest_points(self, other_body, own_link, other_link)

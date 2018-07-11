@@ -6,17 +6,23 @@ from iai_bullet_sim.multibody import MultiBody, JointDriver
 from iai_bullet_sim.rigid_body import RigidBody, GEOM_TYPES, BULLET_GEOM_TYPES
 from pprint import pprint
 
-
+# Constraint structure. Assigns names to bullet's info structure.
 Constraint = namedtuple('Constraint', ['bulletId', 'bodyParent', 'bodyChild', 'linkParent', 'linkChild',
 						  			   'jointType', 'jointAxis', 'parentJointPosition', 'childJointPosition',
 						  			   'parentJointOrientation', 'childJointOrientation'])
 
+# Visual shape structure. Assigns names to bullet's info structure.
 VisualShape = namedtuple('VisualShape', ['bulletId', 'linkIndex', 'geometryType', 'dimensions', 'filename', 'localPosition', 'localOrientation', 'rgba'])
+
+# Collision shape structure. Assigns names to bullet's info structure.
 CollisionShape = namedtuple('CollisionShape', ['bulletId', 'linkIndex', 'geometryType', 'dimensions', 'filename', 'localPosition', 'localOrientation'])
 
+# Axis aligned bounding box structure. Represents AABBs as a tuple of a low and high corner.
 AABB = namedtuple('AABB', ['min', 'max'])
 
+
 def hsva_to_rgba(h, s, v, a):
+	"""Converts a HSVA color to a RGBA color."""
 	h_i = int(round(h*6))
 	f = h*6 - h_i
 	p = v * (1 - s)
@@ -38,23 +44,29 @@ def hsva_to_rgba(h, s, v, a):
 	return [1,1,1,a]
 
 def vec3_to_list(vec):
+	"""Converts an indexable structure with len >= 3 to a list containing the first three elements."""
 	return [vec[0], vec[1], vec[2]]
 
 def vec_add(a, b):
+	"""Performs per element addition on two indexable structures with len >= 3 and returns the result as Vector3."""
 	return Vector3(a[0] + b[0], a[1] + b[1], a[2] + b[2])
 
 def vec_sub(a, b):
+	"""Performs per element subtraction on two indexable structures with len >= 3 and returns the result as Vector3."""
 	return Vector3(a[0] - b[0], a[1] - b[1], a[2] - b[2])
 
 def vec_scale(a, x):
+	"""Performs per element multiplication on an indexable structure with len >= 3 and returns the result as Vector3."""
 	return Vector3(a.x * x, a.y * x, a.z * x)
 
 def invert_transform(frame_tuple):
+	"""Inverts the transformation represented by the Frame datatype and returns it as new frame."""
 	temp = pb.invertTransform(list(frame_tuple.position), list(frame_tuple.quaternion))
 	return Frame(Vector3(*temp[0]), Quaternion(*temp[1]))
 
 
 class ContactPoint(object):
+	"""Wrapper for bullet's contact point structure."""
 	def __init__(self, bodyA, bodyB, linkA, linkB, posOnA, posOnB, normalOnB, dist, normalForce):
 		self.bodyA = bodyA
 		self.bodyB = bodyB
@@ -67,11 +79,18 @@ class ContactPoint(object):
 		self.normalForce = normalForce
 
 	def __leq__(self, other):
+		"""Compares the distances of two contact points."""
 		return self.dist <= other.dist
 
 
 class BasicSimulator(object):
+	"""Class wrapping the PyBullet interface in an object oriented manner."""
 	def __init__(self, tick_rate=50, gravity=[0,0,-9.81]):
+		"""Constructs a simulator.
+
+		tick_rate: Ticks ideally performed per second.
+		gravity: Gravity force for the simulation.
+		"""
 		self.physicsClient = None
 		self.bodies      = {}
 		self.constraints = {}
@@ -88,21 +107,28 @@ class BasicSimulator(object):
 		self.__plugins = set()
 
 	def get_n_update(self):
+		"""Returns the number of performed updates."""
 		return self.__n_updates
 
 	def __gen_next_color(self):
+		"""Internal. Generates a new random color."""
 		self.__h += 0.618033988749895
 		self.__h %= 1.0
 		return hsva_to_rgba(self.__h, 0.7, 0.95, 1.0)
 
 
 	def init(self, mode='direct'):
+		"""Initializes the connection to Bullet.
+
+		mode: Mode of the connection. Options: gui | direct
+		"""
 		self.physicsClient = pb.connect({'gui': pb.GUI, 'direct': pb.DIRECT}[mode])#or p.DIRECT for non-graphical version
 		pb.setGravity(*self.gravity)
 		pb.setTimeStep(self.time_step)
 
 
 	def set_tick_rate(self, tick_rate):
+		"""Updates the tick rate of the simulation."""
 		self.tick_rate = tick_rate
 		self.time_step = 1.0 / self.tick_rate
 		if self.physicsClient is not None:
@@ -110,40 +136,55 @@ class BasicSimulator(object):
 
 
 	def set_gravity(self, gravity):
+		"""Updates the simulations gravity."""
 		self.gravity = gravity
 		if self.physicsClient is not None:
 			pb.setGravity(*gravity)
 
 	def stop(self):
+		"""Stops the simulation. Calls disable() on all plugins."""
 		for plugin in self.__plugins:
 			plugin.disable(self)
 
 	def kill(self):
+		"""Kills the connection to Bullet."""
 		pb.disconnect()
 
 	def pre_update(self):
+		"""Called before every physics step."""
 		for plugin in self.__plugins:
 			plugin.pre_physics_update(self, self.time_step)
 		
 	def physics_update(self):
+		"""Steps the physics simulation."""
 		pb.stepSimulation()
 		self.__n_updates += 1
 		
 	def post_update(self):
+		"""Called after every physics step."""
 		for plugin in self.__plugins:
 			plugin.post_physics_update(self, self.time_step)
 
 	def update(self):
+		"""Performs one complete update, consisting of pre-, physics- and post update."""
 		self.pre_update()
 		self.physics_update()
 		self.post_update()		
 		
 		
 	def reset(self):
+		"""Resets all bodies in the simulation to their initial state."""
 		for body in self.bodies.values():
 			self.reset(body)
 
 	def register_object(self, obj, name_override=None):
+		"""Registers an object with the simulator.
+		Unless a specific name is given, the simulator will automatically assign one to the object.
+		If the specific name is already taken an exception will be raised.
+
+		obj: Object to register with the simulator.
+		name_override: Name to assign to the object.
+		"""
 		if name_override is None:
 			if isinstance(obj, MultiBody):
 				base_link, bodyId = pb.getBodyInfo(obj.bId())
@@ -168,12 +209,23 @@ class BasicSimulator(object):
 
 
 	def register_plugin(self, plugin):
+		"""Registers a plugin with the simulator."""
 		self.__plugins.add(plugin)
 
 	def deregister_plugin(self, plugin):
+		"""Removes a plugin from the simulator's registry."""
 		self.__plugins.remove(plugin)
 
 	def load_urdf(self, urdf_path, pos=[0,0,0], rot=[0,0,0,1], joint_driver=JointDriver(), useFixedBase=0, name_override=None):
+		"""Loads an Object from a URDF and registers it with this simulator.
+
+		urdf_path: Path of the file as local or global path, or as ROS package URI.
+		pos: Position to create the object at.
+		rot: Rotation to create the object with.
+		joint_driver: Custom joint driver for custom joint behavior.
+		useFixedBase: Should the base of the object be fixed in space?
+		name_override: Custom name to assign to this object during registration.
+		"""
 		res_urdf_path = res_pkg_path(urdf_path)
 		print('Simulator: {}'.format(res_urdf_path))
 
