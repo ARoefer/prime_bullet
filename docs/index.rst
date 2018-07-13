@@ -10,7 +10,8 @@ Welcome to iai_bullet_sim's documentation!
    :maxdepth: 2
    :caption: Contents:
 
-
+   overview
+   
 
 Indices and tables
 ==================
