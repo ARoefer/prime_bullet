@@ -1,0 +1,43 @@
+<?xml version="1.0" ?>
+<robot name="scale">
+	<link name="base">
+<!-- 		<inertial>
+			<mass value="80"/>
+			<inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="1"/>
+		</inertial> -->
+		<visual>
+			<geometry>
+				<mesh filename="package://iai_bullet_sim/meshes/scale_base.dae"/>
+			</geometry>
+		</visual>
+		<collision>
+			<origin rpy="0 0 0" xyz="0 0 0"/>
+			<geometry>
+				<mesh filename="package://iai_bullet_sim/meshes/scale_base.dae"/>
+			</geometry>
+		</collision>
+	</link>
+	<link name="plate">
+<!-- 		<inertial>
+			<mass value="20"/>
+			<inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="1"/>
+		</inertial> -->
+		<visual>
+			<geometry>
+				<mesh filename="package://iai_bullet_sim/meshes/scale_plate.dae"/>
+			</geometry>
+		</visual>
+		<collision>
+			<origin rpy="0 0 0" xyz="0 0 0"/>
+			<geometry>
+				<mesh filename="package://iai_bullet_sim/meshes/scale_plate.dae"/>
+			</geometry>
+		</collision>
+	</link>
+	<joint name="plate_lift" type="prismatic">
+		<parent link="base"/>
+		<child link="plate"/>
+		<axis xyz="0 0 1"/>
+		<limit effort="10" velocity="10" lower="0" upper="0.2"/>
+	</joint>
+</robot>

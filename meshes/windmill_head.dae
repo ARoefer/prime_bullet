@@ -1,0 +1,204 @@
+<?xml version="1.0" encoding="utf-8"?>
+<COLLADA xmlns="http://www.collada.org/2005/11/COLLADASchema" version="1.4.1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <asset>
+    <contributor>
+      <author>Blender User</author>
+      <authoring_tool>Blender 2.79.0 commit date:2018-03-22, commit time:14:10, hash:f4dc9f9d68b</authoring_tool>
+    </contributor>
+    <created>2018-07-13T00:51:19</created>
+    <modified>2018-07-13T00:51:19</modified>
+    <unit name="meter" meter="1"/>
+    <up_axis>Z_UP</up_axis>
+  </asset>
+  <library_images/>
+  <library_effects>
+    <effect id="windmill_wall-effect">
+      <profile_COMMON>
+        <technique sid="common">
+          <phong>
+            <emission>
+              <color sid="emission">0 0 0 1</color>
+            </emission>
+            <ambient>
+              <color sid="ambient">0 0 0 1</color>
+            </ambient>
+            <diffuse>
+              <color sid="diffuse">0.8 0.8 0.8 1</color>
+            </diffuse>
+            <specular>
+              <color sid="specular">0.5 0.5 0.5 1</color>
+            </specular>
+            <shininess>
+              <float sid="shininess">50</float>
+            </shininess>
+            <index_of_refraction>
+              <float sid="index_of_refraction">1</float>
+            </index_of_refraction>
+          </phong>
+        </technique>
+      </profile_COMMON>
+    </effect>
+    <effect id="windmill_roof-effect">
+      <profile_COMMON>
+        <technique sid="common">
+          <phong>
+            <emission>
+              <color sid="emission">0 0 0 1</color>
+            </emission>
+            <ambient>
+              <color sid="ambient">0 0 0 1</color>
+            </ambient>
+            <diffuse>
+              <color sid="diffuse">0.06250121 0.1263021 0.1762053 1</color>
+            </diffuse>
+            <specular>
+              <color sid="specular">0.5 0.5 0.5 1</color>
+            </specular>
+            <shininess>
+              <float sid="shininess">50</float>
+            </shininess>
+            <index_of_refraction>
+              <float sid="index_of_refraction">1</float>
+            </index_of_refraction>
+          </phong>
+        </technique>
+      </profile_COMMON>
+    </effect>
+    <effect id="windmill_wood-effect">
+      <profile_COMMON>
+        <technique sid="common">
+          <phong>
+            <emission>
+              <color sid="emission">0 0 0 1</color>
+            </emission>
+            <ambient>
+              <color sid="ambient">0 0 0 1</color>
+            </ambient>
+            <diffuse>
+              <color sid="diffuse">0.06125909 0.03951177 0.03690778 1</color>
+            </diffuse>
+            <specular>
+              <color sid="specular">0.1119403 0.1119403 0.1119403 1</color>
+            </specular>
+            <shininess>
+              <float sid="shininess">50</float>
+            </shininess>
+            <index_of_refraction>
+              <float sid="index_of_refraction">1</float>
+            </index_of_refraction>
+          </phong>
+        </technique>
+      </profile_COMMON>
+    </effect>
+    <effect id="windmill_wings-effect">
+      <profile_COMMON>
+        <technique sid="common">
+          <phong>
+            <emission>
+              <color sid="emission">0 0 0 1</color>
+            </emission>
+            <ambient>
+              <color sid="ambient">0 0 0 1</color>
+            </ambient>
+            <diffuse>
+              <color sid="diffuse">0.64 0.64 0.64 1</color>
+            </diffuse>
+            <specular>
+              <color sid="specular">0.5 0.5 0.5 1</color>
+            </specular>
+            <shininess>
+              <float sid="shininess">50</float>
+            </shininess>
+            <index_of_refraction>
+              <float sid="index_of_refraction">1</float>
+            </index_of_refraction>
+          </phong>
+        </technique>
+      </profile_COMMON>
+    </effect>
+  </library_effects>
+  <library_materials>
+    <material id="windmill_wall-material" name="windmill_wall">
+      <instance_effect url="#windmill_wall-effect"/>
+    </material>
+    <material id="windmill_roof-material" name="windmill_roof">
+      <instance_effect url="#windmill_roof-effect"/>
+    </material>
+    <material id="windmill_wood-material" name="windmill_wood">
+      <instance_effect url="#windmill_wood-effect"/>
+    </material>
+    <material id="windmill_wings-material" name="windmill_wings">
+      <instance_effect url="#windmill_wings-effect"/>
+    </material>
+  </library_materials>
+  <library_geometries>
+    <geometry id="windmill_head-mesh" name="windmill_head">
+      <mesh>
+        <source id="windmill_head-mesh-positions">
+          <float_array id="windmill_head-mesh-positions-array" count="144">0.1226575 0.2961215 0.1299999 -0.1226575 0.2961215 0.1299999 -0.2961215 0.1226575 0.1299999 -0.2961215 -0.1226575 0.1299999 -0.2214227 -0.3655971 0.1299999 0.2214228 -0.365597 0.1299999 0.2961215 -0.1226575 0.1299999 0.2961215 0.1226575 0.1299999 -0.09870713 -0.1226575 0.3574795 0.09870713 -0.1226575 0.3574795 -0.09870713 0.1226575 0.3116309 0.09870719 0.1226575 0.3116309 0.1226575 0.2961215 0 -0.1226575 0.2961215 0 -0.2961215 0.1226575 0 -0.2961215 -0.1226575 0 -0.2214227 -0.3655971 0 0.2214228 -0.365597 0 0.2961215 -0.1226575 0 0.2961215 0.1226575 0 0.01999998 0.305811 0.4664235 0.02000004 0.305811 0.3168383 0.01999998 0.5195041 0.4664235 0.01999998 0.5195041 0.3168383 0.01999998 0.255811 0.3916309 0.01999998 0.4695041 0.3916309 0.02000004 0.175811 0.1768382 0.01999998 0.125811 0.2516309 0.02000004 0.1496453 0.2497309 0.02000004 0.253407 0.3614743 0.02000004 0.2819766 0.3187382 0.02000004 0.178215 0.2069948 -0.01999998 0.5195041 0.4664235 -0.01999998 0.305811 0.4664235 -0.01999992 0.255811 0.3916309 -0.01999992 0.305811 0.3168383 -0.01999998 0.5195041 0.3168383 -0.01999998 0.4695041 0.3916309 -0.01999992 0.178215 0.2069948 -0.01999992 0.2819766 0.3187382 -0.01999992 0.253407 0.3614743 -0.01999992 0.1496453 0.2497309 -0.01999992 0.175811 0.1768382 -0.01999992 0.125811 0.2516309 -0.1193136 -0.3627148 0.319281 -0.09870713 -0.3239302 0.3574795 0.09870713 -0.3239302 0.3574795 0.1193136 -0.3627147 0.319281</float_array>
+          <technique_common>
+            <accessor source="#windmill_head-mesh-positions-array" count="48" stride="3">
+              <param name="X" type="float"/>
+              <param name="Y" type="float"/>
+              <param name="Z" type="float"/>
+            </accessor>
+          </technique_common>
+        </source>
+        <source id="windmill_head-mesh-normals">
+          <float_array id="windmill_head-mesh-normals-array" count="210">0.7496491 0.1215894 0.6505708 -0.677076 0 0.7359132 0 0.1837157 0.9829795 -0.7546653 -0.0394327 0.654924 2.24357e-7 0.7231784 0.6906613 -0.5606532 0.5606532 0.6093735 0.5606534 0.5606532 0.6093733 0.8801047 0 0.4747797 0 0 1 1 -2.33627e-7 0 2.69189e-7 -1 0 -1 0 0 0 1 0 0.707107 0.7071067 0 0.9558366 -0.2938989 0 -0.9558364 -0.2938994 0 -0.7071068 0.7071068 0 1 1.31109e-7 2.25177e-7 1 0 0 -1 -1.31109e-7 0 1 0 1.2629e-7 -1 -1.31109e-7 -2.25177e-7 1 -2.391e-7 1.35132e-7 1 -2.5945e-7 1.35133e-7 -1 1.2827e-7 0 -1 1.62792e-7 -1.35132e-7 0 -0.8313402 0.555764 0 -0.7327936 0.680451 0 0.8313401 0.555764 0 0.7327935 -0.680451 0 0 -1 0 0.7327936 -0.6804511 0 -0.9968378 0.07946354 0 -0.7327935 0.6804512 0 0.8313401 -0.5557641 0 -0.8313412 -0.5557627 0 -0.079463 -0.9968378 0 -0.7017036 0.7124691 2.6907e-7 -0.9998841 0.01522535 0.6770761 -2.26435e-7 0.7359131 -0.7496489 0.1215898 0.6505708 0 0.1837157 0.9829795 -0.8479963 -0.260741 0.4614289 -0.880105 0 0.4747792 0 0.7231783 0.6906614 0.8479962 -0.2607404 0.4614292 0.7546653 -0.03943264 0.6549239 0.9558365 -0.2938991 0 -0.9558364 -0.2938992 0 1 0 2.061e-7 1 1.31109e-7 0 -1 0 0 1 -1.35815e-7 0 -1 0 -2.061e-7 1 -1.29935e-7 1.35132e-7 -1 1.37963e-7 -1.2629e-7 -1 0 -1.35132e-7 -1 1.62419e-7 -1.35132e-7 0 -0.8313406 0.5557634 0 -0.7327936 0.6804511 0 0.8313403 0.5557637 0 0.7327935 -0.6804512 0 0.7327935 -0.6804512 0 -0.9968377 0.0794655 0 -0.7327935 0.6804512 0 0.8313404 -0.5557637 0 -0.831341 -0.5557627 0 -0.07946294 -0.9968379 1.43389e-7 -0.7017026 0.7124701 1.23701e-7 -0.9998841 0.0152263</float_array>
+          <technique_common>
+            <accessor source="#windmill_head-mesh-normals-array" count="70" stride="3">
+              <param name="X" type="float"/>
+              <param name="Y" type="float"/>
+              <param name="Z" type="float"/>
+            </accessor>
+          </technique_common>
+        </source>
+        <vertices id="windmill_head-mesh-vertices">
+          <input semantic="POSITION" source="#windmill_head-mesh-positions"/>
+        </vertices>
+        <triangles material="windmill_wall-material" count="16">
+          <input semantic="VERTEX" source="#windmill_head-mesh-vertices" offset="0"/>
+          <input semantic="NORMAL" source="#windmill_head-mesh-normals" offset="1"/>
+          <p>4 10 17 10 5 10 31 32 42 32 26 32 29 35 39 35 30 35 27 36 41 36 28 36 47 38 4 38 5 38 16 30 18 30 17 30 14 30 18 30 15 30 19 30 13 30 12 30 4 10 16 10 17 10 31 63 38 63 42 63 29 66 40 66 39 66 27 67 43 67 41 67 47 69 44 69 4 69 16 30 15 30 18 30 14 30 19 30 18 30 19 30 14 30 13 30</p>
+        </triangles>
+        <triangles material="windmill_roof-material" count="34">
+          <input semantic="VERTEX" source="#windmill_head-mesh-vertices" offset="0"/>
+          <input semantic="NORMAL" source="#windmill_head-mesh-normals" offset="1"/>
+          <p>6 0 11 0 9 0 3 1 10 1 2 1 9 2 10 2 8 2 44 3 8 3 3 3 0 4 10 4 11 4 1 5 2 5 10 5 7 6 0 6 11 6 9 7 46 7 47 7 8 8 46 8 9 8 6 9 19 9 7 9 2 11 15 11 3 11 0 12 13 12 1 12 7 13 12 13 0 13 5 14 18 14 6 14 3 15 16 15 4 15 1 16 14 16 2 16 44 37 46 37 45 37 6 39 7 39 11 39 3 40 8 40 10 40 9 41 11 41 10 41 3 42 4 42 44 42 44 43 45 43 8 43 0 44 1 44 10 44 5 45 6 45 47 45 6 46 9 46 47 46 8 8 45 8 46 8 6 9 18 9 19 9 2 11 14 11 15 11 0 12 12 12 13 12 7 13 19 13 12 13 5 47 17 47 18 47 3 48 15 48 16 48 1 16 13 16 14 16 44 68 47 68 46 68</p>
+        </triangles>
+        <triangles material="windmill_wood-material" count="16">
+          <input semantic="VERTEX" source="#windmill_head-mesh-vertices" offset="0"/>
+          <input semantic="NORMAL" source="#windmill_head-mesh-normals" offset="1"/>
+          <p>31 22 21 22 30 22 29 23 27 23 28 23 35 25 38 25 39 25 43 25 40 25 41 25 39 27 31 27 30 27 42 29 21 29 26 29 41 31 29 31 28 31 34 33 27 33 24 33 31 54 26 54 21 54 29 54 24 54 27 54 35 56 42 56 38 56 43 57 34 57 40 57 39 59 38 59 31 59 42 61 35 61 21 61 41 62 40 62 29 62 34 64 43 64 27 64</p>
+        </triangles>
+        <triangles material="windmill_wings-material" count="22">
+          <input semantic="VERTEX" source="#windmill_head-mesh-vertices" offset="0"/>
+          <input semantic="NORMAL" source="#windmill_head-mesh-normals" offset="1"/>
+          <p>21 17 25 17 24 17 20 18 25 18 22 18 33 19 37 19 34 19 29 20 21 20 24 20 37 21 35 21 34 21 40 24 35 24 39 24 33 26 24 26 20 26 36 28 25 28 23 28 35 30 23 30 21 30 37 34 22 34 25 34 22 8 33 8 20 8 21 49 23 49 25 49 20 50 24 50 25 50 33 51 32 51 37 51 29 52 30 52 21 52 37 53 36 53 35 53 40 55 34 55 35 55 33 58 34 58 24 58 36 60 37 60 25 60 35 30 36 30 23 30 37 65 32 65 22 65 22 8 32 8 33 8</p>
+        </triangles>
+      </mesh>
+    </geometry>
+  </library_geometries>
+  <library_controllers/>
+  <library_visual_scenes>
+    <visual_scene id="Scene" name="Scene">
+      <node id="Windmill_head_001" name="Windmill_head_001" type="NODE">
+        <matrix sid="transform">1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1</matrix>
+        <instance_geometry url="#windmill_head-mesh" name="Windmill_head_001">
+          <bind_material>
+            <technique_common>
+              <instance_material symbol="windmill_wall-material" target="#windmill_wall-material"/>
+              <instance_material symbol="windmill_roof-material" target="#windmill_roof-material"/>
+              <instance_material symbol="windmill_wood-material" target="#windmill_wood-material"/>
+              <instance_material symbol="windmill_wings-material" target="#windmill_wings-material"/>
+            </technique_common>
+          </bind_material>
+        </instance_geometry>
+      </node>
+    </visual_scene>
+  </library_visual_scenes>
+  <scene>
+    <instance_visual_scene url="#Scene"/>
+  </scene>
+</COLLADA>
