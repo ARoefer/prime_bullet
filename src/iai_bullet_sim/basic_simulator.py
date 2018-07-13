@@ -132,7 +132,7 @@ class BasicSimulator(object):
         self.tick_rate = tick_rate
         self.time_step = 1.0 / self.tick_rate
         if self.physicsClient is not None:
-            pb.setTimeStep(self.time_step)          
+            pb.setTimeStep(self.time_step)
 
 
     def set_gravity(self, gravity):
@@ -154,12 +154,12 @@ class BasicSimulator(object):
         """Called before every physics step."""
         for plugin in self.__plugins:
             plugin.pre_physics_update(self, self.time_step)
-        
+
     def physics_update(self):
         """Steps the physics simulation."""
         pb.stepSimulation()
         self.__n_updates += 1
-        
+
     def post_update(self):
         """Called after every physics step."""
         for plugin in self.__plugins:
@@ -169,9 +169,9 @@ class BasicSimulator(object):
         """Performs one complete update, consisting of pre-, physics- and post update."""
         self.pre_update()
         self.physics_update()
-        self.post_update()      
-        
-        
+        self.post_update()
+
+
     def reset(self):
         """Resets all bodies in the simulation to their initial state."""
         for body in self.bodies.values():
@@ -202,7 +202,7 @@ class BasicSimulator(object):
         else:
             if name_override in self.bodies:
                 raise Exception('Id "{}" is already taken.'.format(name_override))
-            
+
             self.bodies[name_override] = obj
             self.__bId_IdMap[obj.bId()] = name_override
             return name_override
@@ -235,7 +235,7 @@ class BasicSimulator(object):
                                                0,              # MAXIMAL COORDINATES, DO NOT TOUCH!
                                                useFixedBase,
                                                flags=pb.URDF_USE_SELF_COLLISION), self.__gen_next_color(), pos, rot, joint_driver, urdf_path)
-        
+
 
         bodyId = self.register_object(new_body, name_override)
         print('Created new multibody with id {}'.format(bodyId))
@@ -244,7 +244,7 @@ class BasicSimulator(object):
 
     def create_sphere(self, radius=0.5, pos=[0,0,0], rot=[0,0,0,1], mass=1, color=None, name_override=None):
         """Creates and registers a spherical rigid body.
-        
+
         radius        -- Sphere's radius
         pos           -- Position to create the object at
         rot           -- Rotation to create the object with
@@ -256,7 +256,7 @@ class BasicSimulator(object):
 
     def create_box(self, half_extents=[0.5]*3, pos=[0,0,0], rot=[0,0,0,1], mass=1, color=None, name_override=None):
         """Creates and registers a box shaped rigid body.
-        
+
         half_extents  -- Half the edge lengths of the box
         pos           -- Position to create the object at
         rot           -- Rotation to create the object with
@@ -268,7 +268,7 @@ class BasicSimulator(object):
 
     def create_cylinder(self, radius=0.5, height=1, pos=[0,0,0], rot=[0,0,0,1], mass=1, color=None, name_override=None):
         """Creates and registers a cylindrical rigid body.
-        
+
         radius        -- Cylinder's radius
         height        -- Height of the cylinder
         pos           -- Position to create the object at
@@ -281,7 +281,7 @@ class BasicSimulator(object):
 
     def create_capsule(self, radius=0.5, height=1, pos=[0,0,0], rot=[0,0,0,1], mass=1, color=None, name_override=None):
         """Creates and registers a capsule shaped rigid body.
-        
+
         radius        -- Capsule's radius
         height        -- Height of the capsule
         pos           -- Position to create the object at
@@ -295,7 +295,7 @@ class BasicSimulator(object):
 
     def create_object(self, geom_type, half_extents=[0.5,0.5,0.5], radius=0.5, height=1, pos=[0,0,0], rot=[0,0,0,1], mass=1, color=None, name_override=None):
         """Creates and registers a rigid body.
-        
+
         geom_type     -- Type of object. box | sphere | cylinder | capsule
         half_extents  -- Half the edge lengths of the box
         radius        -- Radius for spheres, cylinders and capsules
@@ -312,7 +312,7 @@ class BasicSimulator(object):
         if color is None:
             color = self.__gen_next_color()
 
-        new_body = RigidBody(self, 
+        new_body = RigidBody(self,
                              pb.createRigidBody(GEOM_TYPES[geom_type], radius, half_extents, height, mass, pos, rot, color),
                              geom_type, color, pos, rot, half_extents, radius, height, mass)
         bodyId = self.register_object(new_body, name_override)
@@ -378,7 +378,7 @@ class BasicSimulator(object):
 
         bodyA -- All returned contacts will involve this object.
         bodyB -- All returned contacts will only be between this object and bodyA.
-        linkA -- All contact will involve this link of bodyA. 
+        linkA -- All contact will involve this link of bodyA.
         linkB -- All returned will involve this link of bodyB
         """
         bulletA = bodyA.bId() if bodyA != None else -1
@@ -403,7 +403,7 @@ class BasicSimulator(object):
 
         bodyA -- First body.
         bodyB -- Second body.
-        linkA -- Closest point will be on this link of bodyA. 
+        linkA -- Closest point will be on this link of bodyA.
         linkB -- Closest point will be on this link of bodyB.
         """
         bulletA = bodyA.bId() if bodyA != None else -1
@@ -466,11 +466,11 @@ class BasicSimulator(object):
                 else:
                     in_js = b.initial_joint_state
 
-                od = {'name': bname, 
-                      'type': 'multibody', 
+                od = {'name': bname,
+                      'type': 'multibody',
                       'initial_pose': {
                         'position': list(in_pos),
-                        'rotation': list(in_rot)}, 
+                        'rotation': list(in_rot)},
                       'urdf_path': b.urdf_file,
                       'initial_joint_state': in_js,
                       'fixed_base': True,
@@ -480,12 +480,12 @@ class BasicSimulator(object):
                 in_pos = b.pose().position if use_current_state_as_init else b.initial_pos
                 in_rot = b.pose().quaternion if use_current_state_as_init else b.initial_rot
 
-                od = {'name': bname, 
+                od = {'name': bname,
                       'type': 'rigid_body',
                       'geom_type': b.type,
                       'initial_pose': {
                         'position': list(in_pos),
-                        'rotation': list(in_rot)}, 
+                        'rotation': list(in_rot)},
                       'color': list(b.color),
                       'mass': b.mass,
                       'extents': list(b.halfExtents),
@@ -499,7 +499,7 @@ class BasicSimulator(object):
         for cname, c in self.constraints.items():
             pass
 
-        return out      
+        return out
 
     def load_simulator(self, config_dict, plugin_registry):
         """Loads a simulator configuration from a dictionary.
@@ -509,10 +509,10 @@ class BasicSimulator(object):
         """
         if 'tick_rate' in config_dict:
             self.set_tick_rate(config_dict['tick_rate'])
-        
+
         if 'gravity' in config_dict:
             self.set_gravity(config_dict['gravity'])
-        
+
         if 'world' in config_dict:
             self.load_world(config_dict['world'])
 
@@ -531,7 +531,7 @@ class BasicSimulator(object):
         """
         out = {'tick_rate': self.tick_rate,
                'gravity': self.gravity,
-               'world': self.save_world(use_current_state_as_init), 
+               'world': self.save_world(use_current_state_as_init),
                'plugins': []}
 
         for plugin in self.__plugins:
@@ -588,4 +588,3 @@ class SimulatorPlugin(object):
     def to_dict(self, simulator):
         """Serializes this plugin to a dictionary."""
         raise (NotImplementedError)
-        

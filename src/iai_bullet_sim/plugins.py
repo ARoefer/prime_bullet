@@ -17,4 +17,3 @@ class ContactEventListener(SimulatorPlugin):
 
     def on_contact(self, contacts):
         raise (NotImplementedError)
-        

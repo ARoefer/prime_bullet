@@ -41,7 +41,7 @@ class MultiBody(object):
     """
     def __init__(self, simulator, bulletId, color, initial_pos=[0,0,0], initial_rot=[0,0,0,1], joint_driver=JointDriver(), urdf_file=None):
         """Constructs a multibody.
-        
+
         simulator    -- The simulator managing this object
         bulletId     -- The Id of the corresponding bullet object
         color        -- A color override for this object
@@ -72,7 +72,7 @@ class MultiBody(object):
             if joint.jointType != pb.JOINT_FIXED:
                 self.initial_joint_state[joint.jointName] = min(max(joint.lowerLimit, 0.0), joint.upperLimit)
 
-        
+
         self.__index_joint_map       = {info.jointIndex: joint for joint, info in self.joints.items()}
         self.__dynamic_joint_indices = [info.jointIndex for info in self.joints.values() if info.jointType != pb.JOINT_FIXED]
         print('dynamic joints:\n  {}'.format('\n  '.join([info.jointName for info in self.joints.values() if info.jointType != pb.JOINT_FIXED])))
@@ -222,7 +222,7 @@ class MultiBody(object):
     def get_contacts(self, other_body=None, own_link=None, other_link=None):
         """Gets the contacts this body had during the last physics step.
         The contacts can be filtered by other bodies, their links and this body's own links.
-        
+
         other_body -- Other body to filter by
         own_link   -- Own link to filter by
         other_link -- Other object's link to filter by.
@@ -232,7 +232,7 @@ class MultiBody(object):
     def get_closest_points(self, other_body=None, own_link=None, other_link=None):
         """Gets the closest points of this body to its environment.
         The closest points can be filtered by other bodies, their links and this body's own links.
-        
+
         other_body -- Other body to filter by
         own_link   -- Own link to filter by
         other_link -- Other object's link to filter by
