@@ -22,7 +22,20 @@ AABB = namedtuple('AABB', ['min', 'max'])
 
 
 def hsva_to_rgba(h, s, v, a):
-    """Converts a HSVA color to a RGBA color."""
+    """
+    Converts a HSVA color to a RGBA color.
+
+    :param h: Hue
+    :type h: int, float
+    :param s: Saturation
+    :type s: int, float
+    :param v: Value
+    :type v: int, float
+    :param a: Alpha
+    :type a: int, float
+    :return: RGBA equivalent as list [r,g,b,a]
+    :rtype: list
+    """
     h_i = int(round(h*6))
     f = h*6 - h_i
     p = v * (1 - s)
@@ -44,23 +57,51 @@ def hsva_to_rgba(h, s, v, a):
     return [1,1,1,a]
 
 def vec3_to_list(vec):
-    """Converts an indexable structure with len >= 3 to a list containing the first three elements."""
+    """
+    Converts an indexable structure with len >= 3 to a list containing the first three elements.
+
+    :type vec: iterable
+    :rtype: list
+    """
     return [vec[0], vec[1], vec[2]]
 
 def vec_add(a, b):
-    """Performs per element addition on two indexable structures with len >= 3 and returns the result as Vector3."""
+    """
+    Performs per element addition on two indexable structures with len >= 3 and returns the result as Vector3.
+
+    :type a: iterable
+    :type b: iterable
+    :rtype: iai_bullet_sim.utils.Vector3
+    """
     return Vector3(a[0] + b[0], a[1] + b[1], a[2] + b[2])
 
 def vec_sub(a, b):
-    """Performs per element subtraction on two indexable structures with len >= 3 and returns the result as Vector3."""
+    """
+    Performs per element subtraction on two indexable structures with len >= 3 and returns the result as Vector3.
+
+    :type a: iterable
+    :type b: iterable
+    :rtype: iai_bullet_sim.utils.Vector3
+    """
     return Vector3(a[0] - b[0], a[1] - b[1], a[2] - b[2])
 
 def vec_scale(a, x):
-    """Performs per element multiplication on an indexable structure with len >= 3 and returns the result as Vector3."""
+    """
+    Performs per element multiplication on an indexable structure with len >= 3 and returns the result as Vector3.
+
+    :type a: iterable
+    :type x: iterable
+    :rtype: iai_bullet_sim.utils.Vector3
+    """
     return Vector3(a.x * x, a.y * x, a.z * x)
 
 def invert_transform(frame_tuple):
-    """Inverts the transformation represented by the Frame datatype and returns it as new frame."""
+    """
+    Inverts the transformation represented by the Frame datatype and returns it as new frame.
+
+    :type frame_tuple:  iai_bullet_sim.utils.Frame
+    :rtype: iai_bullet_sim.utils.Frame
+    """
     temp = pb.invertTransform(list(frame_tuple.position), list(frame_tuple.quaternion))
     return Frame(Vector3(*temp[0]), Quaternion(*temp[1]))
 
@@ -68,6 +109,26 @@ def invert_transform(frame_tuple):
 class ContactPoint(object):
     """Wrapper for bullet's contact point structure."""
     def __init__(self, bodyA, bodyB, linkA, linkB, posOnA, posOnB, normalOnB, dist, normalForce):
+        """
+        :param bodyA: Reference to first body
+        :type  bodyA: Multibody, RigidBody
+        :param bodyB: Reference to second body
+        :type  bodyB: Multibody, RigidBody
+        :param linkA: Link of first body; None in case of rigid body
+        :type  linkA: str, NoneType
+        :param linkB: Link of second body; None in case of rigid body
+        :type  linkB: str, NoneType
+        :param posOnA: Coordinates of contact on link of A
+        :type  posOnA: iterable, iai_bullet_sim.utils.Vector3
+        :param posOnB: Coordinates of contact on link of B
+        :type  posOnB: iterable, iai_bullet_sim.utils.Vector3
+        :param normalOnB: Normal direction of the contact
+        :type  normalOnB: iterable, iai_bullet_sim.utils.Vector3
+        :param dist: Penetration depth of the contact
+        :type  dist: float
+        :param normalForce: Force vector of the contact
+        :type  normalForce: iterable, iai_bullet_sim.utils.Vector3
+        """
         self.bodyA = bodyA
         self.bodyB = bodyB
         self.linkA = linkA
@@ -79,7 +140,12 @@ class ContactPoint(object):
         self.normalForce = normalForce
 
     def __leq__(self, other):
-        """Compares the distances of two contact points."""
+        """
+        Compares the distances of two contact points.
+
+        :type other: ContactPoint
+        :rtype: float
+        """
         return self.dist <= other.dist
 
 
@@ -88,8 +154,10 @@ class BasicSimulator(object):
     def __init__(self, tick_rate=50, gravity=[0,0,-9.81]):
         """Constructs a simulator.
 
-        tick_rate -- Ticks ideally performed per second.
-        gravity   -- Gravity force for the simulation.
+        :param tick_rate: Ticks ideally performed per second.
+        :type  tick_rate: float
+        :param   gravity: Gravity force for the simulation.
+        :type    gravity: list
         """
         self.physicsClient = None
         self.bodies      = {}
@@ -107,11 +175,17 @@ class BasicSimulator(object):
         self.__plugins = set()
 
     def get_n_update(self):
-        """Returns the number of performed updates."""
+        """Returns the number of performed updates.
+
+        :rtype: int
+        """
         return self.__n_updates
 
     def __gen_next_color(self):
-        """Internal. Generates a new random color."""
+        """Internal. Generates a new random color.
+
+        :rtype: list
+        """
         self.__h += 0.618033988749895
         self.__h %= 1.0
         return hsva_to_rgba(self.__h, 0.7, 0.95, 1.0)
@@ -120,7 +194,8 @@ class BasicSimulator(object):
     def init(self, mode='direct'):
         """Initializes the connection to Bullet.
 
-        mode -- Mode of the connection. Options: gui | direct
+        :param mode: Mode of the connection. Options: gui | direct
+        :type  mode: str
         """
         self.physicsClient = pb.connect({'gui': pb.GUI, 'direct': pb.DIRECT}[mode])#or p.DIRECT for non-graphical version
         pb.setGravity(*self.gravity)
@@ -128,7 +203,10 @@ class BasicSimulator(object):
 
 
     def set_tick_rate(self, tick_rate):
-        """Updates the tick rate of the simulation."""
+        """Updates the tick rate of the simulation.
+
+        :type tick_rate: int
+        """
         self.tick_rate = tick_rate
         self.time_step = 1.0 / self.tick_rate
         if self.physicsClient is not None:
@@ -136,7 +214,10 @@ class BasicSimulator(object):
 
 
     def set_gravity(self, gravity):
-        """Updates the simulations gravity."""
+        """Updates the simulations gravity.
+
+        :type gravity: list
+        """
         self.gravity = gravity
         if self.physicsClient is not None:
             pb.setGravity(*gravity)
@@ -182,8 +263,10 @@ class BasicSimulator(object):
         Unless a specific name is given, the simulator will automatically assign one to the object.
         If the specific name is already taken an exception will be raised.
 
-        obj           -- Object to register with the simulator.
-        name_override -- Name to assign to the object.
+        :param obj:           Object to register with the simulator.
+        :type  obj:           iai_bullet_sim.rigid_body.RigidBody, iai_bullet_sim.multibody.Multibody
+        :param name_override: Name to assign to the object.
+        :type  obj:           str, NoneType
         """
         if name_override is None:
             if isinstance(obj, MultiBody):
@@ -209,22 +292,35 @@ class BasicSimulator(object):
 
 
     def register_plugin(self, plugin):
-        """Registers a plugin with the simulator."""
+        """Registers a plugin with the simulator.
+
+        :type plugin: SimulatorPlugin
+        """
         self.__plugins.add(plugin)
 
     def deregister_plugin(self, plugin):
-        """Removes a plugin from the simulator's registry."""
+        """Removes a plugin from the simulator's registry.
+
+        :type plugin: SimulatorPlugin
+        """
         self.__plugins.remove(plugin)
 
     def load_urdf(self, urdf_path, pos=[0,0,0], rot=[0,0,0,1], joint_driver=JointDriver(), useFixedBase=0, name_override=None):
         """Loads an Object from a URDF and registers it with this simulator.
 
-        urdf_path     -- Path of the file as local or global path, or as ROS package URI.
-        pos           -- Position to create the object at.
-        rot           -- Rotation to create the object with.
-        joint_driver  -- Custom joint driver for custom joint behavior.
-        useFixedBase  -- Should the base of the object be fixed in space?
-        name_override -- Custom name to assign to this object during registration.
+        :param urdf_path:     Path of the file as local or global path, or as ROS package URI.
+        :type  urdf_path:     str
+        :param pos:           Position to create the object at.
+        :type  pos:           list
+        :param rot:           Rotation to create the object with.
+        :type  rot:           list
+        :param joint_driver:  Custom joint driver for custom joint behavior.
+        :type  joint_driver:  iai_bullet_sim.multibody.JointDriver
+        :param useFixedBase:  Should the base of the object be fixed in space?
+        :type  useFixedBase:  int, bool
+        :param name_override: Custom name to assign to this object during registration.
+        :type  name_override: str, NoneType
+        :rtype: iai_bullet_sim.multibody.Multibody
         """
         res_urdf_path = res_pkg_path(urdf_path)
         print('Simulator: {}'.format(res_urdf_path))
@@ -245,59 +341,88 @@ class BasicSimulator(object):
     def create_sphere(self, radius=0.5, pos=[0,0,0], rot=[0,0,0,1], mass=1, color=None, name_override=None):
         """Creates and registers a spherical rigid body.
 
-        radius        -- Sphere's radius
-        pos           -- Position to create the object at
-        rot           -- Rotation to create the object with
-        mass          -- Mass of the object
-        color         -- Color of the object
-        name_override -- Name for the object to be registered with.
+        :param radius:        Sphere's radius
+        :type  radius:		  float
+        :param pos:           Position to create the object at
+        :type  pos:	          list
+        :param rot:           Rotation to create the object with
+        :type  rot:	          list
+        :param mass:          Mass of the object
+        :type  mass:		  float
+        :param color:         Color of the object in RGBA
+        :type  color:		  list
+        :param name_override: Name for the object to be registered with.
+        :type  name_override: str, NoneType
+        :rtype: iai_bullet_sim.rigid_body.RigidBody
         """
         return self.create_object(BULLET_GEOM_TYPES[pb.GEOM_SPHERE], radius=radius, pos=pos, rot=rot, mass=mass, color=color, name_override=name_override)
 
-    def create_box(self, half_extents=[0.5]*3, pos=[0,0,0], rot=[0,0,0,1], mass=1, color=None, name_override=None):
+    def create_box(self, extents=[0.5]*3, pos=[0,0,0], rot=[0,0,0,1], mass=1, color=None, name_override=None):
         """Creates and registers a box shaped rigid body.
 
-        half_extents  -- Half the edge lengths of the box
-        pos           -- Position to create the object at
-        rot           -- Rotation to create the object with
-        mass          -- Mass of the object
-        color         -- Color of the object
-        name_override -- Name for the object to be registered with.
+        :param extents:       Edge lengths of the box
+        :type  extents:		  list
+        :param pos:           Position to create the object at
+        :type  pos:           list
+        :param rot:           Rotation to create the object with
+        :type  rot:           list
+        :param mass:          Mass of the object
+        :type  mass:          float
+        :param color:         Color of the object
+        :type  color:         list
+        :param name_override: Name for the object to be registered with.
+        :type  name_override: str, NoneType
+        :rtype: iai_bullet_sim.rigid_body.RigidBody
         """
-        return self.create_object(BULLET_GEOM_TYPES[pb.GEOM_BOX], half_extents=half_extents, pos=pos, rot=rot, mass=mass, color=color, name_override=name_override)
+        return self.create_object(BULLET_GEOM_TYPES[pb.GEOM_BOX], extents=extents, pos=pos, rot=rot, mass=mass, color=color, name_override=name_override)
 
     def create_cylinder(self, radius=0.5, height=1, pos=[0,0,0], rot=[0,0,0,1], mass=1, color=None, name_override=None):
         """Creates and registers a cylindrical rigid body.
 
-        radius        -- Cylinder's radius
-        height        -- Height of the cylinder
-        pos           -- Position to create the object at
-        rot           -- Rotation to create the object with
-        mass          -- Mass of the object
-        color         -- Color of the object
-        name_override -- Name for the object to be registered with.
+        :param radius:        Cylinder's radius
+        :type  radius:        float
+        :param height:        Height of the cylinder
+        :type  height:        float
+        :param pos:           Position to create the object at
+        :type  pos:           list
+        :param rot:           Rotation to create the object with
+        :type  rot:           list
+        :param mass:          Mass of the object
+        :type  mass:          float
+        :param color:         Color of the object as RGBA
+        :type  color:         list
+        :param name_override: Name for the object to be registered with.
+        :type  name_override: str, NoneType
         """
         return self.create_object(BULLET_GEOM_TYPES[pb.GEOM_CYLINDER], radius=radius, height=height, pos=pos, rot=rot, mass=mass, color=color, name_override=name_override)
 
     def create_capsule(self, radius=0.5, height=1, pos=[0,0,0], rot=[0,0,0,1], mass=1, color=None, name_override=None):
         """Creates and registers a capsule shaped rigid body.
 
-        radius        -- Capsule's radius
-        height        -- Height of the capsule
-        pos           -- Position to create the object at
-        rot           -- Rotation to create the object with
-        mass          -- Mass of the object
-        color         -- Color of the object
-        name_override -- Name for the object to be registered with.
+        :param radius:        Capsule's radius
+        :type  radius:        float
+        :param height:        Height of the capsule
+        :type  height:        float
+        :param pos:           Position to create the object at
+        :type  pos:           list
+        :param rot:           Rotation to create the object with
+        :type  rot:           list
+        :param mass:          Mass of the object
+        :type  mass:          float
+        :param color:         Color of the object as RGBA
+        :type  color:         list
+        :param name_override: Name for the object to be registered with.
+        :type  name_override:
+        :rtype: iai_bullet_sim.rigid_body.RigidBody
         """
         return self.create_object(BULLET_GEOM_TYPES[pb.GEOM_CAPSULE], radius=radius, height=height, pos=pos, rot=rot, mass=mass, color=color, name_override=name_override)
 
 
-    def create_object(self, geom_type, half_extents=[0.5,0.5,0.5], radius=0.5, height=1, pos=[0,0,0], rot=[0,0,0,1], mass=1, color=None, name_override=None):
+    def create_object(self, geom_type, extents=[1,1,1], radius=0.5, height=1, pos=[0,0,0], rot=[0,0,0,1], mass=1, color=None, name_override=None):
         """Creates and registers a rigid body.
 
         geom_type     -- Type of object. box | sphere | cylinder | capsule
-        half_extents  -- Half the edge lengths of the box
+        extents       -- Edge lengths of the box
         radius        -- Radius for spheres, cylinders and capsules
         height        -- Height of the cylinder and capsule
         pos           -- Position to create the object at
@@ -313,8 +438,8 @@ class BasicSimulator(object):
             color = self.__gen_next_color()
 
         new_body = RigidBody(self,
-                             pb.createRigidBody(GEOM_TYPES[geom_type], radius, half_extents, height, mass, pos, rot, color),
-                             geom_type, color, pos, rot, half_extents, radius, height, mass)
+                             pb.createRigidBody(GEOM_TYPES[geom_type], radius, [0.5 * x for x in extents], height, mass, pos, rot, color),
+                             geom_type, color, pos, rot, extents, radius, height, mass)
         bodyId = self.register_object(new_body, name_override)
         print('Created new rigid body with id {}'.format(bodyId))
         return new_body
@@ -488,7 +613,7 @@ class BasicSimulator(object):
                         'rotation': list(in_rot)},
                       'color': list(b.color),
                       'mass': b.mass,
-                      'extents': list(b.halfExtents),
+                      'extents': list(b.extents),
                       'radius': b.radius,
                       'height': b.height} # TODO: Update this!
                 out['objects'].append(od)

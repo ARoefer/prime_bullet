@@ -11,7 +11,7 @@ GEOM_TYPES = {v: k for k, v in BULLET_GEOM_TYPES.items()}
 class RigidBody(object):
     """Wrapper class giving object oriented access to PyBullet's rigid bodies.
     """
-    def __init__(self, simulator, bulletId, geom_type, color, initial_pos=[0,0,0], initial_rot=[0,0,0,1], halfExtents=[0.5,0.5,0.5], radius=0.5, height=1, mass=1):
+    def __init__(self, simulator, bulletId, geom_type, color, initial_pos=[0,0,0], initial_rot=[0,0,0,1], extents=[0.5,0.5,0.5], radius=0.5, height=1, mass=1):
         """Constructs a rigid body.
 
         simulator   -- The simulator managing this object
@@ -20,7 +20,7 @@ class RigidBody(object):
         color       -- A color override for this object
         initial_pos -- This object's initial location
         initial_rot -- This object's initial rotation
-        halfExtents -- Half edge lengths for box type.
+        extents     -- Edge lengths for box type.
         radius      -- Radius for sphere, cylinder and capsule
         height      -- Total height of cylinder and capsule.
         mass        -- Mass of the object. 0 = static
@@ -36,7 +36,7 @@ class RigidBody(object):
         self.initial_pos    = initial_pos
         self.initial_rot    = initial_rot
 
-        self.halfExtents    = halfExtents
+        self.extents    = extents
         self.radius         = radius
         self.height         = height
         self.mass           = mass
