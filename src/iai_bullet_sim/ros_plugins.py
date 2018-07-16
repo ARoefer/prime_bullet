@@ -70,7 +70,7 @@ class JSPublisher(SimulatorPlugin):
         body = simulator.get_body(init_dict['body'])
         if body is None:
             raise Exception('Body "{}" does not exist in the context of the given simulation.'.format(init_dict['body']))
-        return SensorPublisher(body, init_dict['topic_prefix'])
+        return JSPublisher(body, init_dict['topic_prefix'])
 
 
 class SensorPublisher(SimulatorPlugin):
@@ -317,7 +317,7 @@ class TrajectoryPositionController(CommandSubscriber):
         super(TrajectoryPositionController, self).__init__('Trajectory Position Controller', multibody, '{}/commands/joint_trajectory'.format(topic_prefix), JointTrajectoryMsg)
         self.trajectory = None
         self.t_start = None
-        self.__t_index = 0
+        self._t_index = 0
         self.__topic_prefix = topic_prefix
 
     def cmd_callback(self, cmd_msg):
@@ -327,10 +327,10 @@ class TrajectoryPositionController(CommandSubscriber):
         for point in cmd_msg.points:
             self.trajectory.append((point.time_from_start
 , {cmd_msg.joint_names[x]: point.positions[x] for x in range(len(cmd_msg.joint_names))}))
-        self.trajectory = sorted(self.trajectory)
         self.t_start = rospy.Time.now()
-        self.__t_index = 0
+        self._t_index = 0
         self.body.set_joint_positions(self.trajectory[0][1])
+        self.trajectory = sorted(self.trajectory)
 
     def pre_physics_update(self, simulator, deltaT):
         """Applies the current trajectory positions as commands to the joints.
@@ -340,10 +340,10 @@ class TrajectoryPositionController(CommandSubscriber):
             return
 
         tss = rospy.Time.now() - self.t_start
-        if self.trajectory[self.__t_index][0] < tss and self.__t_index < len(self.trajectory) - 1:
-            self.__t_index += 1
+        if self.trajectory[self._t_index][0] < tss and self._t_index < len(self.trajectory) - 1:
+            self._t_index += 1
 
-        self.body.apply_joint_pos_cmds(self.trajectory[self.__t_index][1])
+        self.body.apply_joint_pos_cmds(self.trajectory[self._t_index][1])
 
     def to_dict(self, simulator):
         """Serializes this plugin to a dictionary."""
@@ -358,7 +358,47 @@ class TrajectoryPositionController(CommandSubscriber):
             raise Exception('Body "{}" does not exist in the context of the given simulation.'.format(init_dict['body']))
         return TrajectoryPositionController(body, init_dict['topic_prefix'])
 
+
+class LoopingTrajectoryPositionController(TrajectoryPositionController):
+    def pre_physics_update(self, simulator, deltaT):
+        super(LoopingTrajectoryPositionController, self).pre_physics_update(simulator, deltaT)
+
+        if self.trajectory is not None and self._t_index is len(self.trajectory) - 1:
+            self.t_start = rospy.Time.now()
+            self._t_index = 0
+            self.body.set_joint_positions(self.trajectory[0][1])
+
+    @classmethod
+    def factory(cls, simulator, init_dict):
+        """Instantiates the plugin from a dictionary in the context of a simulator."""
+        body = simulator.get_body(init_dict['body'])
+        if body is None:
+            raise Exception('Body "{}" does not exist in the context of the given simulation.'.format(init_dict['body']))
+        return LoopingTrajectoryPositionController(body, init_dict['topic_prefix'])
+
+class ResetTrajectoryPositionController(TrajectoryPositionController):
+    def __init__(self, simulator, multibody, topic_prefix=''):
+        super(ResetTrajectoryPositionController, self).__init__(multibody, topic_prefix)
+        self._simulator = simulator
+
+    def pre_physics_update(self, simulator, deltaT):
+        super(ResetTrajectoryPositionController, self).pre_physics_update(simulator, deltaT)
+
+        if self.trajectory is not None and self._t_index is len(self.trajectory) - 1:
+            self._simulator.reset()
+            self.t_start = rospy.Time.now()
+            self._t_index = 0
+            self.body.set_joint_positions(self.trajectory[0][1])
+
+    @classmethod
+    def factory(cls, simulator, init_dict):
+        """Instantiates the plugin from a dictionary in the context of a simulator."""
+        body = simulator.get_body(init_dict['body'])
+        if body is None:
+            raise Exception('Body "{}" does not exist in the context of the given simulation.'.format(init_dict['body']))
+        return ResetTrajectoryPositionController(simulator, body, init_dict['topic_prefix'])
+
 # List of plugins provided by this file.
-PLUGIN_LIST = [JSPublisher, SensorPublisher, JointPositionController, JointVelocityController, JointVelocityDeltaContoller, TrajectoryPositionController]
+PLUGIN_LIST = [JSPublisher, SensorPublisher, JointPositionController, JointVelocityController, JointVelocityDeltaContoller, TrajectoryPositionController, LoopingTrajectoryPositionController, ResetTrajectoryPositionController]
 # Map of plugin type names to their classes.
 PLUGINS = {str(p): p for p in PLUGIN_LIST}
