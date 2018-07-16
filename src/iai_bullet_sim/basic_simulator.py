@@ -256,7 +256,7 @@ class BasicSimulator(object):
     def reset(self):
         """Resets all bodies in the simulation to their initial state."""
         for body in self.bodies.values():
-            self.reset(body)
+            body.reset()
 
     def register_object(self, obj, name_override=None):
         """Registers an object with the simulator.
