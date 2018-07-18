@@ -1,7 +1,7 @@
 import pybullet as pb
 import random
 from collections import namedtuple
-from iai_bullet_sim.utils import res_pkg_path, rot3_to_quat, Vector3, Quaternion, Frame
+from iai_bullet_sim.utils import res_pkg_path, rot3_to_quat, Vector3, Quaternion, Frame, AABB
 from iai_bullet_sim.multibody import MultiBody, JointDriver
 from iai_bullet_sim.rigid_body import RigidBody, GEOM_TYPES, BULLET_GEOM_TYPES
 from pprint import pprint
@@ -16,9 +16,6 @@ VisualShape = namedtuple('VisualShape', ['bulletId', 'linkIndex', 'geometryType'
 
 # Collision shape structure. Assigns names to bullet's info structure.
 CollisionShape = namedtuple('CollisionShape', ['bulletId', 'linkIndex', 'geometryType', 'dimensions', 'filename', 'localPosition', 'localOrientation'])
-
-# Axis aligned bounding box structure. Represents AABBs as a tuple of a low and high corner.
-AABB = namedtuple('AABB', ['min', 'max'])
 
 
 def hsva_to_rgba(h, s, v, a):
@@ -357,7 +354,7 @@ class BasicSimulator(object):
         """
         return self.create_object(BULLET_GEOM_TYPES[pb.GEOM_SPHERE], radius=radius, pos=pos, rot=rot, mass=mass, color=color, name_override=name_override)
 
-    def create_box(self, extents=[0.5]*3, pos=[0,0,0], rot=[0,0,0,1], mass=1, color=None, name_override=None):
+    def create_box(self, extents=[1]*3, pos=[0,0,0], rot=[0,0,0,1], mass=1, color=None, name_override=None):
         """Creates and registers a box shaped rigid body.
 
         :param extents:       Edge lengths of the box
@@ -412,7 +409,7 @@ class BasicSimulator(object):
         :param color:         Color of the object as RGBA
         :type  color:         list
         :param name_override: Name for the object to be registered with.
-        :type  name_override:
+        :type  name_override: str, NoneType
         :rtype: iai_bullet_sim.rigid_body.RigidBody
         """
         return self.create_object(BULLET_GEOM_TYPES[pb.GEOM_CAPSULE], radius=radius, height=height, pos=pos, rot=rot, mass=mass, color=color, name_override=name_override)
@@ -421,15 +418,25 @@ class BasicSimulator(object):
     def create_object(self, geom_type, extents=[1,1,1], radius=0.5, height=1, pos=[0,0,0], rot=[0,0,0,1], mass=1, color=None, name_override=None):
         """Creates and registers a rigid body.
 
-        geom_type     -- Type of object. box | sphere | cylinder | capsule
-        extents       -- Edge lengths of the box
-        radius        -- Radius for spheres, cylinders and capsules
-        height        -- Height of the cylinder and capsule
-        pos           -- Position to create the object at
-        rot           -- Rotation to create the object with
-        mass          -- Mass of the object
-        color         -- Color of the object
-        name_override -- Name for the object to be registered with.
+        :param geom_type:     Type of object. box | sphere | cylinder | capsule
+        :type  geom_type:     str
+        :param extents:       Edge lengths of the box
+        :type  extents:       list
+        :param radius:        Radius for spheres, cylinders and capsules
+        :type  radius:        float
+        :param height:        Height of the cylinder and capsule
+        :type  height:        float
+        :param pos:           Position to create the object at
+        :type  pos:           list
+        :param rot:           Rotation to create the object with
+        :type  rot:           list
+        :param mass:          Mass of the object
+        :type  mass:          float
+        :param color:         Color of the object as RGBA
+        :type  color:         list, NoneType
+        :param name_override: Name for the object to be registered with.
+        :type  name_override: str, NoneType
+        :rtype: iai_bullet_sim.rigid_body.RigidBody
         """
         if geom_type not in GEOM_TYPES:
             raise Exception('Unknown geometry type "{}". Options are: {}'.format(geom_type, ', '.join(geom_type.keys())))
@@ -446,13 +453,21 @@ class BasicSimulator(object):
 
 
     def get_body_id(self, bulletId):
-        """Returns the name of the object associated with a specific Bullet Id."""
+        """Returns the name of the object associated with a specific Bullet Id.
+
+        :type bulletId: long
+        :rtype: str, NoneType
+        """
         if bulletId in self.__bId_IdMap:
             return self.__bId_IdMap[bulletId]
         return None
 
     def get_body(self, bodyId):
-        """Returns the object associated with a name."""
+        """Returns the object associated with a name.
+
+        :type bodyId: str
+        :rtype: iai_bullet_sim.multibody.Multibody, iai_bullet_sim.rigid_body.RigidBody, NoneType
+        """
         if bodyId in self.bodies:
             return self.bodies[bodyId]
         return None
@@ -488,8 +503,11 @@ class BasicSimulator(object):
     def get_overlapping(self, aabb, filter=set()):
         """Returns all objects overlapping the given bounding box.
 
-        aabb   -- Axis aligned bounding box to check against.
-        filter -- All objects in this set get filtered from the results.
+        :param aabb:   Axis aligned bounding box to check against.
+        :type  aabb:   AABB
+        :param filter: All objects in this set get filtered from the results.
+        :type  filter: set
+        :rtype: list
         """
         raw_overlap = pb.getOverlappingObjects(vec3_to_list(aabb.min), vec3_to_list(aabb.max))
         if raw_overlap == None:
@@ -501,10 +519,15 @@ class BasicSimulator(object):
     def get_contacts(self, bodyA=None, bodyB=None, linkA=None, linkB=None):
         """Returns all contacts generated during the last physics step.
 
-        bodyA -- All returned contacts will involve this object.
-        bodyB -- All returned contacts will only be between this object and bodyA.
-        linkA -- All contact will involve this link of bodyA.
-        linkB -- All returned will involve this link of bodyB
+        :param bodyA: All returned contacts will involve this object.
+        :type  bodyA: iai_bullet_sim.rigid_body.RigidBody, iai_bullet_sim.multibody.Multibody
+        :param bodyB: All returned contacts will only be between this object and bodyA.
+        :type  bodyB: iai_bullet_sim.rigid_body.RigidBody, iai_bullet_sim.multibody.Multibody
+        :param linkA: All contact will involve this link of bodyA.
+        :type  linkA: str, NoneType
+        :param linkB: All returned will involve this link of bodyB
+        :type  linkB: str, NoneType
+        :rtype: list
         """
         bulletA = bodyA.bId() if bodyA != None else -1
         bulletB = bodyB.bId() if bodyB != None else -1
@@ -526,10 +549,15 @@ class BasicSimulator(object):
     def get_closest_points(self, bodyA, bodyB, linkA=None, linkB=None, dist=0.2):
         """Returns all the closest points between two objects.
 
-        bodyA -- First body.
-        bodyB -- Second body.
-        linkA -- Closest point will be on this link of bodyA.
-        linkB -- Closest point will be on this link of bodyB.
+        :param bodyA: First body.
+        :type  bodyA: iai_bullet_sim.rigid_body.RigidBody, iai_bullet_sim.multibody.Multibody
+        :param bodyB: Second body.
+        :type  bodyB: iai_bullet_sim.rigid_body.RigidBody, iai_bullet_sim.multibody.Multibody
+        :param linkA: Closest point will be on this link of bodyA.
+        :type  linkA: str, NoneType
+        :param linkB: Closest point will be on this link of bodyB.
+        :type  linkB: str, NoneType
+        :rtype: list
         """
         bulletA = bodyA.bId() if bodyA != None else -1
         bulletB = bodyB.bId() if bodyB != None else -1
@@ -548,7 +576,11 @@ class BasicSimulator(object):
 
 
     def load_world(self, world_dict):
-        """Loads a world configuration from a dictionary."""
+        """Loads a world configuration from a dictionary.
+
+        :param world_dict: World configuration
+        :type  world_dict: dict
+        """
         if 'objects' in world_dict:
             if type(world_dict['objects']) != list:
                 raise Exception('Field "objects" in world dictionary needs to be of type list.')
@@ -578,7 +610,9 @@ class BasicSimulator(object):
     def save_world(self, use_current_state_as_init=False):
         """Serializes the positional state of the simulation to a dictionary.
 
-        use_current_state_as_init -- Should the current state, or the initial state be serialized.
+        :param use_current_state_as_init: Should the current state, or the initial state be serialized.
+        :type  use_current_state_as_init: bool
+        :rtype: dict
         """
         out = {'objects': [], 'constraints': []}
 
@@ -629,8 +663,10 @@ class BasicSimulator(object):
     def load_simulator(self, config_dict, plugin_registry):
         """Loads a simulator configuration from a dictionary.
 
-        config_dict     -- Simulator configuration.
-        plugin_registry -- Dictionary of plugin types to their respective classes. Used to instantiate plugins.
+        :param config_dict:     Simulator configuration.
+        :type  config_dict:     dict
+        :param plugin_registry: Dictionary of plugin types to their respective classes. Used to instantiate plugins.
+        :type  plugin_registry: dict
         """
         if 'tick_rate' in config_dict:
             self.set_tick_rate(config_dict['tick_rate'])
@@ -652,7 +688,9 @@ class BasicSimulator(object):
     def save_simulator(self, use_current_state_as_init=False):
         """Saves the simulator's state to a dictionary.
 
-        use_current_state_as_init -- Should the current state, or the initial state be serialized.
+        :param use_current_state_as_init: Should the current state, or the initial state be serialized.
+        :type  use_current_state_as_init: bool
+        :rtype: dict
         """
         out = {'tick_rate': self.tick_rate,
                'gravity': self.gravity,
@@ -696,20 +734,35 @@ class SimulatorPlugin(object):
         self.__name = name
 
     def pre_physics_update(self, simulator, deltaT):
-        """Implements pre physics step behavior."""
+        """Implements pre physics step behavior.
+
+        :type simulator: BasicSimulator
+        :type deltaT: float
+        """
         pass
 
     def post_physics_update(self, simulator, deltaT):
-        """Implements post physics step behavior."""
+        """Implements post physics step behavior.
+
+        :type simulator: BasicSimulator
+        :type deltaT: float
+        """
         pass
 
     def disable(self, simulator):
-        """Stops the execution of this plugin."""
+        """Stops the execution of this plugin.
+
+        :type simulator: BasicSimulator
+        """
         pass
 
     def __str__(self):
         return self.__name
 
     def to_dict(self, simulator):
-        """Serializes this plugin to a dictionary."""
+        """Serializes this plugin to a dictionary.
+
+        :type simulator: BasicSimulator
+        :rtype: dict
+        """
         raise (NotImplementedError)

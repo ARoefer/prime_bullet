@@ -7,6 +7,8 @@ Vector3 = namedtuple('Vector3', ['x', 'y', 'z'])
 Quaternion = namedtuple('Quaternion', ['x', 'y', 'z', 'w'])
 # Datastructure representing a frame as a Vector3 and a Quaternion
 Frame  = namedtuple('Frame', ['position', 'quaternion'])
+# Axis aligned bounding box structure. Represents AABBs as a tuple of a low and high corner.
+AABB = namedtuple('AABB', ['min', 'max'])
 
 def rot3_to_quat(rot3):
     """Extracts a quaternion from a >= 3x3 matrix."""

@@ -15,11 +15,15 @@ class Watchdog(object):
         self.timeout = timeout
 
     def tick(self, last_tick):
-        """Sets the last time the dog was ticked."""
+        """Sets the last time the dog was ticked.
+        :type last_tick: rospy.Time
+        """
         self.last_tick = last_tick
 
     def barks(self):
-        """Returns True, if last tick was long enough ago."""
+        """Returns True, if last tick was long enough ago.
+        :rtype: bool
+        """
         return rospy.Time.now() - self.last_tick > self.timeout
 
 
@@ -30,8 +34,10 @@ class JSPublisher(SimulatorPlugin):
     def __init__(self, multibody, topic_prefix=''):
         """Initializes the plugin.
 
-        multibody    -- Object to observe.
-        topic_prefix -- Prefix for the topic to publish to.
+        :param multibody: Object to observe.
+        :type  multibody: iai_bullet_sim.multibody.Multibody
+        :param topic_prefixPrefix: for the topic to publish to.
+        :type  topic_prefixPrefix: str
         """
         super(JSPublisher, self).__init__('JointState Publisher')
         self.publisher = rospy.Publisher('{}/joint_states'.format(topic_prefix), JointStateMsg, queue_size=1, tcp_nodelay=True)
@@ -40,7 +46,11 @@ class JSPublisher(SimulatorPlugin):
         self.__enabled = True
 
     def post_physics_update(self, simulator, deltaT):
-        """Publishes the current joint state."""
+        """Publishes the current joint state.
+
+        :type simulator: iai_bullet_sim.basic_simulator.BasicSimulator
+        :type deltaT: float
+        """
         if self.__enabled is False:
             return
 
@@ -55,18 +65,28 @@ class JSPublisher(SimulatorPlugin):
         self.publisher.publish(msg)
 
     def disable(self, simulator):
-        """Disables the publisher."""
+        """Disables the publisher.
+        :type simulator: iai_bullet_sim.basic_simulator.BasicSimulator
+        """
         self.__enabled = False
         self.publisher.unregister()
 
     def to_dict(self, simulator):
-        """Serializes this plugin to a dictionary."""
+        """Serializes this plugin to a dictionary.
+        :type simulator: iai_bullet_sim.basic_simulator.BasicSimulator
+        :rtype: dict
+        """
         return {'body': simulator.get_body_id(self.body.bId()),
                 'topic_prefix': self.topic_prefix}
 
     @classmethod
     def factory(cls, simulator, init_dict):
-        """Instantiates the plugin from a dictionary in the context of a simulator."""
+        """Instantiates the plugin from a dictionary in the context of a simulator.
+
+        :type simulator: iai_bullet_sim.basic_simulator.BasicSimulator
+        :type init_dict: dict
+        :rtype: JSPublisher
+        """
         body = simulator.get_body(init_dict['body'])
         if body is None:
             raise Exception('Body "{}" does not exist in the context of the given simulation.'.format(init_dict['body']))
@@ -80,8 +100,10 @@ class SensorPublisher(SimulatorPlugin):
     def __init__(self, multibody, topic_prefix=''):
         """Initializes the plugin.
 
-        multibody    -- Object to observe.
-        topic_prefix -- Prefix for the topics.
+        :param multibody:   Object to observe.
+        :type  multibody:
+        :param topic_prefixPrefix: for the topics.
+        :type  topic_prefixPrefix:
         """
         super(SensorPublisher, self).__init__('Sensor Publisher')
         self.publishers = {}
@@ -92,7 +114,11 @@ class SensorPublisher(SimulatorPlugin):
         self.__enabled = True
 
     def post_physics_update(self, simulator, deltaT):
-        """Publishes the current sensor states."""
+        """Publishes the current sensor states.
+
+        :type simulator: iai_bullet_sim.basic_simulator.BasicSimulator
+        :type deltaT: float
+        """
         if self.__enabled is False:
             return
 
@@ -109,19 +135,29 @@ class SensorPublisher(SimulatorPlugin):
             self.publishers[sensor].publish(msg)
 
     def disable(self, simulator):
-        """Disables the publishers."""
+        """Disables the publishers.
+        :type simulator: iai_bullet_sim.basic_simulator.BasicSimulator
+        """
         self.__enabled = False
         for publisher in self.publishers.values():
             publisher.unregister()
 
     def to_dict(self, simulator):
-        """Serializes this plugin to a dictionary."""
+        """Serializes this plugin to a dictionary.
+        :type simulator: iai_bullet_sim.basic_simulator.BasicSimulator
+        :rtype: dict
+        """
         return {'body': simulator.get_body_id(self.body.bId()),
                 'topic_prefix': self.__topic_prefix}
 
     @classmethod
     def factory(cls, simulator, init_dict):
-        """Instantiates the plugin from a dictionary in the context of a simulator."""
+        """Instantiates the plugin from a dictionary in the context of a simulator.
+
+        :type simulator: iai_bullet_sim.basic_simulator.BasicSimulator
+        :type init_dict: dict
+        :rtype: SensorPublisher
+        """
         body = simulator.get_body(init_dict['body'])
         if body is None:
             raise Exception('Body "{}" does not exist in the context of the given simulation.'.format(init_dict['body']))
@@ -133,10 +169,14 @@ class CommandSubscriber(SimulatorPlugin):
     def __init__(self, name, multibody, topic, topic_type=JointStateMsg):
         """Initializes the plugin.
 
-        name         -- Name of the plugin.
-        multibody    -- Object to observe.
-        topic        -- Topic to subscribe to.
-        topic_type   -- Message type of the topic.
+        :param name:        Name of the plugin.
+        :type  name:
+        :param multibody:   Object to observe.
+        :type  multibody:
+        :param topic:       Topic to subscribe to.
+        :type  topic:
+        :param topic_type:  Message type of the topic.
+        :type  topic_type:
         """
         super(CommandSubscriber, self).__init__(name)
         self.body = multibody
@@ -148,7 +188,9 @@ class CommandSubscriber(SimulatorPlugin):
         raise (NotImplemented)
 
     def disable(self, simulator):
-        """Disables the plugin and subscriber."""
+        """Disables the plugin and subscriber.
+        :type simulator: iai_bullet_sim.basic_simulator.BasicSimulator
+        """
         self._enabled = False
         self.subscriber.unregister()
 
@@ -161,10 +203,14 @@ class WatchdoggedJointController(CommandSubscriber):
     def __init__(self, name, multibody, topic, watchdog_timeout):
         """Initializes a joint-level controller, subscribing to the given topic.
 
-        name             -- Name of the controller
-        multibody        -- Body to control
-        topic            -- Topic to subscribe to
-        watchdog_timeout -- Timeout for the watchdogs
+        :param name:            Name of the controller
+        :type  name:
+        :param multibody:       Body to control
+        :type  multibody:
+        :param topic:           Topic to subscribe to
+        :type  topic:
+        :param watchdog_timeoutTimeout: for the watchdogs
+        :type  watchdog_timeoutTimeout:
         """
         super(WatchdoggedJointController, self).__init__(name, multibody, topic, JointStateMsg)
         self.watchdogs = {}
@@ -180,15 +226,20 @@ class JointPositionController(WatchdoggedJointController):
     def __init__(self, multibody, topic_prefix='', watchdog_timeout=0.2):
         """Initializes the controller. Subscribes to [prefix]/commands/joint_positions.
 
-        multibody        -- Body to control
-        topic_prefix     -- Prefix for the command topic
-        watchdog_timeout -- Timeout for the watchdogs
+        :param multibody:       Body to control
+        :type  multibody:
+        :param topic_prefix:    Prefix for the command topic
+        :type  topic_prefix:
+        :param watchdog_timeoutTimeout: for the watchdogs
+        :type  watchdog_timeoutTimeout:
         """
         super(JointVelocityController, self).__init__('Watchdogged Joint Position Controller', multibody, '{}/commands/joint_positions'.format(topic_prefix), watchdog_timeout)
         self.__topic_prefix = topic_prefix
 
     def cmd_callback(self, cmd_msg):
-        """Handles the incoming command message."""
+        """Handles the incoming command message.
+        :type cmd_msg: JointStateMsg
+        """
         for x in range(len(cmd_msg.name)):
             self.watchdogs[cmd_msg.name[x]].tick(cmd_msg.header.stamp)
             self.next_cmd[cmd_msg.name[x]] = cmd_msg.position[x]
@@ -196,6 +247,9 @@ class JointPositionController(WatchdoggedJointController):
     def pre_physics_update(self, simulator, deltaT):
         """Applies the current command as joint goal for the simulated joints.
         If a joint's watchdog barks, the joint is commanded to hold its position.
+
+        :type simulator: iai_bullet_sim.basic_simulator.BasicSimulator
+        :type deltaT: float
         """
         if self._enabled:
             for jname in self.next_cmd.keys():
@@ -205,14 +259,22 @@ class JointPositionController(WatchdoggedJointController):
             self.body.apply_joint_pos_cmds(self.next_cmd)
 
     def to_dict(self, simulator):
-        """Serializes this plugin to a dictionary."""
+        """Serializes this plugin to a dictionary.
+        :type simulator: iai_bullet_sim.basic_simulator.BasicSimulator
+        :rtype: dict
+        """
         return {'body': simulator.get_body_id(self.body.bId()),
                 'topic_prefix': self.__topic_prefix,
                 'watchdog_timeout': self.watchdog_timeout}
 
     @classmethod
     def factory(cls, simulator, init_dict):
-        """Instantiates the plugin from a dictionary in the context of a simulator."""
+        """Instantiates the plugin from a dictionary in the context of a simulator.
+
+        :type simulator: iai_bullet_sim.basic_simulator.BasicSimulator
+        :type init_dict: dict
+        :rtype: JointPositionController
+        """
         body = simulator.get_body(init_dict['body'])
         if body is None:
             raise Exception('Body "{}" does not exist in the context of the given simulation.'.format(init_dict['body']))
@@ -224,15 +286,20 @@ class JointVelocityController(WatchdoggedJointController):
     def __init__(self, multibody, topic_prefix='', watchdog_timeout=0.2):
         """Initializes the controller. Subscribes to [prefix]/commands/joint_velocities.
 
-        multibody        -- Body to control
-        topic_prefix     -- Prefix for the command topic
-        watchdog_timeout -- Timeout for the watchdogs
+        :param multibody:       Body to control
+        :type  multibody:
+        :param topic_prefix:    Prefix for the command topic
+        :type  topic_prefix:
+        :param watchdog_timeoutTimeout: for the watchdogs
+        :type  watchdog_timeoutTimeout:
         """
         super(JointVelocityController, self).__init__('Watchdogged Joint Velocity Controller', multibody, '{}/commands/joint_velocities'.format(topic_prefix), watchdog_timeout)
         self.__topic_prefix = topic_prefix
 
     def cmd_callback(self, cmd_msg):
-        """Handles the incoming command message."""
+        """Handles the incoming command message.
+        :type cmd_msg: JointStateMsg
+        """
         for x in range(len(cmd_msg.name)):
             self.watchdogs[cmd_msg.name[x]].tick(cmd_msg.header.stamp)
             self.next_cmd[cmd_msg.name[x]] = cmd_msg.velocity[x]
@@ -240,6 +307,9 @@ class JointVelocityController(WatchdoggedJointController):
     def pre_physics_update(self, simulator, deltaT):
         """Applies the current command as joint goal for the simulated joints.
         If a joint's watchdog barks, the joint is commanded to stop.
+
+        :type simulator: iai_bullet_sim.basic_simulator.BasicSimulator
+        :type deltaT: float
         """
         if self._enabled:
             for jname in self.next_cmd.keys():
@@ -249,14 +319,22 @@ class JointVelocityController(WatchdoggedJointController):
             self.body.apply_joint_vel_cmds(self.next_cmd)
 
     def to_dict(self, simulator):
-        """Serializes this plugin to a dictionary."""
+        """Serializes this plugin to a dictionary.
+        :type simulator: iai_bullet_sim.basic_simulator.BasicSimulator
+        :rtype: dict
+        """
         return {'body': simulator.get_body_id(self.body.bId()),
                 'topic_prefix': self.__topic_prefix,
                 'watchdog_timeout': self.watchdog_timeout}
 
     @classmethod
     def factory(cls, simulator, init_dict):
-        """Instantiates the plugin from a dictionary in the context of a simulator."""
+        """Instantiates the plugin from a dictionary in the context of a simulator.
+
+        :type simulator: iai_bullet_sim.basic_simulator.BasicSimulator
+        :type init_dict: dict
+        :rtype: JointVelocityController
+        """
         body = simulator.get_body(init_dict['body'])
         if body is None:
             raise Exception('Body "{}" does not exist in the context of the given simulation.'.format(init_dict['body']))
@@ -272,9 +350,12 @@ class JointVelocityDeltaContoller(JointVelocityController):
         Subscribes to [prefix]/commands/joint_velocities.
         Publishes to [prefix]/delta/joint_velocities.
 
-        multibody        -- Body to control
-        topic_prefix     -- Prefix for the command topic
-        watchdog_timeout -- Timeout for the watchdogs
+        :param multibody:       Body to control
+        :type  multibody:
+        :param topic_prefix:    Prefix for the command topic
+        :type  topic_prefix:
+        :param watchdog_timeoutTimeout: for the watchdogs
+        :type  watchdog_timeoutTimeout:
         """
         super(JointVelocityDeltaController, self).__init__(multibody, topic_prefix, watchdog_timeout)
         self.delta_publisher = rospy.Publisher('{}/delta/joint_velocities'.format(topic_prefix), JointStateMsg, queue_size=1, tcp_nodelay=True)
@@ -282,6 +363,9 @@ class JointVelocityDeltaContoller(JointVelocityController):
     def post_physics_update(self, simulator, deltaT):
         """Computes the delta between the given commands and
         the current joint velocities and publishes the result.
+
+        :type simulator: iai_bullet_sim.basic_simulator.BasicSimulator
+        :type deltaT: float
         """
         if self._enabled:
             deltaMsg = JointStateMsg()
@@ -296,7 +380,12 @@ class JointVelocityDeltaContoller(JointVelocityController):
 
     @classmethod
     def factory(cls, simulator, init_dict):
-        """Instantiates the plugin from a dictionary in the context of a simulator."""
+        """Instantiates the plugin from a dictionary in the context of a simulator.
+
+        :type simulator: iai_bullet_sim.basic_simulator.BasicSimulator
+        :type init_dict: dict
+        :rtype: JointVelocityDeltaController
+        """
         body = simulator.get_body(init_dict['body'])
         if body is None:
             raise Exception('Body "{}" does not exist in the context of the given simulation.'.format(init_dict['body']))
@@ -311,8 +400,10 @@ class TrajectoryPositionController(CommandSubscriber):
     def __init__(self, multibody, topic_prefix=''):
         """Initializes the controller. Subscribes to [prefix]/commands/joint_trajectory.
 
-        multibody        -- Body to control
-        topic_prefix     -- Prefix for the command topic
+        :param multibody:       Body to control
+        :type  multibody:
+        :param topic_prefix:    Prefix for the command topic
+        :type  topic_prefix:
         """
         super(TrajectoryPositionController, self).__init__('Trajectory Position Controller', multibody, '{}/commands/joint_trajectory'.format(topic_prefix), JointTrajectoryMsg)
         self.trajectory = None
@@ -321,7 +412,9 @@ class TrajectoryPositionController(CommandSubscriber):
         self.__topic_prefix = topic_prefix
 
     def cmd_callback(self, cmd_msg):
-        """Handles the incoming command message."""
+        """Handles the incoming command message.
+        :type cmd_msg: JointTrajectoryMsg
+        """
         print('Received new trajectory with {} points'.format(len(cmd_msg.points)))
         self.trajectory = []
         for point in cmd_msg.points:
@@ -335,6 +428,9 @@ class TrajectoryPositionController(CommandSubscriber):
     def pre_physics_update(self, simulator, deltaT):
         """Applies the current trajectory positions as commands to the joints.
         Will command the joints to remain in their last position, even after the trajectory has been fully executed.
+
+        :type simulator: iai_bullet_sim.basic_simulator.BasicSimulator
+        :type deltaT: float
         """
         if self.trajectory is None or self._enabled is False:
             return
@@ -346,13 +442,21 @@ class TrajectoryPositionController(CommandSubscriber):
         self.body.apply_joint_pos_cmds(self.trajectory[self._t_index][1])
 
     def to_dict(self, simulator):
-        """Serializes this plugin to a dictionary."""
+        """Serializes this plugin to a dictionary.
+        :type simulator: iai_bullet_sim.basic_simulator.BasicSimulator
+        :rtype: dict
+        """
         return {'body': simulator.get_body_id(self.body.bId()),
                 'topic_prefix': self.__topic_prefix}
 
     @classmethod
     def factory(cls, simulator, init_dict):
-        """Instantiates the plugin from a dictionary in the context of a simulator."""
+        """Instantiates the plugin from a dictionary in the context of a simulator.
+
+        :type simulator: iai_bullet_sim.basic_simulator.BasicSimulator
+        :type init_dict: dict
+        :rtype: TrajectoryPositionController
+        """
         body = simulator.get_body(init_dict['body'])
         if body is None:
             raise Exception('Body "{}" does not exist in the context of the given simulation.'.format(init_dict['body']))
@@ -360,7 +464,18 @@ class TrajectoryPositionController(CommandSubscriber):
 
 
 class LoopingTrajectoryPositionController(TrajectoryPositionController):
+    """Controller which accepts a trajectory_msgs/JointTrajectory as command.
+    It will pass the positional part of the trajectory on to the joints.
+    It does not interpolate between trajectory points.
+    The controller loops the trajectory execution.
+    """
     def pre_physics_update(self, simulator, deltaT):
+        """Applies the current trajectory positions as commands to the joints.
+        Will restart trajectory execution when it is finished.
+
+        :type simulator: iai_bullet_sim.basic_simulator.BasicSimulator
+        :type deltaT: float
+        """
         super(LoopingTrajectoryPositionController, self).pre_physics_update(simulator, deltaT)
 
         if self.trajectory is not None and self._t_index is len(self.trajectory) - 1:
@@ -370,18 +485,41 @@ class LoopingTrajectoryPositionController(TrajectoryPositionController):
 
     @classmethod
     def factory(cls, simulator, init_dict):
-        """Instantiates the plugin from a dictionary in the context of a simulator."""
+        """Instantiates the plugin from a dictionary in the context of a simulator.
+
+        :type simulator: iai_bullet_sim.basic_simulator.BasicSimulator
+        :type init_dict: dict
+        :rtype: LoopingTrajectoryPositionController
+        """
         body = simulator.get_body(init_dict['body'])
         if body is None:
             raise Exception('Body "{}" does not exist in the context of the given simulation.'.format(init_dict['body']))
         return LoopingTrajectoryPositionController(body, init_dict['topic_prefix'])
 
+
 class ResetTrajectoryPositionController(TrajectoryPositionController):
+    """Controller which accepts a trajectory_msgs/JointTrajectory as command.
+    It will pass the positional part of the trajectory on to the joints.
+    It does not interpolate between trajectory points.
+    At the end of a trajectory execution, the controller will reset the simulator and restart the trajectory execution.
+    """
     def __init__(self, simulator, multibody, topic_prefix=''):
+        """Initializes the controller. Subscribes to [prefix]/commands/joint_trajectory.
+
+        :type simulator: iai_bullet_sim.basic_simulator.BasicSimulator
+        :type multibody: iai_bullet_sim.multibody.Multibody
+        :type topic_prefix: str
+        """
         super(ResetTrajectoryPositionController, self).__init__(multibody, topic_prefix)
         self._simulator = simulator
 
     def pre_physics_update(self, simulator, deltaT):
+        """Applies the current trajectory positions as commands to the joints.
+        Will reset the simulator after the trajectory has been executed and restart trajectory execution.
+
+        :type simulator: iai_bullet_sim.basic_simulator.BasicSimulator
+        :type deltaT: float
+        """
         super(ResetTrajectoryPositionController, self).pre_physics_update(simulator, deltaT)
 
         if self.trajectory is not None and self._t_index is len(self.trajectory) - 1:
@@ -392,7 +530,12 @@ class ResetTrajectoryPositionController(TrajectoryPositionController):
 
     @classmethod
     def factory(cls, simulator, init_dict):
-        """Instantiates the plugin from a dictionary in the context of a simulator."""
+        """Instantiates the plugin from a dictionary in the context of a simulator.
+
+        :type simulator: iai_bullet_sim.basic_simulator.BasicSimulator
+        :type init_dict: dict
+        :rtype: ResetTrajectoryPositionController
+        """
         body = simulator.get_body(init_dict['body'])
         if body is None:
             raise Exception('Body "{}" does not exist in the context of the given simulation.'.format(init_dict['body']))
