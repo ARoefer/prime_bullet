@@ -101,6 +101,9 @@ class MultiBody(object):
 
         self.__current_pose = None
         self.__last_sim_pose_update = -1
+        self.__current_lin_velocity = None
+        self.__current_ang_velocity = None
+        self.__last_sim_velocity_update = -1
 
         # Initialize empty JS for objects without dynamic joints
         self.__joint_state = None if len(self.__dynamic_joint_indices) > 0 else {}
@@ -122,9 +125,11 @@ class MultiBody(object):
     def reset(self):
         """Resets this object's pose and joints to their initial configuration."""
         pb.resetBasePositionAndOrientation(self.__bulletId, self.initial_pos, self.initial_rot)
+        pb.resetbaseVelocity(self.__bulletId)
         self.set_joint_positions(self.initial_joint_state)
         self.__last_sim_pose_update = -1
         self.__last_sim_js_update = -1
+        self.__last_sim_velocity_update = -1
 
     def get_link_state(self, link=None):
         """Returns the state of the named link.
@@ -176,6 +181,24 @@ class MultiBody(object):
             temp = pb.getBasePositionAndOrientation(self.__bulletId)
             self.__current_pose = Frame(temp[0], temp[1])
         return self.__current_pose
+
+    def linear_velocity(self):
+        """Returns the object's current linear velocity.
+        :rtype: list
+        """
+        if self.simulator.get_n_update() != self.__last_sim_velocity_update:
+            self.__current_lin_velocity, self.__current_ang_velocity = pb.getBaseVelocity(self.__bulletId)
+            self.__last_sim_velocity_update = self.simulator.get_n_update()
+        return self.__current_lin_velocity
+
+    def angular_velocity(self):
+        """Returns the object's current angular velocity.
+        :rtype: list
+        """
+        if self.simulator.get_n_update() != self.__last_sim_velocity_update:
+            self.__current_lin_velocity, self.__current_ang_velocity = pb.getBaseVelocity(self.__bulletId)
+            self.__last_sim_velocity_update = self.simulator.get_n_update()
+        return self.__current_ang_velocity
 
     def enable_joint_sensor(self, joint_name, enable=True):
         """Activates or deactivates the force-torque sensor for a given joint.
