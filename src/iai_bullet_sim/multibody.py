@@ -67,6 +67,7 @@ class MultiBody(object):
         self.__bulletId     = bulletId
         self.color          = color
         self.joints         = {}
+        self.dynamic_joints = {}
         self.joint_idx_name_map = {}
         self.joint_sensors  = set()
         self.joint_driver   = joint_driver
@@ -83,11 +84,12 @@ class MultiBody(object):
             joint = JointInfo(*pb.getJointInfo(self.__bulletId, x))
             self.joints[joint.jointName] = joint
             if joint.jointType != pb.JOINT_FIXED:
+                self.dynamic_joints[joint.jointName] = joint
                 self.initial_joint_state[joint.jointName] = min(max(joint.lowerLimit, 0.0), joint.upperLimit)
 
 
         self.__index_joint_map       = {info.jointIndex: joint for joint, info in self.joints.items()}
-        self.__dynamic_joint_indices = [info.jointIndex for info in self.joints.values() if info.jointType != pb.JOINT_FIXED]
+        self.__dynamic_joint_indices = [info.jointIndex for info in self.dynamic_joints.values()]
         print('dynamic joints:\n  {}'.format('\n  '.join([info.jointName for info in self.joints.values() if info.jointType != pb.JOINT_FIXED])))
 
 
@@ -104,6 +106,12 @@ class MultiBody(object):
         self.__joint_state = None if len(self.__dynamic_joint_indices) > 0 else {}
         self.__last_sim_js_update = -1
 
+
+    def has_dynamic_joints(self):
+        """Returns True, if this multi body hase any dynamic joints.
+        :rtype: bool
+        """
+        return len(self.dynamic_joints) > 0
 
     def bId(self):
         """Returns the corresponding bullet Id

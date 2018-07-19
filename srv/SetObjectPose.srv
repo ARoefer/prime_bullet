@@ -1,0 +1,6 @@
+string object_id         # Id of the object
+geometry_msgs/Pose pose  # Pose to set the object to
+bool override_initial    # Set this pose as initial pose
+---
+bool success             # Was call successful
+string error_msg         # Error message if any

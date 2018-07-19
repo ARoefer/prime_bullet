@@ -1,0 +1,6 @@
+string object_id                    # Id of the object
+sensor_msgs/JointState joint_state  # Joint state to set
+bool override_initial               # Set this state as initial state
+---
+bool success                        # Was call successful
+string error_msg                    # Error message, if any

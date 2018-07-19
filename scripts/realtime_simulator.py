@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 import rospy
-from iai_bullet_sim.basic_simulator_node import BasicSimulatorNode
+from iai_bullet_sim.service_simulator_node import ServiceSimulatorNode
 
-class FixedTickSimulator(BasicSimulatorNode):
+class FixedTickSimulator(ServiceSimulatorNode):
     def __init__(self):
         super(FixedTickSimulator, self).__init__()
         self.timer = None

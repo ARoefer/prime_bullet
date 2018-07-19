@@ -1,0 +1,6 @@
+string object_id  # Id of object
+string joint      # Joint to set sensor on
+bool enable       # Enable or disable the sensor
+---
+bool success      # Was the call successful
+string error_msg  # Error message, if any

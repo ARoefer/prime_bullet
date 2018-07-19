@@ -1,0 +1,5 @@
+string object_id  # Id of the object
+---
+bool success      # Was the call successful
+string error_msg  # Error message, if any
+string[] joints   # Dynamic joints of the object
