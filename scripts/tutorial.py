@@ -13,7 +13,7 @@ class DemoIntro(object):
     def run(self):
         sim = BasicSimulator()
         sim.init(mode='gui')
-        floor   = sim.create_box(half_extents=[10,10,0.1], mass=0)
+        floor   = sim.create_box(extents=[10,10,0.1], mass=0)
         capsule = sim.create_capsule(radius=0.25, height=1, pos=[0,0,2], rot=[0,1,0,0], mass=10)
 
         last_update = time()
@@ -31,7 +31,7 @@ class DemoJoints(object):
     def run(self):
         sim = BasicSimulator()
         sim.init(mode='gui')
-        floor    = sim.create_box(half_extents=[10,10,0.1], mass=0)
+        floor    = sim.create_box(extents=[10,10,0.1], mass=0)
         windmill = sim.load_urdf('package://iai_bullet_sim/urdf/windmill.urdf', useFixedBase=1)
 
         windmill.apply_joint_vel_cmds({'wings_rotor': -2})
@@ -52,11 +52,11 @@ class DemoSensor(object):
     def run(self):
         sim = BasicSimulator()
         sim.init(mode='gui')
-        floor    = sim.create_box(half_extents=[10,10,0.1], mass=0)
+        floor = sim.create_box(extents=[10,10,0.1], mass=0)
         scale = sim.load_urdf('package://iai_bullet_sim/urdf/scale.urdf', pos=[0,0,0.1], useFixedBase=1)
 
         for x in range(5):
-            sim.create_box(half_extents=[0.1,0.1,0.1], pos=[0,0,2 + x*0.5], mass=20)
+            sim.create_box(extents=[0.2,0.2,0.2], pos=[0,0,2 + x*0.5], mass=20)
 
         scale.apply_joint_pos_cmds({'plate_lift': 0.2})
         scale.enable_joint_sensor('plate_lift')
@@ -69,10 +69,35 @@ class DemoSensor(object):
                 last_update = time()
 
 
+class DemoContacts(object):
+    def __init__(self):
+        pass
+
+    def run(self):
+        sim = BasicSimulator()
+        sim.init(mode='gui')
+        floor = sim.create_box(extents=[10,10,0.1], mass=0)
+        scale = sim.load_urdf('package://iai_bullet_sim/urdf/scale.urdf', pos=[0,0,0.1], useFixedBase=1)
+
+        for x in range(5):
+            sim.create_box(extents=[0.2,0.2,0.2], pos=[0,0,2 + x*0.5], mass=20)
+
+        scale.apply_joint_pos_cmds({'plate_lift': 0.2})
+        scale.enable_joint_sensor('plate_lift')
+
+        last_update = time()
+        while True:
+            if time() - last_update >= sim.time_step:
+                sim.update()
+                print('Contacts with plate:\n  {}'.format('\n  '.join([sim.get_body_id(c.bodyB.bId()) for c in scale.get_contacts(own_link='plate')])))
+                last_update = time()
+
+
 
 demos = {'intro': DemoIntro,
          'joints': DemoJoints,
-         'sensor': DemoSensor}
+         'sensor': DemoSensor,
+         'contacts': DemoContacts} # Contacts, closest points,
 
 if __name__ == '__main__':
     if len(sys.argv) < 2:
