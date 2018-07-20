@@ -11,7 +11,7 @@ The simulator implemented in this package can be split into three main component
 - The simulator
 - The objects
 - The plugins
-  
+
 The simulator connects to the bullet framework. It steps the simulation and is used to instantiate objects. It can save its state to a Python dictionary and also load a state from these structures.
 
 The objects provide a object-level access to bullet's objects. They come in the form of rigid bodies and multi bodies. Rigid bodies are geometrically simple objects which only have one collider. Multi bodies can consist of multiple sub-bodies - so called *links* - which are connected by *joints*. These objects can handily loaded from URDF files. The joints can be actively controlled and there simulated step can be accessed through the multi body interface.
@@ -34,8 +34,10 @@ The following code uses instantiates a simulator, initializes it in gui-mode, ad
 
     sim = BasicSimulator()
     sim.init(mode='gui')
-    floor   = sim.create_box(half_extents=[10,10,0.1], mass=0)
-    capsule = sim.create_capsule(radius=0.25, height=1, pos=[0,0,2], rot=[0,1,0,0], mass=10)
+    floor   = sim.create_box(extents=[10,10,0.1], mass=0)
+    capsule = sim.create_capsule(radius=0.25, height=1,
+                                 pos=[0,0,2], rot=[0,1,0,0],
+                                 mass=10)
 
     last_update = time()
     while True:

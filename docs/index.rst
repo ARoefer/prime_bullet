@@ -11,7 +11,8 @@ Welcome to iai_bullet_sim's documentation!
    :caption: Contents:
 
    overview
-   
+   _modules/modules.rst
+
 
 Indices and tables
 ==================
