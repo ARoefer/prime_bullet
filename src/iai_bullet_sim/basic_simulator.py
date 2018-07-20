@@ -108,9 +108,9 @@ class ContactPoint(object):
     def __init__(self, bodyA, bodyB, linkA, linkB, posOnA, posOnB, normalOnB, dist, normalForce):
         """
         :param bodyA: Reference to first body
-        :type  bodyA: Multibody, RigidBody
+        :type  bodyA: MultiBody, RigidBody
         :param bodyB: Reference to second body
-        :type  bodyB: Multibody, RigidBody
+        :type  bodyB: MultiBody, RigidBody
         :param linkA: Link of first body; None in case of rigid body
         :type  linkA: str, NoneType
         :param linkB: Link of second body; None in case of rigid body
@@ -261,7 +261,7 @@ class BasicSimulator(object):
         If the specific name is already taken an exception will be raised.
 
         :param obj:           Object to register with the simulator.
-        :type  obj:           iai_bullet_sim.rigid_body.RigidBody, iai_bullet_sim.multibody.Multibody
+        :type  obj:           iai_bullet_sim.rigid_body.RigidBody, iai_bullet_sim.multibody.MultiBody
         :param name_override: Name to assign to the object.
         :type  obj:           str, NoneType
         """
@@ -317,7 +317,7 @@ class BasicSimulator(object):
         :type  useFixedBase:  int, bool
         :param name_override: Custom name to assign to this object during registration.
         :type  name_override: str, NoneType
-        :rtype: iai_bullet_sim.multibody.Multibody
+        :rtype: iai_bullet_sim.multibody.MultiBody
         """
         res_urdf_path = res_pkg_path(urdf_path)
         print('Simulator: {}'.format(res_urdf_path))
@@ -390,6 +390,7 @@ class BasicSimulator(object):
         :type  color:         list
         :param name_override: Name for the object to be registered with.
         :type  name_override: str, NoneType
+        :rtype: iai_bullet_sim.rigid_body.RigidBody
         """
         return self.create_object(BULLET_GEOM_TYPES[pb.GEOM_CYLINDER], radius=radius, height=height, pos=pos, rot=rot, mass=mass, color=color, name_override=name_override)
 
@@ -466,7 +467,7 @@ class BasicSimulator(object):
         """Returns the object associated with a name.
 
         :type bodyId: str
-        :rtype: iai_bullet_sim.multibody.Multibody, iai_bullet_sim.rigid_body.RigidBody, NoneType
+        :rtype: iai_bullet_sim.multibody.MultiBody, iai_bullet_sim.rigid_body.RigidBody, NoneType
         """
         if bodyId in self.bodies:
             return self.bodies[bodyId]
@@ -520,9 +521,9 @@ class BasicSimulator(object):
         """Returns all contacts generated during the last physics step.
 
         :param bodyA: All returned contacts will involve this object.
-        :type  bodyA: iai_bullet_sim.rigid_body.RigidBody, iai_bullet_sim.multibody.Multibody
+        :type  bodyA: iai_bullet_sim.rigid_body.RigidBody, iai_bullet_sim.multibody.MultiBody
         :param bodyB: All returned contacts will only be between this object and bodyA.
-        :type  bodyB: iai_bullet_sim.rigid_body.RigidBody, iai_bullet_sim.multibody.Multibody
+        :type  bodyB: iai_bullet_sim.rigid_body.RigidBody, iai_bullet_sim.multibody.MultiBody
         :param linkA: All contact will involve this link of bodyA.
         :type  linkA: str, NoneType
         :param linkB: All returned will involve this link of bodyB
@@ -550,9 +551,9 @@ class BasicSimulator(object):
         """Returns all the closest points between two objects.
 
         :param bodyA: First body.
-        :type  bodyA: iai_bullet_sim.rigid_body.RigidBody, iai_bullet_sim.multibody.Multibody
+        :type  bodyA: iai_bullet_sim.rigid_body.RigidBody, iai_bullet_sim.multibody.MultiBody
         :param bodyB: Second body.
-        :type  bodyB: iai_bullet_sim.rigid_body.RigidBody, iai_bullet_sim.multibody.Multibody
+        :type  bodyB: iai_bullet_sim.rigid_body.RigidBody, iai_bullet_sim.multibody.MultiBody
         :param linkA: Closest point will be on this link of bodyA.
         :type  linkA: str, NoneType
         :param linkB: Closest point will be on this link of bodyB.
@@ -706,17 +707,17 @@ class BasicSimulator(object):
 
     def __create_contact_point(self, bcp):
         """Internal. Turns a bullet contact point into a ContactPoint."""
-        bodyA, linkA = self.__get_obj_link_tuple(c[1], c[3])
-        bodyB, linkB = self.__get_obj_link_tuple(c[2], c[4])
+        bodyA, linkA = self.__get_obj_link_tuple(bcp[1], bcp[3])
+        bodyB, linkB = self.__get_obj_link_tuple(bcp[2], bcp[4])
         return ContactPoint(bodyA,          # Body A
                             bodyB,          # Body B
                             linkA,          # Link of A
                             linkB,          # Link of B
-                            Vector3(*c[5]), # Point on A
-                            Vector3(*c[6]), # Point on B
-                            Vector3(*c[7]), # Normal from B to A
-                            c[8],           # Distance
-                            c[9])           # Normal force
+                            Vector3(*bcp[5]), # Point on A
+                            Vector3(*bcp[6]), # Point on B
+                            Vector3(*bcp[7]), # Normal from B to A
+                            bcp[8],           # Distance
+                            bcp[9])           # Normal force
 
     def __get_obj_link_tuple(self, bulletId, linkIdx):
         """Internal. Turns a bullet id and a link index into a tuple of the corresponding object and the link's name."""

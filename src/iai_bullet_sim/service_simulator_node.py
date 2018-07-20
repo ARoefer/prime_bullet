@@ -15,6 +15,7 @@ controller_map = {SetControllerRequest.TYPE_VELOCITY: JointVelocityController,
                       SetControllerRequest.TYPE_TRAJECTORY_RESET: ResetTrajectoryPositionController}
 
 class ServiceSimulatorNode(BasicSimulatorNode):
+    """This class exposes a lot of the simulator's functionality to ROS services."""
     def __init__(self):
         self.services =[
             rospy.Service('get_object_ids', GetObjectIds, self.srv_get_obj_ids),
