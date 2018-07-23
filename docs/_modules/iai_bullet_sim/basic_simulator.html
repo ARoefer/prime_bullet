@@ -1,0 +1,975 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>iai_bullet_sim.basic_simulator &mdash; iai_bullet_sim 0.1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+
+  
+  <script src="../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> iai_bullet_sim
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorial_simulator.html">Tutorial: Using the Simulator</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorial_plugins.html">Tutorial: Plugins</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../modules.html">API Documentation</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">iai_bullet_sim</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>iai_bullet_sim.basic_simulator</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for iai_bullet_sim.basic_simulator</h1><div class="highlight"><pre>
+<span class="kn">import</span> <span class="nn">pybullet</span> <span class="k">as</span> <span class="nn">pb</span>
+<span class="kn">import</span> <span class="nn">random</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">namedtuple</span>
+<span class="kn">from</span> <span class="nn">iai_bullet_sim.utils</span> <span class="k">import</span> <span class="n">res_pkg_path</span><span class="p">,</span> <span class="n">rot3_to_quat</span><span class="p">,</span> <span class="n">Vector3</span><span class="p">,</span> <span class="n">Quaternion</span><span class="p">,</span> <span class="n">Frame</span><span class="p">,</span> <span class="n">AABB</span>
+<span class="kn">from</span> <span class="nn">iai_bullet_sim.multibody</span> <span class="k">import</span> <span class="n">MultiBody</span><span class="p">,</span> <span class="n">JointDriver</span>
+<span class="kn">from</span> <span class="nn">iai_bullet_sim.rigid_body</span> <span class="k">import</span> <span class="n">RigidBody</span><span class="p">,</span> <span class="n">GEOM_TYPES</span><span class="p">,</span> <span class="n">BULLET_GEOM_TYPES</span>
+<span class="kn">from</span> <span class="nn">pprint</span> <span class="k">import</span> <span class="n">pprint</span>
+
+<span class="c1"># Constraint structure. Assigns names to bullet&#39;s info structure.</span>
+<span class="n">Constraint</span> <span class="o">=</span> <span class="n">namedtuple</span><span class="p">(</span><span class="s1">&#39;Constraint&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;bulletId&#39;</span><span class="p">,</span> <span class="s1">&#39;bodyParent&#39;</span><span class="p">,</span> <span class="s1">&#39;bodyChild&#39;</span><span class="p">,</span> <span class="s1">&#39;linkParent&#39;</span><span class="p">,</span> <span class="s1">&#39;linkChild&#39;</span><span class="p">,</span>
+                                       <span class="s1">&#39;jointType&#39;</span><span class="p">,</span> <span class="s1">&#39;jointAxis&#39;</span><span class="p">,</span> <span class="s1">&#39;parentJointPosition&#39;</span><span class="p">,</span> <span class="s1">&#39;childJointPosition&#39;</span><span class="p">,</span>
+                                       <span class="s1">&#39;parentJointOrientation&#39;</span><span class="p">,</span> <span class="s1">&#39;childJointOrientation&#39;</span><span class="p">])</span>
+
+<span class="c1"># Visual shape structure. Assigns names to bullet&#39;s info structure.</span>
+<span class="n">VisualShape</span> <span class="o">=</span> <span class="n">namedtuple</span><span class="p">(</span><span class="s1">&#39;VisualShape&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;bulletId&#39;</span><span class="p">,</span> <span class="s1">&#39;linkIndex&#39;</span><span class="p">,</span> <span class="s1">&#39;geometryType&#39;</span><span class="p">,</span> <span class="s1">&#39;dimensions&#39;</span><span class="p">,</span> <span class="s1">&#39;filename&#39;</span><span class="p">,</span> <span class="s1">&#39;localPosition&#39;</span><span class="p">,</span> <span class="s1">&#39;localOrientation&#39;</span><span class="p">,</span> <span class="s1">&#39;rgba&#39;</span><span class="p">])</span>
+
+<span class="c1"># Collision shape structure. Assigns names to bullet&#39;s info structure.</span>
+<span class="n">CollisionShape</span> <span class="o">=</span> <span class="n">namedtuple</span><span class="p">(</span><span class="s1">&#39;CollisionShape&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;bulletId&#39;</span><span class="p">,</span> <span class="s1">&#39;linkIndex&#39;</span><span class="p">,</span> <span class="s1">&#39;geometryType&#39;</span><span class="p">,</span> <span class="s1">&#39;dimensions&#39;</span><span class="p">,</span> <span class="s1">&#39;filename&#39;</span><span class="p">,</span> <span class="s1">&#39;localPosition&#39;</span><span class="p">,</span> <span class="s1">&#39;localOrientation&#39;</span><span class="p">])</span>
+
+
+<div class="viewcode-block" id="hsva_to_rgba"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.basic_simulator.hsva_to_rgba">[docs]</a><span class="k">def</span> <span class="nf">hsva_to_rgba</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Converts a HSVA color to a RGBA color.</span>
+
+<span class="sd">    :param h: Hue</span>
+<span class="sd">    :type h: int, float</span>
+<span class="sd">    :param s: Saturation</span>
+<span class="sd">    :type s: int, float</span>
+<span class="sd">    :param v: Value</span>
+<span class="sd">    :type v: int, float</span>
+<span class="sd">    :param a: Alpha</span>
+<span class="sd">    :type a: int, float</span>
+<span class="sd">    :return: RGBA equivalent as list [r,g,b,a]</span>
+<span class="sd">    :rtype: list</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">h_i</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">h</span><span class="o">*</span><span class="mi">6</span><span class="p">))</span>
+    <span class="n">f</span> <span class="o">=</span> <span class="n">h</span><span class="o">*</span><span class="mi">6</span> <span class="o">-</span> <span class="n">h_i</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">v</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">s</span><span class="p">)</span>
+    <span class="n">q</span> <span class="o">=</span> <span class="n">v</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">f</span><span class="o">*</span><span class="n">s</span><span class="p">)</span>
+    <span class="n">t</span> <span class="o">=</span> <span class="n">v</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">f</span><span class="p">)</span> <span class="o">*</span> <span class="n">s</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">h_i</span><span class="o">==</span><span class="mi">0</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">v</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">a</span><span class="p">]</span>
+    <span class="k">elif</span> <span class="n">h_i</span><span class="o">==</span><span class="mi">1</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">q</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">a</span><span class="p">]</span>
+    <span class="k">elif</span> <span class="n">h_i</span><span class="o">==</span><span class="mi">2</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">p</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">a</span><span class="p">]</span>
+    <span class="k">elif</span> <span class="n">h_i</span><span class="o">==</span><span class="mi">3</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">p</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">a</span><span class="p">]</span>
+    <span class="k">elif</span> <span class="n">h_i</span><span class="o">==</span><span class="mi">4</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">t</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">a</span><span class="p">]</span>
+    <span class="k">elif</span> <span class="n">h_i</span><span class="o">==</span><span class="mi">5</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">v</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="n">a</span><span class="p">]</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;h_i is {}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">h_i</span><span class="p">))</span>
+    <span class="k">return</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="n">a</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="vec3_to_list"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.basic_simulator.vec3_to_list">[docs]</a><span class="k">def</span> <span class="nf">vec3_to_list</span><span class="p">(</span><span class="n">vec</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Converts an indexable structure with len &gt;= 3 to a list containing the first three elements.</span>
+
+<span class="sd">    :type vec: iterable</span>
+<span class="sd">    :rtype: list</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="p">[</span><span class="n">vec</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">vec</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">vec</span><span class="p">[</span><span class="mi">2</span><span class="p">]]</span></div>
+
+<div class="viewcode-block" id="vec_add"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.basic_simulator.vec_add">[docs]</a><span class="k">def</span> <span class="nf">vec_add</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Performs per element addition on two indexable structures with len &gt;= 3 and returns the result as Vector3.</span>
+
+<span class="sd">    :type a: iterable</span>
+<span class="sd">    :type b: iterable</span>
+<span class="sd">    :rtype: iai_bullet_sim.utils.Vector3</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">Vector3</span><span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">b</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">a</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">b</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">a</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">+</span> <span class="n">b</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span></div>
+
+<div class="viewcode-block" id="vec_sub"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.basic_simulator.vec_sub">[docs]</a><span class="k">def</span> <span class="nf">vec_sub</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Performs per element subtraction on two indexable structures with len &gt;= 3 and returns the result as Vector3.</span>
+
+<span class="sd">    :type a: iterable</span>
+<span class="sd">    :type b: iterable</span>
+<span class="sd">    :rtype: iai_bullet_sim.utils.Vector3</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">Vector3</span><span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">b</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">a</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">b</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">a</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">-</span> <span class="n">b</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span></div>
+
+<div class="viewcode-block" id="vec_scale"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.basic_simulator.vec_scale">[docs]</a><span class="k">def</span> <span class="nf">vec_scale</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Performs per element multiplication on an indexable structure with len &gt;= 3 and returns the result as Vector3.</span>
+
+<span class="sd">    :type a: iterable</span>
+<span class="sd">    :type x: iterable</span>
+<span class="sd">    :rtype: iai_bullet_sim.utils.Vector3</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">Vector3</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">x</span> <span class="o">*</span> <span class="n">x</span><span class="p">,</span> <span class="n">a</span><span class="o">.</span><span class="n">y</span> <span class="o">*</span> <span class="n">x</span><span class="p">,</span> <span class="n">a</span><span class="o">.</span><span class="n">z</span> <span class="o">*</span> <span class="n">x</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="invert_transform"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.basic_simulator.invert_transform">[docs]</a><span class="k">def</span> <span class="nf">invert_transform</span><span class="p">(</span><span class="n">frame_tuple</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Inverts the transformation represented by the Frame datatype and returns it as new frame.</span>
+
+<span class="sd">    :type frame_tuple:  iai_bullet_sim.utils.Frame</span>
+<span class="sd">    :rtype: iai_bullet_sim.utils.Frame</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">temp</span> <span class="o">=</span> <span class="n">pb</span><span class="o">.</span><span class="n">invertTransform</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">frame_tuple</span><span class="o">.</span><span class="n">position</span><span class="p">),</span> <span class="nb">list</span><span class="p">(</span><span class="n">frame_tuple</span><span class="o">.</span><span class="n">quaternion</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">Frame</span><span class="p">(</span><span class="n">Vector3</span><span class="p">(</span><span class="o">*</span><span class="n">temp</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="n">Quaternion</span><span class="p">(</span><span class="o">*</span><span class="n">temp</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span></div>
+
+
+<div class="viewcode-block" id="ContactPoint"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.basic_simulator.ContactPoint">[docs]</a><span class="k">class</span> <span class="nc">ContactPoint</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Wrapper for bullet&#39;s contact point structure.&quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bodyA</span><span class="p">,</span> <span class="n">bodyB</span><span class="p">,</span> <span class="n">linkA</span><span class="p">,</span> <span class="n">linkB</span><span class="p">,</span> <span class="n">posOnA</span><span class="p">,</span> <span class="n">posOnB</span><span class="p">,</span> <span class="n">normalOnB</span><span class="p">,</span> <span class="n">dist</span><span class="p">,</span> <span class="n">normalForce</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        :param bodyA: Reference to first body</span>
+<span class="sd">        :type  bodyA: MultiBody, RigidBody</span>
+<span class="sd">        :param bodyB: Reference to second body</span>
+<span class="sd">        :type  bodyB: MultiBody, RigidBody</span>
+<span class="sd">        :param linkA: Link of first body; None in case of rigid body</span>
+<span class="sd">        :type  linkA: str, NoneType</span>
+<span class="sd">        :param linkB: Link of second body; None in case of rigid body</span>
+<span class="sd">        :type  linkB: str, NoneType</span>
+<span class="sd">        :param posOnA: Coordinates of contact on link of A</span>
+<span class="sd">        :type  posOnA: iterable, iai_bullet_sim.utils.Vector3</span>
+<span class="sd">        :param posOnB: Coordinates of contact on link of B</span>
+<span class="sd">        :type  posOnB: iterable, iai_bullet_sim.utils.Vector3</span>
+<span class="sd">        :param normalOnB: Normal direction of the contact</span>
+<span class="sd">        :type  normalOnB: iterable, iai_bullet_sim.utils.Vector3</span>
+<span class="sd">        :param dist: Penetration depth of the contact</span>
+<span class="sd">        :type  dist: float</span>
+<span class="sd">        :param normalForce: Force vector of the contact</span>
+<span class="sd">        :type  normalForce: iterable, iai_bullet_sim.utils.Vector3</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bodyA</span> <span class="o">=</span> <span class="n">bodyA</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bodyB</span> <span class="o">=</span> <span class="n">bodyB</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">linkA</span> <span class="o">=</span> <span class="n">linkA</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">linkB</span> <span class="o">=</span> <span class="n">linkB</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">posOnA</span> <span class="o">=</span> <span class="n">posOnA</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">posOnB</span> <span class="o">=</span> <span class="n">posOnB</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">normalOnB</span> <span class="o">=</span> <span class="n">normalOnB</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dist</span> <span class="o">=</span> <span class="n">dist</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">normalForce</span> <span class="o">=</span> <span class="n">normalForce</span>
+
+    <span class="k">def</span> <span class="nf">__leq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Compares the distances of two contact points.</span>
+
+<span class="sd">        :type other: ContactPoint</span>
+<span class="sd">        :rtype: float</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">dist</span> <span class="o">&lt;=</span> <span class="n">other</span><span class="o">.</span><span class="n">dist</span></div>
+
+
+<div class="viewcode-block" id="BasicSimulator"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.basic_simulator.BasicSimulator">[docs]</a><span class="k">class</span> <span class="nc">BasicSimulator</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Class wrapping the PyBullet interface in an object oriented manner.&quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tick_rate</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="n">gravity</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="o">-</span><span class="mf">9.81</span><span class="p">]):</span>
+        <span class="sd">&quot;&quot;&quot;Constructs a simulator.</span>
+
+<span class="sd">        :param tick_rate: Ticks ideally performed per second.</span>
+<span class="sd">        :type  tick_rate: float</span>
+<span class="sd">        :param   gravity: Gravity force for the simulation.</span>
+<span class="sd">        :type    gravity: list</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">physicsClient</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bodies</span>      <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">constraints</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tick_rate</span>   <span class="o">=</span> <span class="n">tick_rate</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">gravity</span>     <span class="o">=</span> <span class="n">gravity</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">time_step</span>   <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">tick_rate</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__n_updates</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__bId_IdMap</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">__h</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__nextId</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__joint_types</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;FIXED&#39;</span><span class="p">:</span> <span class="n">pb</span><span class="o">.</span><span class="n">JOINT_FIXED</span><span class="p">,</span> <span class="s1">&#39;PRISMATIC&#39;</span><span class="p">:</span> <span class="n">pb</span><span class="o">.</span><span class="n">JOINT_PRISMATIC</span><span class="p">,</span> <span class="s1">&#39;HINGE&#39;</span><span class="p">:</span> <span class="n">pb</span><span class="o">.</span><span class="n">JOINT_POINT2POINT</span><span class="p">}</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">__plugins</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+
+<div class="viewcode-block" id="BasicSimulator.get_n_update"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.basic_simulator.BasicSimulator.get_n_update">[docs]</a>    <span class="k">def</span> <span class="nf">get_n_update</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns the number of performed updates.</span>
+
+<span class="sd">        :rtype: int</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__n_updates</span></div>
+
+    <span class="k">def</span> <span class="nf">__gen_next_color</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Internal. Generates a new random color.</span>
+
+<span class="sd">        :rtype: list</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__h</span> <span class="o">+=</span> <span class="mf">0.618033988749895</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__h</span> <span class="o">%=</span> <span class="mf">1.0</span>
+        <span class="k">return</span> <span class="n">hsva_to_rgba</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__h</span><span class="p">,</span> <span class="mf">0.7</span><span class="p">,</span> <span class="mf">0.95</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="BasicSimulator.init"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.basic_simulator.BasicSimulator.init">[docs]</a>    <span class="k">def</span> <span class="nf">init</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;direct&#39;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Initializes the connection to Bullet.</span>
+
+<span class="sd">        :param mode: Mode of the connection. Options: gui | direct</span>
+<span class="sd">        :type  mode: str</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">physicsClient</span> <span class="o">=</span> <span class="n">pb</span><span class="o">.</span><span class="n">connect</span><span class="p">({</span><span class="s1">&#39;gui&#39;</span><span class="p">:</span> <span class="n">pb</span><span class="o">.</span><span class="n">GUI</span><span class="p">,</span> <span class="s1">&#39;direct&#39;</span><span class="p">:</span> <span class="n">pb</span><span class="o">.</span><span class="n">DIRECT</span><span class="p">}[</span><span class="n">mode</span><span class="p">])</span><span class="c1">#or p.DIRECT for non-graphical version</span>
+        <span class="n">pb</span><span class="o">.</span><span class="n">setGravity</span><span class="p">(</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">gravity</span><span class="p">)</span>
+        <span class="n">pb</span><span class="o">.</span><span class="n">setTimeStep</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">time_step</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="BasicSimulator.set_tick_rate"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.basic_simulator.BasicSimulator.set_tick_rate">[docs]</a>    <span class="k">def</span> <span class="nf">set_tick_rate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tick_rate</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Updates the tick rate of the simulation.</span>
+
+<span class="sd">        :type tick_rate: int</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tick_rate</span> <span class="o">=</span> <span class="n">tick_rate</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">time_step</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">tick_rate</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">physicsClient</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">pb</span><span class="o">.</span><span class="n">setTimeStep</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">time_step</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="BasicSimulator.set_gravity"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.basic_simulator.BasicSimulator.set_gravity">[docs]</a>    <span class="k">def</span> <span class="nf">set_gravity</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">gravity</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Updates the simulations gravity.</span>
+
+<span class="sd">        :type gravity: list</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">gravity</span> <span class="o">=</span> <span class="n">gravity</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">physicsClient</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">pb</span><span class="o">.</span><span class="n">setGravity</span><span class="p">(</span><span class="o">*</span><span class="n">gravity</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="BasicSimulator.stop"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.basic_simulator.BasicSimulator.stop">[docs]</a>    <span class="k">def</span> <span class="nf">stop</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Stops the simulation. Calls disable() on all plugins.&quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">plugin</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">__plugins</span><span class="p">:</span>
+            <span class="n">plugin</span><span class="o">.</span><span class="n">disable</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="BasicSimulator.kill"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.basic_simulator.BasicSimulator.kill">[docs]</a>    <span class="k">def</span> <span class="nf">kill</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Kills the connection to Bullet.&quot;&quot;&quot;</span>
+        <span class="n">pb</span><span class="o">.</span><span class="n">disconnect</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="BasicSimulator.pre_update"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.basic_simulator.BasicSimulator.pre_update">[docs]</a>    <span class="k">def</span> <span class="nf">pre_update</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Called before every physics step.&quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">plugin</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">__plugins</span><span class="p">:</span>
+            <span class="n">plugin</span><span class="o">.</span><span class="n">pre_physics_update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">time_step</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="BasicSimulator.physics_update"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.basic_simulator.BasicSimulator.physics_update">[docs]</a>    <span class="k">def</span> <span class="nf">physics_update</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Steps the physics simulation.&quot;&quot;&quot;</span>
+        <span class="n">pb</span><span class="o">.</span><span class="n">stepSimulation</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__n_updates</span> <span class="o">+=</span> <span class="mi">1</span></div>
+
+<div class="viewcode-block" id="BasicSimulator.post_update"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.basic_simulator.BasicSimulator.post_update">[docs]</a>    <span class="k">def</span> <span class="nf">post_update</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Called after every physics step.&quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">plugin</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">__plugins</span><span class="p">:</span>
+            <span class="n">plugin</span><span class="o">.</span><span class="n">post_physics_update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">time_step</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="BasicSimulator.update"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.basic_simulator.BasicSimulator.update">[docs]</a>    <span class="k">def</span> <span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Performs one complete update, consisting of pre-, physics- and post update.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pre_update</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">physics_update</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">post_update</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="BasicSimulator.reset"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.basic_simulator.BasicSimulator.reset">[docs]</a>    <span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Resets all bodies in the simulation to their initial state.&quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">body</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">bodies</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+            <span class="n">body</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="BasicSimulator.register_object"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.basic_simulator.BasicSimulator.register_object">[docs]</a>    <span class="k">def</span> <span class="nf">register_object</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">,</span> <span class="n">name_override</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Registers an object with the simulator.</span>
+<span class="sd">        Unless a specific name is given, the simulator will automatically assign one to the object.</span>
+<span class="sd">        If the specific name is already taken an exception will be raised.</span>
+
+<span class="sd">        :param obj:           Object to register with the simulator.</span>
+<span class="sd">        :type  obj:           iai_bullet_sim.rigid_body.RigidBody, iai_bullet_sim.multibody.MultiBody</span>
+<span class="sd">        :param name_override: Name to assign to the object.</span>
+<span class="sd">        :type  obj:           str, NoneType</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">name_override</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">MultiBody</span><span class="p">):</span>
+                <span class="n">base_link</span><span class="p">,</span> <span class="n">bodyId</span> <span class="o">=</span> <span class="n">pb</span><span class="o">.</span><span class="n">getBodyInfo</span><span class="p">(</span><span class="n">obj</span><span class="o">.</span><span class="n">bId</span><span class="p">())</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">RigidBody</span><span class="p">):</span>
+                <span class="n">bodyId</span> <span class="o">=</span> <span class="n">obj</span><span class="o">.</span><span class="n">type</span>
+            <span class="n">counter</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="n">bodyName</span> <span class="o">=</span> <span class="n">bodyId</span>
+            <span class="k">while</span> <span class="n">bodyId</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">bodies</span><span class="p">:</span>
+                <span class="n">bodyId</span> <span class="o">=</span> <span class="s1">&#39;{}.{}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">bodyName</span><span class="p">,</span> <span class="n">counter</span><span class="p">)</span>
+                <span class="n">counter</span> <span class="o">+=</span> <span class="mi">1</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">bodies</span><span class="p">[</span><span class="n">bodyId</span><span class="p">]</span> <span class="o">=</span> <span class="n">obj</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__bId_IdMap</span><span class="p">[</span><span class="n">obj</span><span class="o">.</span><span class="n">bId</span><span class="p">()]</span> <span class="o">=</span> <span class="n">bodyId</span>
+            <span class="k">return</span> <span class="n">bodyId</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">name_override</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">bodies</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;Id &quot;{}&quot; is already taken.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name_override</span><span class="p">))</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">bodies</span><span class="p">[</span><span class="n">name_override</span><span class="p">]</span> <span class="o">=</span> <span class="n">obj</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__bId_IdMap</span><span class="p">[</span><span class="n">obj</span><span class="o">.</span><span class="n">bId</span><span class="p">()]</span> <span class="o">=</span> <span class="n">name_override</span>
+            <span class="k">return</span> <span class="n">name_override</span></div>
+
+
+<div class="viewcode-block" id="BasicSimulator.register_plugin"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.basic_simulator.BasicSimulator.register_plugin">[docs]</a>    <span class="k">def</span> <span class="nf">register_plugin</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">plugin</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Registers a plugin with the simulator.</span>
+
+<span class="sd">        :type plugin: SimulatorPlugin</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__plugins</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">plugin</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="BasicSimulator.deregister_plugin"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.basic_simulator.BasicSimulator.deregister_plugin">[docs]</a>    <span class="k">def</span> <span class="nf">deregister_plugin</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">plugin</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Removes a plugin from the simulator&#39;s registry.</span>
+
+<span class="sd">        :type plugin: SimulatorPlugin</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__plugins</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">plugin</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="BasicSimulator.load_urdf"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.basic_simulator.BasicSimulator.load_urdf">[docs]</a>    <span class="k">def</span> <span class="nf">load_urdf</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">urdf_path</span><span class="p">,</span> <span class="n">pos</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">],</span> <span class="n">rot</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">],</span> <span class="n">joint_driver</span><span class="o">=</span><span class="n">JointDriver</span><span class="p">(),</span> <span class="n">useFixedBase</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">name_override</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Loads an Object from a URDF and registers it with this simulator.</span>
+
+<span class="sd">        :param urdf_path:     Path of the file as local or global path, or as ROS package URI.</span>
+<span class="sd">        :type  urdf_path:     str</span>
+<span class="sd">        :param pos:           Position to create the object at.</span>
+<span class="sd">        :type  pos:           list</span>
+<span class="sd">        :param rot:           Rotation to create the object with.</span>
+<span class="sd">        :type  rot:           list</span>
+<span class="sd">        :param joint_driver:  Custom joint driver for custom joint behavior.</span>
+<span class="sd">        :type  joint_driver:  iai_bullet_sim.multibody.JointDriver</span>
+<span class="sd">        :param useFixedBase:  Should the base of the object be fixed in space?</span>
+<span class="sd">        :type  useFixedBase:  int, bool</span>
+<span class="sd">        :param name_override: Custom name to assign to this object during registration.</span>
+<span class="sd">        :type  name_override: str, NoneType</span>
+<span class="sd">        :rtype: iai_bullet_sim.multibody.MultiBody</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">res_urdf_path</span> <span class="o">=</span> <span class="n">res_pkg_path</span><span class="p">(</span><span class="n">urdf_path</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Simulator: {}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">res_urdf_path</span><span class="p">))</span>
+
+        <span class="n">new_body</span> <span class="o">=</span> <span class="n">MultiBody</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pb</span><span class="o">.</span><span class="n">loadURDF</span><span class="p">(</span><span class="n">res_urdf_path</span><span class="p">,</span>
+                                               <span class="n">pos</span><span class="p">,</span>
+                                               <span class="n">rot</span><span class="p">,</span>
+                                               <span class="mi">0</span><span class="p">,</span>              <span class="c1"># MAXIMAL COORDINATES, DO NOT TOUCH!</span>
+                                               <span class="n">useFixedBase</span><span class="p">,</span>
+                                               <span class="n">flags</span><span class="o">=</span><span class="n">pb</span><span class="o">.</span><span class="n">URDF_USE_SELF_COLLISION</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">__gen_next_color</span><span class="p">(),</span> <span class="n">pos</span><span class="p">,</span> <span class="n">rot</span><span class="p">,</span> <span class="n">joint_driver</span><span class="p">,</span> <span class="n">urdf_path</span><span class="p">)</span>
+
+
+        <span class="n">bodyId</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">register_object</span><span class="p">(</span><span class="n">new_body</span><span class="p">,</span> <span class="n">name_override</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Created new multibody with id {}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">bodyId</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">new_body</span></div>
+
+
+<div class="viewcode-block" id="BasicSimulator.create_sphere"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.basic_simulator.BasicSimulator.create_sphere">[docs]</a>    <span class="k">def</span> <span class="nf">create_sphere</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">radius</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">pos</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">],</span> <span class="n">rot</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">],</span> <span class="n">mass</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">name_override</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Creates and registers a spherical rigid body.</span>
+
+<span class="sd">        :param radius:        Sphere&#39;s radius</span>
+<span class="sd">        :type  radius:		  float</span>
+<span class="sd">        :param pos:           Position to create the object at</span>
+<span class="sd">        :type  pos:	          list</span>
+<span class="sd">        :param rot:           Rotation to create the object with</span>
+<span class="sd">        :type  rot:	          list</span>
+<span class="sd">        :param mass:          Mass of the object</span>
+<span class="sd">        :type  mass:		  float</span>
+<span class="sd">        :param color:         Color of the object in RGBA</span>
+<span class="sd">        :type  color:		  list</span>
+<span class="sd">        :param name_override: Name for the object to be registered with.</span>
+<span class="sd">        :type  name_override: str, NoneType</span>
+<span class="sd">        :rtype: iai_bullet_sim.rigid_body.RigidBody</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">create_object</span><span class="p">(</span><span class="n">BULLET_GEOM_TYPES</span><span class="p">[</span><span class="n">pb</span><span class="o">.</span><span class="n">GEOM_SPHERE</span><span class="p">],</span> <span class="n">radius</span><span class="o">=</span><span class="n">radius</span><span class="p">,</span> <span class="n">pos</span><span class="o">=</span><span class="n">pos</span><span class="p">,</span> <span class="n">rot</span><span class="o">=</span><span class="n">rot</span><span class="p">,</span> <span class="n">mass</span><span class="o">=</span><span class="n">mass</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span> <span class="n">name_override</span><span class="o">=</span><span class="n">name_override</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="BasicSimulator.create_box"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.basic_simulator.BasicSimulator.create_box">[docs]</a>    <span class="k">def</span> <span class="nf">create_box</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">extents</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">*</span><span class="mi">3</span><span class="p">,</span> <span class="n">pos</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">],</span> <span class="n">rot</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">],</span> <span class="n">mass</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">name_override</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Creates and registers a box shaped rigid body.</span>
+
+<span class="sd">        :param extents:       Edge lengths of the box</span>
+<span class="sd">        :type  extents:		  list</span>
+<span class="sd">        :param pos:           Position to create the object at</span>
+<span class="sd">        :type  pos:           list</span>
+<span class="sd">        :param rot:           Rotation to create the object with</span>
+<span class="sd">        :type  rot:           list</span>
+<span class="sd">        :param mass:          Mass of the object</span>
+<span class="sd">        :type  mass:          float</span>
+<span class="sd">        :param color:         Color of the object</span>
+<span class="sd">        :type  color:         list</span>
+<span class="sd">        :param name_override: Name for the object to be registered with.</span>
+<span class="sd">        :type  name_override: str, NoneType</span>
+<span class="sd">        :rtype: iai_bullet_sim.rigid_body.RigidBody</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">create_object</span><span class="p">(</span><span class="n">BULLET_GEOM_TYPES</span><span class="p">[</span><span class="n">pb</span><span class="o">.</span><span class="n">GEOM_BOX</span><span class="p">],</span> <span class="n">extents</span><span class="o">=</span><span class="n">extents</span><span class="p">,</span> <span class="n">pos</span><span class="o">=</span><span class="n">pos</span><span class="p">,</span> <span class="n">rot</span><span class="o">=</span><span class="n">rot</span><span class="p">,</span> <span class="n">mass</span><span class="o">=</span><span class="n">mass</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span> <span class="n">name_override</span><span class="o">=</span><span class="n">name_override</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="BasicSimulator.create_cylinder"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.basic_simulator.BasicSimulator.create_cylinder">[docs]</a>    <span class="k">def</span> <span class="nf">create_cylinder</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">radius</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">pos</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">],</span> <span class="n">rot</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">],</span> <span class="n">mass</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">name_override</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Creates and registers a cylindrical rigid body.</span>
+
+<span class="sd">        :param radius:        Cylinder&#39;s radius</span>
+<span class="sd">        :type  radius:        float</span>
+<span class="sd">        :param height:        Height of the cylinder</span>
+<span class="sd">        :type  height:        float</span>
+<span class="sd">        :param pos:           Position to create the object at</span>
+<span class="sd">        :type  pos:           list</span>
+<span class="sd">        :param rot:           Rotation to create the object with</span>
+<span class="sd">        :type  rot:           list</span>
+<span class="sd">        :param mass:          Mass of the object</span>
+<span class="sd">        :type  mass:          float</span>
+<span class="sd">        :param color:         Color of the object as RGBA</span>
+<span class="sd">        :type  color:         list</span>
+<span class="sd">        :param name_override: Name for the object to be registered with.</span>
+<span class="sd">        :type  name_override: str, NoneType</span>
+<span class="sd">        :rtype: iai_bullet_sim.rigid_body.RigidBody</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">create_object</span><span class="p">(</span><span class="n">BULLET_GEOM_TYPES</span><span class="p">[</span><span class="n">pb</span><span class="o">.</span><span class="n">GEOM_CYLINDER</span><span class="p">],</span> <span class="n">radius</span><span class="o">=</span><span class="n">radius</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="n">height</span><span class="p">,</span> <span class="n">pos</span><span class="o">=</span><span class="n">pos</span><span class="p">,</span> <span class="n">rot</span><span class="o">=</span><span class="n">rot</span><span class="p">,</span> <span class="n">mass</span><span class="o">=</span><span class="n">mass</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span> <span class="n">name_override</span><span class="o">=</span><span class="n">name_override</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="BasicSimulator.create_capsule"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.basic_simulator.BasicSimulator.create_capsule">[docs]</a>    <span class="k">def</span> <span class="nf">create_capsule</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">radius</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">pos</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">],</span> <span class="n">rot</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">],</span> <span class="n">mass</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">name_override</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Creates and registers a capsule shaped rigid body.</span>
+
+<span class="sd">        :param radius:        Capsule&#39;s radius</span>
+<span class="sd">        :type  radius:        float</span>
+<span class="sd">        :param height:        Height of the capsule</span>
+<span class="sd">        :type  height:        float</span>
+<span class="sd">        :param pos:           Position to create the object at</span>
+<span class="sd">        :type  pos:           list</span>
+<span class="sd">        :param rot:           Rotation to create the object with</span>
+<span class="sd">        :type  rot:           list</span>
+<span class="sd">        :param mass:          Mass of the object</span>
+<span class="sd">        :type  mass:          float</span>
+<span class="sd">        :param color:         Color of the object as RGBA</span>
+<span class="sd">        :type  color:         list</span>
+<span class="sd">        :param name_override: Name for the object to be registered with.</span>
+<span class="sd">        :type  name_override: str, NoneType</span>
+<span class="sd">        :rtype: iai_bullet_sim.rigid_body.RigidBody</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">create_object</span><span class="p">(</span><span class="n">BULLET_GEOM_TYPES</span><span class="p">[</span><span class="n">pb</span><span class="o">.</span><span class="n">GEOM_CAPSULE</span><span class="p">],</span> <span class="n">radius</span><span class="o">=</span><span class="n">radius</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="n">height</span><span class="p">,</span> <span class="n">pos</span><span class="o">=</span><span class="n">pos</span><span class="p">,</span> <span class="n">rot</span><span class="o">=</span><span class="n">rot</span><span class="p">,</span> <span class="n">mass</span><span class="o">=</span><span class="n">mass</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span> <span class="n">name_override</span><span class="o">=</span><span class="n">name_override</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="BasicSimulator.create_object"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.basic_simulator.BasicSimulator.create_object">[docs]</a>    <span class="k">def</span> <span class="nf">create_object</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">geom_type</span><span class="p">,</span> <span class="n">extents</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">],</span> <span class="n">radius</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">pos</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">],</span> <span class="n">rot</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">],</span> <span class="n">mass</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">name_override</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Creates and registers a rigid body.</span>
+
+<span class="sd">        :param geom_type:     Type of object. box | sphere | cylinder | capsule</span>
+<span class="sd">        :type  geom_type:     str</span>
+<span class="sd">        :param extents:       Edge lengths of the box</span>
+<span class="sd">        :type  extents:       list</span>
+<span class="sd">        :param radius:        Radius for spheres, cylinders and capsules</span>
+<span class="sd">        :type  radius:        float</span>
+<span class="sd">        :param height:        Height of the cylinder and capsule</span>
+<span class="sd">        :type  height:        float</span>
+<span class="sd">        :param pos:           Position to create the object at</span>
+<span class="sd">        :type  pos:           list</span>
+<span class="sd">        :param rot:           Rotation to create the object with</span>
+<span class="sd">        :type  rot:           list</span>
+<span class="sd">        :param mass:          Mass of the object</span>
+<span class="sd">        :type  mass:          float</span>
+<span class="sd">        :param color:         Color of the object as RGBA</span>
+<span class="sd">        :type  color:         list, NoneType</span>
+<span class="sd">        :param name_override: Name for the object to be registered with.</span>
+<span class="sd">        :type  name_override: str, NoneType</span>
+<span class="sd">        :rtype: iai_bullet_sim.rigid_body.RigidBody</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">geom_type</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">GEOM_TYPES</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;Unknown geometry type &quot;{}&quot;. Options are: {}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">geom_type</span><span class="p">,</span> <span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">geom_type</span><span class="o">.</span><span class="n">keys</span><span class="p">())))</span>
+
+        <span class="k">if</span> <span class="n">color</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">color</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__gen_next_color</span><span class="p">()</span>
+
+        <span class="n">new_body</span> <span class="o">=</span> <span class="n">RigidBody</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                             <span class="n">pb</span><span class="o">.</span><span class="n">createRigidBody</span><span class="p">(</span><span class="n">GEOM_TYPES</span><span class="p">[</span><span class="n">geom_type</span><span class="p">],</span> <span class="n">radius</span><span class="p">,</span> <span class="p">[</span><span class="mf">0.5</span> <span class="o">*</span> <span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">extents</span><span class="p">],</span> <span class="n">height</span><span class="p">,</span> <span class="n">mass</span><span class="p">,</span> <span class="n">pos</span><span class="p">,</span> <span class="n">rot</span><span class="p">,</span> <span class="n">color</span><span class="p">),</span>
+                             <span class="n">geom_type</span><span class="p">,</span> <span class="n">color</span><span class="p">,</span> <span class="n">pos</span><span class="p">,</span> <span class="n">rot</span><span class="p">,</span> <span class="n">extents</span><span class="p">,</span> <span class="n">radius</span><span class="p">,</span> <span class="n">height</span><span class="p">,</span> <span class="n">mass</span><span class="p">)</span>
+        <span class="n">bodyId</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">register_object</span><span class="p">(</span><span class="n">new_body</span><span class="p">,</span> <span class="n">name_override</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Created new rigid body with id {}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">bodyId</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">new_body</span></div>
+
+
+<div class="viewcode-block" id="BasicSimulator.get_body_id"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.basic_simulator.BasicSimulator.get_body_id">[docs]</a>    <span class="k">def</span> <span class="nf">get_body_id</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bulletId</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns the name of the object associated with a specific Bullet Id.</span>
+
+<span class="sd">        :type bulletId: long</span>
+<span class="sd">        :rtype: str, NoneType</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">bulletId</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">__bId_IdMap</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__bId_IdMap</span><span class="p">[</span><span class="n">bulletId</span><span class="p">]</span>
+        <span class="k">return</span> <span class="kc">None</span></div>
+
+<div class="viewcode-block" id="BasicSimulator.get_body"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.basic_simulator.BasicSimulator.get_body">[docs]</a>    <span class="k">def</span> <span class="nf">get_body</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bodyId</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns the object associated with a name.</span>
+
+<span class="sd">        :type bodyId: str</span>
+<span class="sd">        :rtype: iai_bullet_sim.multibody.MultiBody, iai_bullet_sim.rigid_body.RigidBody, NoneType</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">bodyId</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">bodies</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">bodies</span><span class="p">[</span><span class="n">bodyId</span><span class="p">]</span>
+        <span class="k">return</span> <span class="kc">None</span></div>
+
+
+<div class="viewcode-block" id="BasicSimulator.create_constraint"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.basic_simulator.BasicSimulator.create_constraint">[docs]</a>    <span class="k">def</span> <span class="nf">create_constraint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">constraintId</span><span class="p">,</span> <span class="n">parentBody</span><span class="p">,</span> <span class="n">childBody</span><span class="p">,</span>
+                          <span class="n">parentLink</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">childLink</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                          <span class="n">jointType</span><span class="o">=</span><span class="s1">&#39;FIXED&#39;</span><span class="p">,</span> <span class="n">jointAxis</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">],</span>
+                          <span class="n">parentJointPosition</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">],</span> <span class="n">childJointPosition</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">],</span>
+                          <span class="n">parentJointOrientation</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">],</span> <span class="n">childJointOrientation</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">]):</span>
+        <span class="k">raise</span> <span class="p">(</span><span class="ne">NotImplementedError</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">constraintId</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">constraints</span><span class="p">:</span>
+            <span class="n">parent</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bodies</span><span class="p">[</span><span class="n">parentBody</span><span class="p">]</span>
+            <span class="n">child</span>  <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bodies</span><span class="p">[</span><span class="n">childBody</span><span class="p">]</span>
+            <span class="nb">type</span>   <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__joint_types</span><span class="p">[</span><span class="n">jointType</span><span class="p">]</span>
+            <span class="n">parentLinkId</span> <span class="o">=</span> <span class="n">parent</span><span class="o">.</span><span class="n">link_index_map</span><span class="p">[</span><span class="n">parentLink</span><span class="p">]</span>
+            <span class="n">childLinkId</span>  <span class="o">=</span> <span class="n">child</span><span class="o">.</span><span class="n">link_index_map</span><span class="p">[</span><span class="n">childLink</span><span class="p">]</span>
+            <span class="n">axis</span> <span class="o">=</span> <span class="n">vec3_to_list</span><span class="p">(</span><span class="n">jointAxis</span><span class="p">)</span>
+            <span class="n">pjp</span> <span class="o">=</span> <span class="n">vec3_to_list</span><span class="p">(</span><span class="n">parentJointPosition</span><span class="p">)</span>
+            <span class="n">cjp</span> <span class="o">=</span> <span class="n">vec3_to_list</span><span class="p">(</span><span class="n">childJointPosition</span><span class="p">)</span>
+            <span class="n">pjo</span> <span class="o">=</span> <span class="n">parentJointOrientation</span>
+            <span class="n">cjo</span> <span class="o">=</span> <span class="n">childJointOrientation</span>
+            <span class="n">bulletId</span> <span class="o">=</span> <span class="n">pb</span><span class="o">.</span><span class="n">createConstraint</span><span class="p">(</span><span class="n">parent</span><span class="o">.</span><span class="n">bulletId</span><span class="p">,</span> <span class="n">parentLinkId</span><span class="p">,</span> <span class="n">child</span><span class="o">.</span><span class="n">bulletId</span><span class="p">,</span>
+                                           <span class="n">childLinkId</span><span class="p">,</span> <span class="nb">type</span><span class="p">,</span> <span class="n">axis</span><span class="p">,</span> <span class="n">pjp</span><span class="p">,</span> <span class="n">cjp</span><span class="p">,</span> <span class="n">pjo</span><span class="p">,</span> <span class="n">cjo</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">constraints</span><span class="p">[</span><span class="n">constraintId</span><span class="p">]</span> <span class="o">=</span> <span class="n">Constraint</span><span class="p">(</span><span class="n">bulletId</span><span class="p">,</span> <span class="n">parent</span><span class="p">,</span> <span class="n">child</span><span class="p">,</span> <span class="n">parentLink</span><span class="p">,</span> <span class="n">childLink</span><span class="p">,</span>
+                                                        <span class="nb">type</span><span class="p">,</span> <span class="n">axis</span><span class="p">,</span> <span class="n">pjp</span><span class="p">,</span> <span class="n">cjp</span><span class="p">,</span> <span class="n">pjo</span><span class="p">,</span> <span class="n">cjo</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="p">(</span><span class="ne">NotImplementedError</span><span class="p">)</span></div>
+
+
+
+    <span class="c1"># @profile</span>
+<div class="viewcode-block" id="BasicSimulator.get_overlapping"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.basic_simulator.BasicSimulator.get_overlapping">[docs]</a>    <span class="k">def</span> <span class="nf">get_overlapping</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">aabb</span><span class="p">,</span> <span class="nb">filter</span><span class="o">=</span><span class="nb">set</span><span class="p">()):</span>
+        <span class="sd">&quot;&quot;&quot;Returns all objects overlapping the given bounding box.</span>
+
+<span class="sd">        :param aabb:   Axis aligned bounding box to check against.</span>
+<span class="sd">        :type  aabb:   AABB</span>
+<span class="sd">        :param filter: All objects in this set get filtered from the results.</span>
+<span class="sd">        :type  filter: set</span>
+<span class="sd">        :rtype: list</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">raw_overlap</span> <span class="o">=</span> <span class="n">pb</span><span class="o">.</span><span class="n">getOverlappingObjects</span><span class="p">(</span><span class="n">vec3_to_list</span><span class="p">(</span><span class="n">aabb</span><span class="o">.</span><span class="n">min</span><span class="p">),</span> <span class="n">vec3_to_list</span><span class="p">(</span><span class="n">aabb</span><span class="o">.</span><span class="n">max</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">raw_overlap</span> <span class="o">==</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">[]</span>
+
+        <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">__get_obj_link_tuple</span><span class="p">(</span><span class="n">bulletId</span><span class="p">,</span> <span class="n">linkIdx</span><span class="p">)</span> <span class="k">for</span> <span class="n">bulletId</span><span class="p">,</span> <span class="n">linkIdx</span> <span class="ow">in</span> <span class="n">raw_overlap</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">bodies</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">__bId_IdMap</span><span class="p">[</span><span class="n">bulletId</span><span class="p">]]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="nb">filter</span><span class="p">]</span></div>
+
+    <span class="c1"># @profile</span>
+<div class="viewcode-block" id="BasicSimulator.get_contacts"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.basic_simulator.BasicSimulator.get_contacts">[docs]</a>    <span class="k">def</span> <span class="nf">get_contacts</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bodyA</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">bodyB</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">linkA</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">linkB</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns all contacts generated during the last physics step.</span>
+
+<span class="sd">        :param bodyA: All returned contacts will involve this object.</span>
+<span class="sd">        :type  bodyA: iai_bullet_sim.rigid_body.RigidBody, iai_bullet_sim.multibody.MultiBody</span>
+<span class="sd">        :param bodyB: All returned contacts will only be between this object and bodyA.</span>
+<span class="sd">        :type  bodyB: iai_bullet_sim.rigid_body.RigidBody, iai_bullet_sim.multibody.MultiBody</span>
+<span class="sd">        :param linkA: All contact will involve this link of bodyA.</span>
+<span class="sd">        :type  linkA: str, NoneType</span>
+<span class="sd">        :param linkB: All returned will involve this link of bodyB</span>
+<span class="sd">        :type  linkB: str, NoneType</span>
+<span class="sd">        :rtype: list</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">bulletA</span> <span class="o">=</span> <span class="n">bodyA</span><span class="o">.</span><span class="n">bId</span><span class="p">()</span> <span class="k">if</span> <span class="n">bodyA</span> <span class="o">!=</span> <span class="kc">None</span> <span class="k">else</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="n">bulletB</span> <span class="o">=</span> <span class="n">bodyB</span><span class="o">.</span><span class="n">bId</span><span class="p">()</span> <span class="k">if</span> <span class="n">bodyB</span> <span class="o">!=</span> <span class="kc">None</span> <span class="k">else</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="n">bulletLA</span> <span class="o">=</span> <span class="n">bodyA</span><span class="o">.</span><span class="n">link_index_map</span><span class="p">[</span><span class="n">linkA</span><span class="p">]</span> <span class="k">if</span> <span class="n">bodyA</span> <span class="o">!=</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">linkA</span> <span class="o">!=</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">bodyA</span><span class="p">,</span> <span class="n">MultiBody</span><span class="p">)</span> <span class="k">else</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="n">bulletLB</span> <span class="o">=</span> <span class="n">bodyB</span><span class="o">.</span><span class="n">link_index_map</span><span class="p">[</span><span class="n">linkB</span><span class="p">]</span> <span class="k">if</span> <span class="n">bodyB</span> <span class="o">!=</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">linkB</span> <span class="o">!=</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">bodyB</span><span class="p">,</span> <span class="n">MultiBody</span><span class="p">)</span> <span class="k">else</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="n">contacts</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="n">bulletLA</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span> <span class="ow">and</span> <span class="n">bulletLB</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+            <span class="n">contacts</span> <span class="o">=</span> <span class="n">pb</span><span class="o">.</span><span class="n">getContactPoints</span><span class="p">(</span><span class="n">bulletA</span><span class="p">,</span> <span class="n">bulletB</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">bulletLA</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span> <span class="ow">and</span> <span class="n">bulletLB</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+            <span class="n">contacts</span> <span class="o">=</span> <span class="n">pb</span><span class="o">.</span><span class="n">getContactPoints</span><span class="p">(</span><span class="n">bulletA</span><span class="p">,</span> <span class="n">bulletB</span><span class="p">,</span> <span class="n">linkIndexA</span><span class="o">=</span><span class="n">bulletLA</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">bulletLA</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span> <span class="ow">and</span> <span class="n">bulletLB</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+            <span class="n">contacts</span> <span class="o">=</span> <span class="n">pb</span><span class="o">.</span><span class="n">getContactPoints</span><span class="p">(</span><span class="n">bulletA</span><span class="p">,</span> <span class="n">bulletB</span><span class="p">,</span> <span class="n">linkIndexB</span><span class="o">=</span><span class="n">bulletLB</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">contacts</span> <span class="o">=</span> <span class="n">pb</span><span class="o">.</span><span class="n">getContactPoints</span><span class="p">(</span><span class="n">bulletA</span><span class="p">,</span> <span class="n">bulletB</span><span class="p">,</span> <span class="n">bulletLA</span><span class="p">,</span> <span class="n">bulletLB</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">__create_contact_point</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">contacts</span><span class="p">]</span></div>
+
+
+    <span class="c1"># @profile</span>
+<div class="viewcode-block" id="BasicSimulator.get_closest_points"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.basic_simulator.BasicSimulator.get_closest_points">[docs]</a>    <span class="k">def</span> <span class="nf">get_closest_points</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bodyA</span><span class="p">,</span> <span class="n">bodyB</span><span class="p">,</span> <span class="n">linkA</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">linkB</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dist</span><span class="o">=</span><span class="mf">0.2</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns all the closest points between two objects.</span>
+
+<span class="sd">        :param bodyA: First body.</span>
+<span class="sd">        :type  bodyA: iai_bullet_sim.rigid_body.RigidBody, iai_bullet_sim.multibody.MultiBody</span>
+<span class="sd">        :param bodyB: Second body.</span>
+<span class="sd">        :type  bodyB: iai_bullet_sim.rigid_body.RigidBody, iai_bullet_sim.multibody.MultiBody</span>
+<span class="sd">        :param linkA: Closest point will be on this link of bodyA.</span>
+<span class="sd">        :type  linkA: str, NoneType</span>
+<span class="sd">        :param linkB: Closest point will be on this link of bodyB.</span>
+<span class="sd">        :type  linkB: str, NoneType</span>
+<span class="sd">        :rtype: list</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">bulletA</span> <span class="o">=</span> <span class="n">bodyA</span><span class="o">.</span><span class="n">bId</span><span class="p">()</span> <span class="k">if</span> <span class="n">bodyA</span> <span class="o">!=</span> <span class="kc">None</span> <span class="k">else</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="n">bulletB</span> <span class="o">=</span> <span class="n">bodyB</span><span class="o">.</span><span class="n">bId</span><span class="p">()</span> <span class="k">if</span> <span class="n">bodyB</span> <span class="o">!=</span> <span class="kc">None</span> <span class="k">else</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="n">bulletLA</span> <span class="o">=</span> <span class="n">bodyA</span><span class="o">.</span><span class="n">link_index_map</span><span class="p">[</span><span class="n">linkA</span><span class="p">]</span> <span class="k">if</span> <span class="n">bodyA</span> <span class="o">!=</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">linkA</span> <span class="o">!=</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">bodyA</span><span class="p">,</span> <span class="n">MultiBody</span><span class="p">)</span> <span class="k">else</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="n">bulletLB</span> <span class="o">=</span> <span class="n">bodyB</span><span class="o">.</span><span class="n">link_index_map</span><span class="p">[</span><span class="n">linkB</span><span class="p">]</span> <span class="k">if</span> <span class="n">bodyB</span> <span class="o">!=</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">linkB</span> <span class="o">!=</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">bodyB</span><span class="p">,</span> <span class="n">MultiBody</span><span class="p">)</span> <span class="k">else</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="n">contacts</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="n">bulletLA</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span> <span class="ow">and</span> <span class="n">bulletLB</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+            <span class="n">contacts</span> <span class="o">=</span> <span class="n">pb</span><span class="o">.</span><span class="n">getClosestPoints</span><span class="p">(</span><span class="n">bulletA</span><span class="p">,</span> <span class="n">bulletB</span><span class="p">,</span> <span class="n">distance</span><span class="o">=</span><span class="n">dist</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">bulletLA</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span> <span class="ow">and</span> <span class="n">bulletLB</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+            <span class="n">contacts</span> <span class="o">=</span> <span class="n">pb</span><span class="o">.</span><span class="n">getClosestPoints</span><span class="p">(</span><span class="n">bulletA</span><span class="p">,</span> <span class="n">bulletB</span><span class="p">,</span> <span class="n">linkIndexA</span><span class="o">=</span><span class="n">bulletLA</span><span class="p">,</span> <span class="n">distance</span><span class="o">=</span><span class="n">dist</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">bulletLA</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span> <span class="ow">and</span> <span class="n">bulletLB</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+            <span class="n">contacts</span> <span class="o">=</span> <span class="n">pb</span><span class="o">.</span><span class="n">getClosestPoints</span><span class="p">(</span><span class="n">bulletA</span><span class="p">,</span> <span class="n">bulletB</span><span class="p">,</span> <span class="n">linkIndexB</span><span class="o">=</span><span class="n">bulletLB</span><span class="p">,</span> <span class="n">distance</span><span class="o">=</span><span class="n">dist</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">contacts</span> <span class="o">=</span> <span class="n">pb</span><span class="o">.</span><span class="n">getClosestPoints</span><span class="p">(</span><span class="n">bulletA</span><span class="p">,</span> <span class="n">bulletB</span><span class="p">,</span> <span class="n">dist</span><span class="p">,</span> <span class="n">bulletLA</span><span class="p">,</span> <span class="n">bulletLB</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">__create_contact_point</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">contacts</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="BasicSimulator.load_world"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.basic_simulator.BasicSimulator.load_world">[docs]</a>    <span class="k">def</span> <span class="nf">load_world</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">world_dict</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Loads a world configuration from a dictionary.</span>
+
+<span class="sd">        :param world_dict: World configuration</span>
+<span class="sd">        :type  world_dict: dict</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="s1">&#39;objects&#39;</span> <span class="ow">in</span> <span class="n">world_dict</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">world_dict</span><span class="p">[</span><span class="s1">&#39;objects&#39;</span><span class="p">])</span> <span class="o">!=</span> <span class="nb">list</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;Field &quot;objects&quot; in world dictionary needs to be of type list.&#39;</span><span class="p">)</span>
+
+            <span class="k">for</span> <span class="n">od</span> <span class="ow">in</span> <span class="n">world_dict</span><span class="p">[</span><span class="s1">&#39;objects&#39;</span><span class="p">]:</span>
+                <span class="n">otype</span>  <span class="o">=</span> <span class="n">od</span><span class="p">[</span><span class="s1">&#39;type&#39;</span><span class="p">]</span>
+                <span class="n">name</span>  <span class="o">=</span> <span class="n">od</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">]</span>
+                <span class="n">i_pos</span> <span class="o">=</span> <span class="n">od</span><span class="p">[</span><span class="s1">&#39;initial_pose&#39;</span><span class="p">][</span><span class="s1">&#39;position&#39;</span><span class="p">]</span>
+                <span class="n">i_rot</span> <span class="o">=</span> <span class="n">od</span><span class="p">[</span><span class="s1">&#39;initial_pose&#39;</span><span class="p">][</span><span class="s1">&#39;rotation&#39;</span><span class="p">]</span>
+
+                <span class="k">if</span> <span class="n">otype</span> <span class="o">==</span> <span class="s1">&#39;multibody&#39;</span><span class="p">:</span>
+                    <span class="n">urdf_path</span> <span class="o">=</span> <span class="n">od</span><span class="p">[</span><span class="s1">&#39;urdf_path&#39;</span><span class="p">]</span>
+                    <span class="n">fixed_base</span> <span class="o">=</span> <span class="n">od</span><span class="p">[</span><span class="s1">&#39;fixed_base&#39;</span><span class="p">]</span>
+                    <span class="n">initial_joint_state</span> <span class="o">=</span> <span class="n">od</span><span class="p">[</span><span class="s1">&#39;initial_joint_state&#39;</span><span class="p">]</span>
+                    <span class="n">new_obj</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">load_urdf</span><span class="p">(</span><span class="n">urdf_path</span><span class="p">,</span> <span class="n">i_pos</span><span class="p">,</span> <span class="n">i_rot</span><span class="p">,</span> <span class="n">joint_driver</span><span class="o">=</span><span class="n">JointDriver</span><span class="p">(),</span> <span class="n">useFixedBase</span><span class="o">=</span><span class="n">fixed_base</span><span class="p">,</span> <span class="n">name_override</span><span class="o">=</span><span class="n">name</span><span class="p">)</span>
+                    <span class="n">new_obj</span><span class="o">.</span><span class="n">set_joint_positions</span><span class="p">(</span><span class="n">initial_joint_state</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+                    <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">od</span><span class="p">[</span><span class="s1">&#39;sensors&#39;</span><span class="p">]:</span>
+                        <span class="n">new_obj</span><span class="o">.</span><span class="n">enable_joint_sensor</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="n">otype</span> <span class="o">==</span> <span class="s1">&#39;rigid_body&#39;</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">create_object</span><span class="p">(</span><span class="n">od</span><span class="p">[</span><span class="s1">&#39;geom_type&#39;</span><span class="p">],</span> <span class="n">od</span><span class="p">[</span><span class="s1">&#39;extents&#39;</span><span class="p">],</span> <span class="n">od</span><span class="p">[</span><span class="s1">&#39;radius&#39;</span><span class="p">],</span> <span class="n">od</span><span class="p">[</span><span class="s1">&#39;height&#39;</span><span class="p">],</span> <span class="n">i_pos</span><span class="p">,</span> <span class="n">i_rot</span><span class="p">,</span> <span class="n">od</span><span class="p">[</span><span class="s1">&#39;mass&#39;</span><span class="p">],</span> <span class="n">od</span><span class="p">[</span><span class="s1">&#39;color&#39;</span><span class="p">],</span> <span class="n">name</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;Unknown object type &quot;{}&quot;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">otype</span><span class="p">))</span>
+        <span class="k">if</span> <span class="s1">&#39;constraints&#39;</span> <span class="ow">in</span> <span class="n">world_dict</span><span class="p">:</span>
+            <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="BasicSimulator.save_world"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.basic_simulator.BasicSimulator.save_world">[docs]</a>    <span class="k">def</span> <span class="nf">save_world</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">use_current_state_as_init</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Serializes the positional state of the simulation to a dictionary.</span>
+
+<span class="sd">        :param use_current_state_as_init: Should the current state, or the initial state be serialized.</span>
+<span class="sd">        :type  use_current_state_as_init: bool</span>
+<span class="sd">        :rtype: dict</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;objects&#39;</span><span class="p">:</span> <span class="p">[],</span> <span class="s1">&#39;constraints&#39;</span><span class="p">:</span> <span class="p">[]}</span>
+
+        <span class="k">for</span> <span class="n">bname</span><span class="p">,</span> <span class="n">b</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">bodies</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">MultiBody</span><span class="p">):</span>
+                <span class="n">in_pos</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">pose</span><span class="p">()</span><span class="o">.</span><span class="n">position</span> <span class="k">if</span> <span class="n">use_current_state_as_init</span> <span class="k">else</span> <span class="n">b</span><span class="o">.</span><span class="n">initial_pos</span>
+                <span class="n">in_rot</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">pose</span><span class="p">()</span><span class="o">.</span><span class="n">quaternion</span> <span class="k">if</span> <span class="n">use_current_state_as_init</span> <span class="k">else</span> <span class="n">b</span><span class="o">.</span><span class="n">initial_rot</span>
+                <span class="k">if</span> <span class="n">use_current_state_as_init</span><span class="p">:</span>
+                    <span class="n">in_js</span> <span class="o">=</span> <span class="p">{</span><span class="n">j</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">position</span> <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">b</span><span class="o">.</span><span class="n">joint_state</span><span class="p">()</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">in_js</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">initial_joint_state</span>
+
+                <span class="n">od</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="n">bname</span><span class="p">,</span>
+                      <span class="s1">&#39;type&#39;</span><span class="p">:</span> <span class="s1">&#39;multibody&#39;</span><span class="p">,</span>
+                      <span class="s1">&#39;initial_pose&#39;</span><span class="p">:</span> <span class="p">{</span>
+                        <span class="s1">&#39;position&#39;</span><span class="p">:</span> <span class="nb">list</span><span class="p">(</span><span class="n">in_pos</span><span class="p">),</span>
+                        <span class="s1">&#39;rotation&#39;</span><span class="p">:</span> <span class="nb">list</span><span class="p">(</span><span class="n">in_rot</span><span class="p">)},</span>
+                      <span class="s1">&#39;urdf_path&#39;</span><span class="p">:</span> <span class="n">b</span><span class="o">.</span><span class="n">urdf_file</span><span class="p">,</span>
+                      <span class="s1">&#39;initial_joint_state&#39;</span><span class="p">:</span> <span class="n">in_js</span><span class="p">,</span>
+                      <span class="s1">&#39;fixed_base&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+                      <span class="s1">&#39;sensors&#39;</span><span class="p">:</span> <span class="nb">list</span><span class="p">(</span><span class="n">b</span><span class="o">.</span><span class="n">joint_sensors</span><span class="p">)}</span> <span class="c1"># TODO: Update this!</span>
+                <span class="n">out</span><span class="p">[</span><span class="s1">&#39;objects&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">od</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">RigidBody</span><span class="p">):</span>
+                <span class="n">in_pos</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">pose</span><span class="p">()</span><span class="o">.</span><span class="n">position</span> <span class="k">if</span> <span class="n">use_current_state_as_init</span> <span class="k">else</span> <span class="n">b</span><span class="o">.</span><span class="n">initial_pos</span>
+                <span class="n">in_rot</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">pose</span><span class="p">()</span><span class="o">.</span><span class="n">quaternion</span> <span class="k">if</span> <span class="n">use_current_state_as_init</span> <span class="k">else</span> <span class="n">b</span><span class="o">.</span><span class="n">initial_rot</span>
+
+                <span class="n">od</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="n">bname</span><span class="p">,</span>
+                      <span class="s1">&#39;type&#39;</span><span class="p">:</span> <span class="s1">&#39;rigid_body&#39;</span><span class="p">,</span>
+                      <span class="s1">&#39;geom_type&#39;</span><span class="p">:</span> <span class="n">b</span><span class="o">.</span><span class="n">type</span><span class="p">,</span>
+                      <span class="s1">&#39;initial_pose&#39;</span><span class="p">:</span> <span class="p">{</span>
+                        <span class="s1">&#39;position&#39;</span><span class="p">:</span> <span class="nb">list</span><span class="p">(</span><span class="n">in_pos</span><span class="p">),</span>
+                        <span class="s1">&#39;rotation&#39;</span><span class="p">:</span> <span class="nb">list</span><span class="p">(</span><span class="n">in_rot</span><span class="p">)},</span>
+                      <span class="s1">&#39;color&#39;</span><span class="p">:</span> <span class="nb">list</span><span class="p">(</span><span class="n">b</span><span class="o">.</span><span class="n">color</span><span class="p">),</span>
+                      <span class="s1">&#39;mass&#39;</span><span class="p">:</span> <span class="n">b</span><span class="o">.</span><span class="n">mass</span><span class="p">,</span>
+                      <span class="s1">&#39;extents&#39;</span><span class="p">:</span> <span class="nb">list</span><span class="p">(</span><span class="n">b</span><span class="o">.</span><span class="n">extents</span><span class="p">),</span>
+                      <span class="s1">&#39;radius&#39;</span><span class="p">:</span> <span class="n">b</span><span class="o">.</span><span class="n">radius</span><span class="p">,</span>
+                      <span class="s1">&#39;height&#39;</span><span class="p">:</span> <span class="n">b</span><span class="o">.</span><span class="n">height</span><span class="p">}</span> <span class="c1"># TODO: Update this!</span>
+                <span class="n">out</span><span class="p">[</span><span class="s1">&#39;objects&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">od</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;Can not serialize type &quot;{}&quot;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">b</span><span class="p">))))</span>
+
+
+        <span class="k">for</span> <span class="n">cname</span><span class="p">,</span> <span class="n">c</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">constraints</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">pass</span>
+
+        <span class="k">return</span> <span class="n">out</span></div>
+
+<div class="viewcode-block" id="BasicSimulator.load_simulator"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.basic_simulator.BasicSimulator.load_simulator">[docs]</a>    <span class="k">def</span> <span class="nf">load_simulator</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config_dict</span><span class="p">,</span> <span class="n">plugin_registry</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Loads a simulator configuration from a dictionary.</span>
+
+<span class="sd">        :param config_dict:     Simulator configuration.</span>
+<span class="sd">        :type  config_dict:     dict</span>
+<span class="sd">        :param plugin_registry: Dictionary of plugin types to their respective classes. Used to instantiate plugins.</span>
+<span class="sd">        :type  plugin_registry: dict</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="s1">&#39;tick_rate&#39;</span> <span class="ow">in</span> <span class="n">config_dict</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">set_tick_rate</span><span class="p">(</span><span class="n">config_dict</span><span class="p">[</span><span class="s1">&#39;tick_rate&#39;</span><span class="p">])</span>
+
+        <span class="k">if</span> <span class="s1">&#39;gravity&#39;</span> <span class="ow">in</span> <span class="n">config_dict</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">set_gravity</span><span class="p">(</span><span class="n">config_dict</span><span class="p">[</span><span class="s1">&#39;gravity&#39;</span><span class="p">])</span>
+
+        <span class="k">if</span> <span class="s1">&#39;world&#39;</span> <span class="ow">in</span> <span class="n">config_dict</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">load_world</span><span class="p">(</span><span class="n">config_dict</span><span class="p">[</span><span class="s1">&#39;world&#39;</span><span class="p">])</span>
+
+        <span class="k">if</span> <span class="s1">&#39;plugins&#39;</span> <span class="ow">in</span> <span class="n">config_dict</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">plugin_dict</span> <span class="ow">in</span> <span class="n">config_dict</span><span class="p">[</span><span class="s1">&#39;plugins&#39;</span><span class="p">]:</span>
+                <span class="k">if</span> <span class="n">plugin_dict</span><span class="p">[</span><span class="s1">&#39;plugin_type&#39;</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">plugin_registry</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Unknown plugin type: {}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">plugin_dict</span><span class="p">[</span><span class="s1">&#39;plugin_type&#39;</span><span class="p">]))</span>
+                    <span class="k">continue</span>
+
+                <span class="bp">self</span><span class="o">.</span><span class="n">register_plugin</span><span class="p">(</span><span class="n">plugin_registry</span><span class="p">[</span><span class="n">plugin_dict</span><span class="p">[</span><span class="s1">&#39;plugin_type&#39;</span><span class="p">]]</span><span class="o">.</span><span class="n">factory</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">plugin_dict</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="BasicSimulator.save_simulator"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.basic_simulator.BasicSimulator.save_simulator">[docs]</a>    <span class="k">def</span> <span class="nf">save_simulator</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">use_current_state_as_init</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Saves the simulator&#39;s state to a dictionary.</span>
+
+<span class="sd">        :param use_current_state_as_init: Should the current state, or the initial state be serialized.</span>
+<span class="sd">        :type  use_current_state_as_init: bool</span>
+<span class="sd">        :rtype: dict</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;tick_rate&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">tick_rate</span><span class="p">,</span>
+               <span class="s1">&#39;gravity&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">gravity</span><span class="p">,</span>
+               <span class="s1">&#39;world&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">save_world</span><span class="p">(</span><span class="n">use_current_state_as_init</span><span class="p">),</span>
+               <span class="s1">&#39;plugins&#39;</span><span class="p">:</span> <span class="p">[]}</span>
+
+        <span class="k">for</span> <span class="n">plugin</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">__plugins</span><span class="p">:</span>
+            <span class="n">pdict</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;plugin_type&#39;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">plugin</span><span class="p">))}</span>
+            <span class="n">pdict</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">plugin</span><span class="o">.</span><span class="n">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span>
+            <span class="n">out</span><span class="p">[</span><span class="s1">&#39;plugins&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">pdict</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">out</span></div>
+
+
+    <span class="k">def</span> <span class="nf">__create_contact_point</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bcp</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Internal. Turns a bullet contact point into a ContactPoint.&quot;&quot;&quot;</span>
+        <span class="n">bodyA</span><span class="p">,</span> <span class="n">linkA</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__get_obj_link_tuple</span><span class="p">(</span><span class="n">bcp</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">bcp</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+        <span class="n">bodyB</span><span class="p">,</span> <span class="n">linkB</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__get_obj_link_tuple</span><span class="p">(</span><span class="n">bcp</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">bcp</span><span class="p">[</span><span class="mi">4</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">ContactPoint</span><span class="p">(</span><span class="n">bodyA</span><span class="p">,</span>          <span class="c1"># Body A</span>
+                            <span class="n">bodyB</span><span class="p">,</span>          <span class="c1"># Body B</span>
+                            <span class="n">linkA</span><span class="p">,</span>          <span class="c1"># Link of A</span>
+                            <span class="n">linkB</span><span class="p">,</span>          <span class="c1"># Link of B</span>
+                            <span class="n">Vector3</span><span class="p">(</span><span class="o">*</span><span class="n">bcp</span><span class="p">[</span><span class="mi">5</span><span class="p">]),</span> <span class="c1"># Point on A</span>
+                            <span class="n">Vector3</span><span class="p">(</span><span class="o">*</span><span class="n">bcp</span><span class="p">[</span><span class="mi">6</span><span class="p">]),</span> <span class="c1"># Point on B</span>
+                            <span class="n">Vector3</span><span class="p">(</span><span class="o">*</span><span class="n">bcp</span><span class="p">[</span><span class="mi">7</span><span class="p">]),</span> <span class="c1"># Normal from B to A</span>
+                            <span class="n">bcp</span><span class="p">[</span><span class="mi">8</span><span class="p">],</span>           <span class="c1"># Distance</span>
+                            <span class="n">bcp</span><span class="p">[</span><span class="mi">9</span><span class="p">])</span>           <span class="c1"># Normal force</span>
+
+    <span class="k">def</span> <span class="nf">__get_obj_link_tuple</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bulletId</span><span class="p">,</span> <span class="n">linkIdx</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Internal. Turns a bullet id and a link index into a tuple of the corresponding object and the link&#39;s name.&quot;&quot;&quot;</span>
+        <span class="n">body</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bodies</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">__bId_IdMap</span><span class="p">[</span><span class="n">bulletId</span><span class="p">]]</span>
+        <span class="n">link</span> <span class="o">=</span> <span class="n">body</span><span class="o">.</span><span class="n">index_link_map</span><span class="p">[</span><span class="n">linkIdx</span><span class="p">]</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">body</span><span class="p">,</span> <span class="n">MultiBody</span><span class="p">)</span> <span class="k">else</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">body</span><span class="p">,</span> <span class="n">link</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="SimulatorPlugin"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.basic_simulator.SimulatorPlugin">[docs]</a><span class="k">class</span> <span class="nc">SimulatorPlugin</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Superclass for simulator plugins.</span>
+<span class="sd">    Implement a method class method &quot;factory(cls, simulator, init_dict)&quot; as factory method for your class.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">SimulatorPlugin</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__name</span> <span class="o">=</span> <span class="n">name</span>
+
+<div class="viewcode-block" id="SimulatorPlugin.pre_physics_update"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.basic_simulator.SimulatorPlugin.pre_physics_update">[docs]</a>    <span class="k">def</span> <span class="nf">pre_physics_update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">simulator</span><span class="p">,</span> <span class="n">deltaT</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Implements pre physics step behavior.</span>
+
+<span class="sd">        :type simulator: BasicSimulator</span>
+<span class="sd">        :type deltaT: float</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+<div class="viewcode-block" id="SimulatorPlugin.post_physics_update"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.basic_simulator.SimulatorPlugin.post_physics_update">[docs]</a>    <span class="k">def</span> <span class="nf">post_physics_update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">simulator</span><span class="p">,</span> <span class="n">deltaT</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Implements post physics step behavior.</span>
+
+<span class="sd">        :type simulator: BasicSimulator</span>
+<span class="sd">        :type deltaT: float</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+<div class="viewcode-block" id="SimulatorPlugin.disable"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.basic_simulator.SimulatorPlugin.disable">[docs]</a>    <span class="k">def</span> <span class="nf">disable</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">simulator</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Stops the execution of this plugin.</span>
+
+<span class="sd">        :type simulator: BasicSimulator</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+    <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__name</span>
+
+<div class="viewcode-block" id="SimulatorPlugin.to_dict"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.basic_simulator.SimulatorPlugin.to_dict">[docs]</a>    <span class="k">def</span> <span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">simulator</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Serializes this plugin to a dictionary.</span>
+
+<span class="sd">        :type simulator: BasicSimulator</span>
+<span class="sd">        :rtype: dict</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="p">(</span><span class="ne">NotImplementedError</span><span class="p">)</span></div></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, Adrian Roefer.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../',
+            VERSION:'0.1',
+            LANGUAGE:'None',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

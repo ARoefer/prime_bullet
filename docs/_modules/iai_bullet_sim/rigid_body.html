@@ -1,0 +1,352 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>iai_bullet_sim.rigid_body &mdash; iai_bullet_sim 0.1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+
+  
+  <script src="../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> iai_bullet_sim
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorial_simulator.html">Tutorial: Using the Simulator</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorial_plugins.html">Tutorial: Plugins</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../modules.html">API Documentation</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">iai_bullet_sim</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>iai_bullet_sim.rigid_body</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for iai_bullet_sim.rigid_body</h1><div class="highlight"><pre>
+<span class="kn">import</span> <span class="nn">pybullet</span> <span class="k">as</span> <span class="nn">pb</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">namedtuple</span>
+<span class="kn">from</span> <span class="nn">iai_bullet_sim.utils</span> <span class="k">import</span> <span class="n">Vector3</span><span class="p">,</span> <span class="n">Quaternion</span><span class="p">,</span> <span class="n">Frame</span><span class="p">,</span> <span class="n">AABB</span>
+
+<span class="c1"># Mapping of bullet&#39;s geometry constants to internal keywords</span>
+<span class="n">BULLET_GEOM_TYPES</span> <span class="o">=</span> <span class="p">{</span><span class="n">pb</span><span class="o">.</span><span class="n">GEOM_SPHERE</span><span class="p">:</span> <span class="s1">&#39;sphere&#39;</span><span class="p">,</span> <span class="n">pb</span><span class="o">.</span><span class="n">GEOM_BOX</span><span class="p">:</span> <span class="s1">&#39;box&#39;</span><span class="p">,</span> <span class="n">pb</span><span class="o">.</span><span class="n">GEOM_CYLINDER</span><span class="p">:</span> <span class="s1">&#39;cylinder&#39;</span><span class="p">,</span> <span class="n">pb</span><span class="o">.</span><span class="n">GEOM_CAPSULE</span><span class="p">:</span> <span class="s1">&#39;capsule&#39;</span><span class="p">}</span>
+<span class="c1"># Mapping of internal keywords to bullet&#39;s geometry constants</span>
+<span class="n">GEOM_TYPES</span> <span class="o">=</span> <span class="p">{</span><span class="n">v</span><span class="p">:</span> <span class="n">k</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">BULLET_GEOM_TYPES</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+
+
+<div class="viewcode-block" id="RigidBody"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.rigid_body.RigidBody">[docs]</a><span class="k">class</span> <span class="nc">RigidBody</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Wrapper class giving object oriented access to PyBullet&#39;s rigid bodies.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">simulator</span><span class="p">,</span> <span class="n">bulletId</span><span class="p">,</span> <span class="n">geom_type</span><span class="p">,</span> <span class="n">color</span><span class="p">,</span> <span class="n">initial_pos</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">],</span> <span class="n">initial_rot</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">],</span> <span class="n">extents</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">],</span> <span class="n">radius</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">mass</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Constructs a rigid body.</span>
+
+<span class="sd">        :param simulator:   The simulator managing this object</span>
+<span class="sd">        :type  simulator:   iai_bullet_sim.basic_simulator.BasicSimulator</span>
+<span class="sd">        :param bulletId:    The Id of the corresponding bullet object</span>
+<span class="sd">        :type  bulletId:    long</span>
+<span class="sd">        :param geom_type:   Shape of this object. sphere | box | cylinder | capsule</span>
+<span class="sd">        :type  geom_type:   str</span>
+<span class="sd">        :param color:       A color override for this object as RGBA</span>
+<span class="sd">        :type  color:       list</span>
+<span class="sd">        :param initial_pos: This object&#39;s initial location</span>
+<span class="sd">        :type  initial_pos: list</span>
+<span class="sd">        :param initial_rot: This object&#39;s initial rotation</span>
+<span class="sd">        :type  initial_rot: list</span>
+<span class="sd">        :param extents:     Edge lengths for box type.</span>
+<span class="sd">        :type  extents:     list</span>
+<span class="sd">        :param radius:      Radius for sphere, cylinder and capsule</span>
+<span class="sd">        :type  radius:      float</span>
+<span class="sd">        :param height:      Total height of cylinder and capsule.</span>
+<span class="sd">        :type  height:      float</span>
+<span class="sd">        :param mass:        Mass of the object. 0 = static</span>
+<span class="sd">        :type  mass:        float</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">geom_type</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">GEOM_TYPES</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;Rigid body type needs to be {}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39; or &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="s1">&#39;&quot;{}&quot;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">GEOM_TYPES</span><span class="p">])))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">simulator</span>      <span class="o">=</span> <span class="n">simulator</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__bulletId</span>     <span class="o">=</span> <span class="n">bulletId</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">type</span>           <span class="o">=</span> <span class="n">geom_type</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">color</span>          <span class="o">=</span> <span class="n">color</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">initial_pos</span>    <span class="o">=</span> <span class="n">initial_pos</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">initial_rot</span>    <span class="o">=</span> <span class="n">initial_rot</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">extents</span>        <span class="o">=</span> <span class="n">extents</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">radius</span>         <span class="o">=</span> <span class="n">radius</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">height</span>         <span class="o">=</span> <span class="n">height</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mass</span>           <span class="o">=</span> <span class="n">mass</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">__current_pose</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__last_sim_pose_update</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__current_lin_velocity</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__current_ang_velocity</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__last_sim_velocity_update</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+
+<div class="viewcode-block" id="RigidBody.bId"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.rigid_body.RigidBody.bId">[docs]</a>    <span class="k">def</span> <span class="nf">bId</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns the corresponding bullet Id.</span>
+<span class="sd">        :rtype: long</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__bulletId</span></div>
+
+<div class="viewcode-block" id="RigidBody.reset"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.rigid_body.RigidBody.reset">[docs]</a>    <span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Resets this object&#39;s pose and joints to their initial configuration.&quot;&quot;&quot;</span>
+        <span class="n">pb</span><span class="o">.</span><span class="n">resetBasePositionAndOrientation</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__bulletId</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">initial_pos</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">initial_rot</span><span class="p">)</span>
+        <span class="n">pb</span><span class="o">.</span><span class="n">resetbaseVelocity</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__bulletId</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__last_sim_pose_update</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__last_sim_velocity_update</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span></div>
+
+<div class="viewcode-block" id="RigidBody.get_AABB"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.rigid_body.RigidBody.get_AABB">[docs]</a>    <span class="k">def</span> <span class="nf">get_AABB</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns the bounding box of this object.</span>
+<span class="sd">        :rtype: AABB</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="n">pb</span><span class="o">.</span><span class="n">getAABB</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__bulletId</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">AABB</span><span class="p">(</span><span class="n">Vector3</span><span class="p">(</span><span class="o">*</span><span class="n">res</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="n">Vector3</span><span class="p">(</span><span class="o">*</span><span class="n">res</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span></div>
+
+<div class="viewcode-block" id="RigidBody.pose"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.rigid_body.RigidBody.pose">[docs]</a>    <span class="k">def</span> <span class="nf">pose</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns the object&#39;s current pose in the form of a Frame.</span>
+<span class="sd">        :rtype: Frame</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">simulator</span><span class="o">.</span><span class="n">get_n_update</span><span class="p">()</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__last_sim_pose_update</span><span class="p">:</span>
+            <span class="n">temp</span> <span class="o">=</span> <span class="n">pb</span><span class="o">.</span><span class="n">getBasePositionAndOrientation</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__bulletId</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__current_pose</span> <span class="o">=</span> <span class="n">Frame</span><span class="p">(</span><span class="n">temp</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">temp</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__last_sim_pose_update</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">simulator</span><span class="o">.</span><span class="n">get_n_update</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__current_pose</span></div>
+
+<div class="viewcode-block" id="RigidBody.linear_velocity"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.rigid_body.RigidBody.linear_velocity">[docs]</a>    <span class="k">def</span> <span class="nf">linear_velocity</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns the object&#39;s current linear velocity.</span>
+<span class="sd">        :rtype: list</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">simulator</span><span class="o">.</span><span class="n">get_n_update</span><span class="p">()</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__last_sim_velocity_update</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__current_lin_velocity</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">__current_ang_velocity</span> <span class="o">=</span> <span class="n">pb</span><span class="o">.</span><span class="n">getBaseVelocity</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__bulletId</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__last_sim_velocity_update</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">simulator</span><span class="o">.</span><span class="n">get_n_update</span><span class="p">()</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__current_lin_velocity</span></div>
+
+<div class="viewcode-block" id="RigidBody.angular_velocity"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.rigid_body.RigidBody.angular_velocity">[docs]</a>    <span class="k">def</span> <span class="nf">angular_velocity</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns the object&#39;s current angular velocity.</span>
+<span class="sd">        :rtype: list</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">simulator</span><span class="o">.</span><span class="n">get_n_update</span><span class="p">()</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__last_sim_velocity_update</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__current_lin_velocity</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">__current_ang_velocity</span> <span class="o">=</span> <span class="n">pb</span><span class="o">.</span><span class="n">getBaseVelocity</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__bulletId</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__last_sim_velocity_update</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">simulator</span><span class="o">.</span><span class="n">get_n_update</span><span class="p">()</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__current_ang_velocity</span></div>
+
+<div class="viewcode-block" id="RigidBody.set_pose"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.rigid_body.RigidBody.set_pose">[docs]</a>    <span class="k">def</span> <span class="nf">set_pose</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pose</span><span class="p">,</span> <span class="n">override_initial</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Sets the current pose of the object.</span>
+
+<span class="sd">        :param override_initial: Additionally set the given pose as initial pose.</span>
+<span class="sd">        :type  override_initial: bool</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">pos</span>  <span class="o">=</span> <span class="n">pose</span><span class="o">.</span><span class="n">position</span>
+        <span class="n">quat</span> <span class="o">=</span> <span class="n">pose</span><span class="o">.</span><span class="n">quaternion</span>
+        <span class="n">pb</span><span class="o">.</span><span class="n">resetBasePositionAndOrientation</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__bulletId</span><span class="p">,</span> <span class="n">pos</span><span class="p">,</span> <span class="n">quat</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__last_sim_pose_update</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="k">if</span> <span class="n">override_initial</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">initial_pos</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">pos</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">initial_rot</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">quat</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="RigidBody.get_contacts"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.rigid_body.RigidBody.get_contacts">[docs]</a>    <span class="k">def</span> <span class="nf">get_contacts</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other_body</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">other_link</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Gets the contacts this body had during the last physics step.</span>
+<span class="sd">        The contacts can be filtered by other bodies and their links.</span>
+
+<span class="sd">        :param other_body: Other body to filter by</span>
+<span class="sd">        :type  other_body: iai_bullet_sim.multibody.MultiBody, RigidBody, NoneType</span>
+<span class="sd">        :param other_link: Other object&#39;s link to filter by.</span>
+<span class="sd">        :type  other_link: str, NoneType</span>
+<span class="sd">        :rtype: list</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">simulator</span><span class="o">.</span><span class="n">get_contacts</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other_body</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">other_link</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="RigidBody.get_closest_points"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.rigid_body.RigidBody.get_closest_points">[docs]</a>    <span class="k">def</span> <span class="nf">get_closest_points</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other_body</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">other_link</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Gets the closest points of this body to its environment.</span>
+<span class="sd">        The closest points can be filtered by other bodies and their links.</span>
+
+<span class="sd">        :param other_body: Other body to filter by</span>
+<span class="sd">        :type  other_body: iai_bullet_sim.multibody.MultiBody, RigidBody, NoneType</span>
+<span class="sd">        :param other_link: Other object&#39;s link to filter by.</span>
+<span class="sd">        :type  other_link: str, NoneType</span>
+<span class="sd">        :rtype: list</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">simulator</span><span class="o">.</span><span class="n">get_closest_points</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other_body</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">other_link</span><span class="p">)</span></div></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, Adrian Roefer.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../',
+            VERSION:'0.1',
+            LANGUAGE:'None',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

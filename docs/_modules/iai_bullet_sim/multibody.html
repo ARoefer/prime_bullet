@@ -1,0 +1,535 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>iai_bullet_sim.multibody &mdash; iai_bullet_sim 0.1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+
+  
+  <script src="../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> iai_bullet_sim
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorial_simulator.html">Tutorial: Using the Simulator</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorial_plugins.html">Tutorial: Plugins</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../modules.html">API Documentation</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">iai_bullet_sim</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>iai_bullet_sim.multibody</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for iai_bullet_sim.multibody</h1><div class="highlight"><pre>
+<span class="kn">import</span> <span class="nn">pybullet</span> <span class="k">as</span> <span class="nn">pb</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">namedtuple</span>
+<span class="kn">from</span> <span class="nn">iai_bullet_sim.utils</span> <span class="k">import</span> <span class="n">Vector3</span><span class="p">,</span> <span class="n">Quaternion</span><span class="p">,</span> <span class="n">Frame</span><span class="p">,</span> <span class="n">AABB</span>
+
+<div class="viewcode-block" id="JointDriver"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.multibody.JointDriver">[docs]</a><span class="k">class</span> <span class="nc">JointDriver</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Joint drivers modify given velocity and effort commands to match robot specific joint behavior.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+<div class="viewcode-block" id="JointDriver.update_positions"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.multibody.JointDriver.update_positions">[docs]</a>    <span class="k">def</span> <span class="nf">update_positions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">robot_data</span><span class="p">,</span> <span class="n">positions_dict</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Updates a given position command.&quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+<div class="viewcode-block" id="JointDriver.update_velocities"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.multibody.JointDriver.update_velocities">[docs]</a>    <span class="k">def</span> <span class="nf">update_velocities</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">robot_data</span><span class="p">,</span> <span class="n">velocities_dict</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Updates a given velocity command.&quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+<div class="viewcode-block" id="JointDriver.update_effort"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.multibody.JointDriver.update_effort">[docs]</a>    <span class="k">def</span> <span class="nf">update_effort</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">robot_data</span><span class="p">,</span> <span class="n">effort_dict</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Updates a given effort command.&quot;&quot;&quot;</span>
+        <span class="k">pass</span></div></div>
+
+<div class="viewcode-block" id="JointState"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.multibody.JointState">[docs]</a><span class="k">class</span> <span class="nc">JointState</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Represents the state of an individual bullet joint.&quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pos</span><span class="p">,</span> <span class="n">vel</span><span class="p">,</span> <span class="n">rForce</span><span class="p">,</span> <span class="n">appliedTorque</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        :type pos: float</span>
+<span class="sd">        :type vel: float</span>
+<span class="sd">        :type rForce: float</span>
+<span class="sd">        :type appliedTorque: float</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">position</span> <span class="o">=</span> <span class="n">pos</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">velocity</span> <span class="o">=</span> <span class="n">vel</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reactionForce</span> <span class="o">=</span> <span class="n">ReactionForces</span><span class="p">(</span><span class="n">rForce</span><span class="p">[:</span><span class="mi">3</span><span class="p">],</span> <span class="n">rForce</span><span class="p">[</span><span class="mi">3</span><span class="p">:])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">effort</span> <span class="o">=</span> <span class="n">appliedTorque</span></div>
+
+<span class="c1"># Reaction force structure. Assigns names to bullet&#39;s info structure.</span>
+<span class="n">ReactionForces</span>  <span class="o">=</span> <span class="n">namedtuple</span><span class="p">(</span><span class="s1">&#39;ReactionForces&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;f&#39;</span><span class="p">,</span> <span class="s1">&#39;m&#39;</span><span class="p">])</span>
+
+<span class="c1"># Joint info structure. Assigns names to bullet&#39;s info structure.</span>
+<span class="n">JointInfo</span> <span class="o">=</span> <span class="n">namedtuple</span><span class="p">(</span><span class="s1">&#39;JointInfo&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;jointIndex&#39;</span><span class="p">,</span> <span class="s1">&#39;jointName&#39;</span><span class="p">,</span> <span class="s1">&#39;jointType&#39;</span><span class="p">,</span> <span class="s1">&#39;qIndex&#39;</span><span class="p">,</span> <span class="s1">&#39;uIndex&#39;</span><span class="p">,</span>
+                                     <span class="s1">&#39;flags&#39;</span><span class="p">,</span> <span class="s1">&#39;jointDamping&#39;</span><span class="p">,</span> <span class="s1">&#39;jointFriction&#39;</span><span class="p">,</span> <span class="s1">&#39;lowerLimit&#39;</span><span class="p">,</span>
+                                     <span class="s1">&#39;upperLimit&#39;</span><span class="p">,</span> <span class="s1">&#39;maxEffort&#39;</span><span class="p">,</span> <span class="s1">&#39;maxVelocity&#39;</span><span class="p">,</span> <span class="s1">&#39;linkName&#39;</span><span class="p">,</span>
+                                     <span class="s1">&#39;axis&#39;</span><span class="p">,</span> <span class="s1">&#39;parentFramePos&#39;</span><span class="p">,</span> <span class="s1">&#39;parentFrameOrn&#39;</span><span class="p">,</span> <span class="s1">&#39;parentIndex&#39;</span><span class="p">])</span>
+
+<span class="c1"># Link state structure. Assigns names to bullet&#39;s info structure.</span>
+<span class="n">LinkState</span>  <span class="o">=</span> <span class="n">namedtuple</span><span class="p">(</span><span class="s1">&#39;LinkState&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;CoMFrame&#39;</span><span class="p">,</span> <span class="s1">&#39;localInertialFrame&#39;</span><span class="p">,</span> <span class="s1">&#39;worldFrame&#39;</span><span class="p">,</span> <span class="s1">&#39;linearVelocity&#39;</span><span class="p">,</span> <span class="s1">&#39;angularVelocity&#39;</span><span class="p">])</span>
+
+
+<div class="viewcode-block" id="MultiBody"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.multibody.MultiBody">[docs]</a><span class="k">class</span> <span class="nc">MultiBody</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Wrapper class giving object oriented access to PyBullet&#39;s multibodies.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">simulator</span><span class="p">,</span> <span class="n">bulletId</span><span class="p">,</span> <span class="n">color</span><span class="p">,</span> <span class="n">initial_pos</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">],</span> <span class="n">initial_rot</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">],</span> <span class="n">joint_driver</span><span class="o">=</span><span class="n">JointDriver</span><span class="p">(),</span> <span class="n">urdf_file</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Constructs a multibody.</span>
+
+<span class="sd">        :param simulator:    The simulator managing this object</span>
+<span class="sd">        :type  simulator:    iai_bullet_sim.basic_simulator.BasicSimulator</span>
+<span class="sd">        :param bulletId:     The Id of the corresponding bullet object</span>
+<span class="sd">        :type  bulletId:     long</span>
+<span class="sd">        :param color:        A color override for this object as RGBA</span>
+<span class="sd">        :type  color:        list</span>
+<span class="sd">        :param initial_pos:  This object&#39;s initial location</span>
+<span class="sd">        :type  initial_pos:  list</span>
+<span class="sd">        :param initial_rot:  This object&#39;s initial rotation</span>
+<span class="sd">        :type  initial_rot:  list</span>
+<span class="sd">        :param joint_driver: A joint driver instance, which might modify the object&#39;s joints</span>
+<span class="sd">        :type  joint_driver: JointDriver</span>
+<span class="sd">        :param urdf_file:    The URDF this object was loaded from. This may be a path in the ROS package syntax</span>
+<span class="sd">        :type  urdf_file:    str, NoneType</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">simulator</span>      <span class="o">=</span> <span class="n">simulator</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__bulletId</span>     <span class="o">=</span> <span class="n">bulletId</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">color</span>          <span class="o">=</span> <span class="n">color</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">joints</span>         <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dynamic_joints</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">joint_idx_name_map</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">joint_sensors</span>  <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">joint_driver</span>   <span class="o">=</span> <span class="n">joint_driver</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">urdf_file</span>      <span class="o">=</span> <span class="n">urdf_file</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">initial_pos</span>    <span class="o">=</span> <span class="n">initial_pos</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">initial_rot</span>    <span class="o">=</span> <span class="n">initial_rot</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">initial_joint_state</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="n">multibodyName</span><span class="p">,</span> <span class="n">base_link</span> <span class="o">=</span> <span class="n">pb</span><span class="o">.</span><span class="n">getBodyInfo</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__bulletId</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">base_link</span> <span class="o">=</span> <span class="n">base_link</span>
+
+        <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">pb</span><span class="o">.</span><span class="n">getNumJoints</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__bulletId</span><span class="p">)):</span>
+            <span class="n">joint</span> <span class="o">=</span> <span class="n">JointInfo</span><span class="p">(</span><span class="o">*</span><span class="n">pb</span><span class="o">.</span><span class="n">getJointInfo</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__bulletId</span><span class="p">,</span> <span class="n">x</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">joints</span><span class="p">[</span><span class="n">joint</span><span class="o">.</span><span class="n">jointName</span><span class="p">]</span> <span class="o">=</span> <span class="n">joint</span>
+            <span class="k">if</span> <span class="n">joint</span><span class="o">.</span><span class="n">jointType</span> <span class="o">!=</span> <span class="n">pb</span><span class="o">.</span><span class="n">JOINT_FIXED</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">dynamic_joints</span><span class="p">[</span><span class="n">joint</span><span class="o">.</span><span class="n">jointName</span><span class="p">]</span> <span class="o">=</span> <span class="n">joint</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">initial_joint_state</span><span class="p">[</span><span class="n">joint</span><span class="o">.</span><span class="n">jointName</span><span class="p">]</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="n">joint</span><span class="o">.</span><span class="n">lowerLimit</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span> <span class="n">joint</span><span class="o">.</span><span class="n">upperLimit</span><span class="p">)</span>
+
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">__index_joint_map</span>       <span class="o">=</span> <span class="p">{</span><span class="n">info</span><span class="o">.</span><span class="n">jointIndex</span><span class="p">:</span> <span class="n">joint</span> <span class="k">for</span> <span class="n">joint</span><span class="p">,</span> <span class="n">info</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">joints</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__dynamic_joint_indices</span> <span class="o">=</span> <span class="p">[</span><span class="n">info</span><span class="o">.</span><span class="n">jointIndex</span> <span class="k">for</span> <span class="n">info</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">dynamic_joints</span><span class="o">.</span><span class="n">values</span><span class="p">()]</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;dynamic joints:</span><span class="se">\n</span><span class="s1">  {}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">  &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">info</span><span class="o">.</span><span class="n">jointName</span> <span class="k">for</span> <span class="n">info</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">joints</span><span class="o">.</span><span class="n">values</span><span class="p">()</span> <span class="k">if</span> <span class="n">info</span><span class="o">.</span><span class="n">jointType</span> <span class="o">!=</span> <span class="n">pb</span><span class="o">.</span><span class="n">JOINT_FIXED</span><span class="p">])))</span>
+
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">links</span> <span class="o">=</span> <span class="p">{</span><span class="n">info</span><span class="o">.</span><span class="n">linkName</span> <span class="k">for</span> <span class="n">info</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">joints</span><span class="o">.</span><span class="n">values</span><span class="p">()}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">links</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">base_link</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">link_index_map</span> <span class="o">=</span> <span class="p">{</span><span class="n">info</span><span class="o">.</span><span class="n">linkName</span><span class="p">:</span> <span class="n">info</span><span class="o">.</span><span class="n">jointIndex</span> <span class="k">for</span> <span class="n">info</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">joints</span><span class="o">.</span><span class="n">values</span><span class="p">()}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">link_index_map</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">base_link</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">index_link_map</span> <span class="o">=</span> <span class="p">{</span><span class="n">i</span><span class="p">:</span> <span class="n">l</span> <span class="k">for</span> <span class="n">l</span><span class="p">,</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">link_index_map</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">__current_pose</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__last_sim_pose_update</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__current_lin_velocity</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__current_ang_velocity</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__last_sim_velocity_update</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+
+        <span class="c1"># Initialize empty JS for objects without dynamic joints</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__joint_state</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__dynamic_joint_indices</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__last_sim_js_update</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+
+
+<div class="viewcode-block" id="MultiBody.has_dynamic_joints"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.multibody.MultiBody.has_dynamic_joints">[docs]</a>    <span class="k">def</span> <span class="nf">has_dynamic_joints</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns True, if this multi body hase any dynamic joints.</span>
+<span class="sd">        :rtype: bool</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dynamic_joints</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span></div>
+
+<div class="viewcode-block" id="MultiBody.bId"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.multibody.MultiBody.bId">[docs]</a>    <span class="k">def</span> <span class="nf">bId</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns the corresponding bullet Id</span>
+<span class="sd">        :rtype: long</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__bulletId</span></div>
+
+<div class="viewcode-block" id="MultiBody.reset"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.multibody.MultiBody.reset">[docs]</a>    <span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Resets this object&#39;s pose and joints to their initial configuration.&quot;&quot;&quot;</span>
+        <span class="n">pb</span><span class="o">.</span><span class="n">resetBasePositionAndOrientation</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__bulletId</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">initial_pos</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">initial_rot</span><span class="p">)</span>
+        <span class="n">pb</span><span class="o">.</span><span class="n">resetbaseVelocity</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__bulletId</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_joint_positions</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">initial_joint_state</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__last_sim_pose_update</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__last_sim_js_update</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__last_sim_velocity_update</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span></div>
+
+<div class="viewcode-block" id="MultiBody.get_link_state"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.multibody.MultiBody.get_link_state">[docs]</a>    <span class="k">def</span> <span class="nf">get_link_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">link</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns the state of the named link.</span>
+<span class="sd">        If None is passed as link, the object&#39;s pose is returned as LinkState</span>
+
+<span class="sd">        :type link: str, NoneType</span>
+<span class="sd">        :rtype: LinkState</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">link</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">link</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">link_index_map</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;Link &quot;{}&quot; is not defined&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">link</span><span class="p">))</span>
+
+        <span class="n">zero_vector</span> <span class="o">=</span> <span class="n">Vector3</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">link</span> <span class="o">==</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">link</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">base_link</span><span class="p">:</span>
+            <span class="n">frame</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pose</span><span class="p">()</span>
+            <span class="k">return</span> <span class="n">LinkState</span><span class="p">(</span><span class="n">frame</span><span class="p">,</span> <span class="n">frame</span><span class="p">,</span> <span class="n">frame</span><span class="p">,</span> <span class="n">zero_vector</span><span class="p">,</span> <span class="n">zero_vector</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">ls</span> <span class="o">=</span> <span class="n">pb</span><span class="o">.</span><span class="n">getLinkState</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__bulletId</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">link_index_map</span><span class="p">[</span><span class="n">link</span><span class="p">],</span> <span class="n">compute_vel</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">LinkState</span><span class="p">(</span><span class="n">Frame</span><span class="p">(</span><span class="n">Vector3</span><span class="p">(</span><span class="o">*</span><span class="n">ls</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="n">Quaternion</span><span class="p">(</span><span class="o">*</span><span class="n">ls</span><span class="p">[</span><span class="mi">1</span><span class="p">])),</span>
+                             <span class="n">Frame</span><span class="p">(</span><span class="n">Vector3</span><span class="p">(</span><span class="o">*</span><span class="n">ls</span><span class="p">[</span><span class="mi">2</span><span class="p">]),</span> <span class="n">Quaternion</span><span class="p">(</span><span class="o">*</span><span class="n">ls</span><span class="p">[</span><span class="mi">3</span><span class="p">])),</span>
+                             <span class="n">Frame</span><span class="p">(</span><span class="n">Vector3</span><span class="p">(</span><span class="o">*</span><span class="n">ls</span><span class="p">[</span><span class="mi">4</span><span class="p">]),</span> <span class="n">Quaternion</span><span class="p">(</span><span class="o">*</span><span class="n">ls</span><span class="p">[</span><span class="mi">5</span><span class="p">])),</span>
+                             <span class="n">zero_vector</span><span class="p">,</span>
+                             <span class="n">zero_vector</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="MultiBody.get_AABB"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.multibody.MultiBody.get_AABB">[docs]</a>    <span class="k">def</span> <span class="nf">get_AABB</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">linkId</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns the bounding box of a named link.</span>
+
+<span class="sd">        :type linkId: str, NoneType</span>
+<span class="sd">        :rtype: AABB</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="n">pb</span><span class="o">.</span><span class="n">getAABB</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__bulletId</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">link_index_map</span><span class="p">[</span><span class="n">linkId</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">AABB</span><span class="p">(</span><span class="n">Vector3</span><span class="p">(</span><span class="o">*</span><span class="n">res</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="n">Vector3</span><span class="p">(</span><span class="o">*</span><span class="n">res</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span></div>
+
+<div class="viewcode-block" id="MultiBody.joint_state"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.multibody.MultiBody.joint_state">[docs]</a>    <span class="k">def</span> <span class="nf">joint_state</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns the object&#39;s current joint state.</span>
+<span class="sd">        :rtype: dict</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Avoid unnecessary updates and updates for objects without dynamic joints</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">simulator</span><span class="o">.</span><span class="n">get_n_update</span><span class="p">()</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__last_sim_js_update</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__dynamic_joint_indices</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">new_js</span> <span class="o">=</span> <span class="p">[</span><span class="n">JointState</span><span class="p">(</span><span class="o">*</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">pb</span><span class="o">.</span><span class="n">getJointStates</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__bulletId</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">__dynamic_joint_indices</span><span class="p">)]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__joint_state</span> <span class="o">=</span> <span class="p">{</span><span class="bp">self</span><span class="o">.</span><span class="n">__index_joint_map</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">__dynamic_joint_indices</span><span class="p">[</span><span class="n">x</span><span class="p">]]:</span> <span class="n">new_js</span><span class="p">[</span><span class="n">x</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">new_js</span><span class="p">))}</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__joint_state</span></div>
+
+<div class="viewcode-block" id="MultiBody.pose"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.multibody.MultiBody.pose">[docs]</a>    <span class="k">def</span> <span class="nf">pose</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns the object&#39;s current pose in the form of a Frame.</span>
+<span class="sd">        :rtype: Frame</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">simulator</span><span class="o">.</span><span class="n">get_n_update</span><span class="p">()</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__last_sim_pose_update</span><span class="p">:</span>
+            <span class="n">temp</span> <span class="o">=</span> <span class="n">pb</span><span class="o">.</span><span class="n">getBasePositionAndOrientation</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__bulletId</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__current_pose</span> <span class="o">=</span> <span class="n">Frame</span><span class="p">(</span><span class="n">temp</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">temp</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__current_pose</span></div>
+
+<div class="viewcode-block" id="MultiBody.linear_velocity"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.multibody.MultiBody.linear_velocity">[docs]</a>    <span class="k">def</span> <span class="nf">linear_velocity</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns the object&#39;s current linear velocity.</span>
+<span class="sd">        :rtype: list</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">simulator</span><span class="o">.</span><span class="n">get_n_update</span><span class="p">()</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__last_sim_velocity_update</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__current_lin_velocity</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">__current_ang_velocity</span> <span class="o">=</span> <span class="n">pb</span><span class="o">.</span><span class="n">getBaseVelocity</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__bulletId</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__last_sim_velocity_update</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">simulator</span><span class="o">.</span><span class="n">get_n_update</span><span class="p">()</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__current_lin_velocity</span></div>
+
+<div class="viewcode-block" id="MultiBody.angular_velocity"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.multibody.MultiBody.angular_velocity">[docs]</a>    <span class="k">def</span> <span class="nf">angular_velocity</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns the object&#39;s current angular velocity.</span>
+<span class="sd">        :rtype: list</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">simulator</span><span class="o">.</span><span class="n">get_n_update</span><span class="p">()</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__last_sim_velocity_update</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__current_lin_velocity</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">__current_ang_velocity</span> <span class="o">=</span> <span class="n">pb</span><span class="o">.</span><span class="n">getBaseVelocity</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__bulletId</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__last_sim_velocity_update</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">simulator</span><span class="o">.</span><span class="n">get_n_update</span><span class="p">()</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__current_ang_velocity</span></div>
+
+<div class="viewcode-block" id="MultiBody.enable_joint_sensor"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.multibody.MultiBody.enable_joint_sensor">[docs]</a>    <span class="k">def</span> <span class="nf">enable_joint_sensor</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">joint_name</span><span class="p">,</span> <span class="n">enable</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Activates or deactivates the force-torque sensor for a given joint.</span>
+
+<span class="sd">        :type joint_name: str</span>
+<span class="sd">        :type enable: bool</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">pb</span><span class="o">.</span><span class="n">enableJointForceTorqueSensor</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__bulletId</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">joints</span><span class="p">[</span><span class="n">joint_name</span><span class="p">]</span><span class="o">.</span><span class="n">jointIndex</span><span class="p">,</span> <span class="n">enable</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">enable</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">joint_sensors</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">joint_name</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">joint_sensors</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">joint_name</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="MultiBody.get_sensor_states"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.multibody.MultiBody.get_sensor_states">[docs]</a>    <span class="k">def</span> <span class="nf">get_sensor_states</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns a dict of all sensors and their current readout.</span>
+<span class="sd">        :rtype: dict</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">joint_state</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="p">{</span><span class="n">sensor</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">__joint_state</span><span class="p">[</span><span class="n">sensor</span><span class="p">]</span><span class="o">.</span><span class="n">reactionForce</span> <span class="k">for</span> <span class="n">sensor</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">joint_sensors</span><span class="p">}</span></div>
+
+
+<div class="viewcode-block" id="MultiBody.set_pose"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.multibody.MultiBody.set_pose">[docs]</a>    <span class="k">def</span> <span class="nf">set_pose</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pose</span><span class="p">,</span> <span class="n">override_initial</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Sets the current pose of the object.</span>
+
+<span class="sd">        :param pose: Pose to set the object to.</span>
+<span class="sd">        :type  pose: Frame</span>
+<span class="sd">        :param override_initial: Additionally set the given pose as initial pose.</span>
+<span class="sd">        :type  override_initial: bool</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">pos</span>  <span class="o">=</span> <span class="n">pose</span><span class="o">.</span><span class="n">position</span>
+        <span class="n">quat</span> <span class="o">=</span> <span class="n">pose</span><span class="o">.</span><span class="n">quaternion</span>
+        <span class="n">pb</span><span class="o">.</span><span class="n">resetBasePositionAndOrientation</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__bulletId</span><span class="p">,</span> <span class="n">pos</span><span class="p">,</span> <span class="n">quat</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__last_sim_pose_update</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="k">if</span> <span class="n">override_initial</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">initial_pos</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">pos</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">initial_rot</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">quat</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="MultiBody.set_joint_positions"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.multibody.MultiBody.set_joint_positions">[docs]</a>    <span class="k">def</span> <span class="nf">set_joint_positions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">override_initial</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Sets the current joint positions of the object.</span>
+
+<span class="sd">        :param pose: Joint positions to set.</span>
+<span class="sd">        :type  pose: dict</span>
+<span class="sd">        :param override_initial: Additionally set the given positions as initial positions.</span>
+<span class="sd">        :type  override_initial: bool</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">state</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">pb</span><span class="o">.</span><span class="n">resetJointState</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__bulletId</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">joints</span><span class="p">[</span><span class="n">j</span><span class="p">]</span><span class="o">.</span><span class="n">jointIndex</span><span class="p">,</span> <span class="n">p</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__last_sim_js_update</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="k">if</span> <span class="n">override_initial</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">initial_joint_state</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">state</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="MultiBody.apply_joint_pos_cmds"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.multibody.MultiBody.apply_joint_pos_cmds">[docs]</a>    <span class="k">def</span> <span class="nf">apply_joint_pos_cmds</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cmd</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Sets the joints&#39; position goals.</span>
+
+<span class="sd">        :param cmd: Joint position goals to set.</span>
+<span class="sd">        :type  cmd: dict</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">cmd_indices</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">cmd_pos</span>     <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">joint_driver</span><span class="o">.</span><span class="n">update_positions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cmd</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">jname</span> <span class="ow">in</span> <span class="n">cmd</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="n">cmd_indices</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">joints</span><span class="p">[</span><span class="n">jname</span><span class="p">]</span><span class="o">.</span><span class="n">jointIndex</span><span class="p">)</span>
+            <span class="n">cmd_pos</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cmd</span><span class="p">[</span><span class="n">jname</span><span class="p">])</span>
+
+        <span class="n">pb</span><span class="o">.</span><span class="n">setJointMotorControlArray</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__bulletId</span><span class="p">,</span> <span class="n">cmd_indices</span><span class="p">,</span> <span class="n">pb</span><span class="o">.</span><span class="n">POSITION_CONTROL</span><span class="p">,</span> <span class="n">targetPositions</span><span class="o">=</span><span class="n">cmd_pos</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="MultiBody.apply_joint_vel_cmds"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.multibody.MultiBody.apply_joint_vel_cmds">[docs]</a>    <span class="k">def</span> <span class="nf">apply_joint_vel_cmds</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cmd</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Sets the joints&#39; velocity goals.</span>
+
+<span class="sd">        :param cmd: Joint velocity goals to set.</span>
+<span class="sd">        :type  cmd: dict</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">cmd_indices</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">cmd_vels</span>    <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">joint_driver</span><span class="o">.</span><span class="n">update_velocities</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cmd</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">jname</span> <span class="ow">in</span> <span class="n">cmd</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="n">cmd_indices</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">joints</span><span class="p">[</span><span class="n">jname</span><span class="p">]</span><span class="o">.</span><span class="n">jointIndex</span><span class="p">)</span>
+            <span class="n">cmd_vels</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cmd</span><span class="p">[</span><span class="n">jname</span><span class="p">])</span>
+
+        <span class="n">pb</span><span class="o">.</span><span class="n">setJointMotorControlArray</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__bulletId</span><span class="p">,</span> <span class="n">cmd_indices</span><span class="p">,</span> <span class="n">pb</span><span class="o">.</span><span class="n">VELOCITY_CONTROL</span><span class="p">,</span> <span class="n">targetVelocities</span><span class="o">=</span><span class="n">cmd_vels</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="MultiBody.apply_joint_effort_cmds"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.multibody.MultiBody.apply_joint_effort_cmds">[docs]</a>    <span class="k">def</span> <span class="nf">apply_joint_effort_cmds</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cmd</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Sets the joints&#39; torque goals.</span>
+
+<span class="sd">        :param cmd: Joint effort goals to set.</span>
+<span class="sd">        :type  cmd: dict</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">cmd_indices</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">cmd_torques</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">joint_driver</span><span class="o">.</span><span class="n">update_effort</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cmd</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">jname</span> <span class="ow">in</span> <span class="n">cmd</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="n">cmd_indices</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">joints</span><span class="p">[</span><span class="n">jname</span><span class="p">]</span><span class="o">.</span><span class="n">jointIndex</span><span class="p">)</span>
+            <span class="n">cmd_torques</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cmd</span><span class="p">[</span><span class="n">jname</span><span class="p">])</span>
+
+        <span class="n">pb</span><span class="o">.</span><span class="n">setJointMotorControlArray</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__bulletId</span><span class="p">,</span> <span class="n">cmd_indices</span><span class="p">,</span> <span class="n">pb</span><span class="o">.</span><span class="n">TORQUE_CONTROL</span><span class="p">,</span> <span class="n">forces</span><span class="o">=</span><span class="n">cmd_torques</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="MultiBody.get_contacts"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.multibody.MultiBody.get_contacts">[docs]</a>    <span class="k">def</span> <span class="nf">get_contacts</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other_body</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">own_link</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">other_link</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Gets the contacts this body had during the last physics step.</span>
+<span class="sd">        The contacts can be filtered by other bodies, their links and this body&#39;s own links.</span>
+
+<span class="sd">        :param other_body: Other body to filter by</span>
+<span class="sd">        :type  other_body: MultiBody, iai_bullet_sim.rigid_body.RigidBody, NoneType</span>
+<span class="sd">        :param own_link:   Own link to filter by</span>
+<span class="sd">        :type  own_link:   str, NoneType</span>
+<span class="sd">        :param other_link: Other object&#39;s link to filter by.</span>
+<span class="sd">        :type  other_link: str, NoneType</span>
+<span class="sd">        :rtype: list</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">simulator</span><span class="o">.</span><span class="n">get_contacts</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other_body</span><span class="p">,</span> <span class="n">own_link</span><span class="p">,</span> <span class="n">other_link</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="MultiBody.get_closest_points"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.multibody.MultiBody.get_closest_points">[docs]</a>    <span class="k">def</span> <span class="nf">get_closest_points</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other_body</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">own_link</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">other_link</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Gets the closest points of this body to its environment.</span>
+<span class="sd">        The closest points can be filtered by other bodies, their links and this body&#39;s own links.</span>
+
+<span class="sd">        :param other_body: Other body to filter by</span>
+<span class="sd">        :type  other_body: MultiBody, iai_bullet_sim.rigid_body.RigidBody, NoneType</span>
+<span class="sd">        :param own_link:   Own link to filter by</span>
+<span class="sd">        :type  own_link:   str, NoneType</span>
+<span class="sd">        :param other_link: Other object&#39;s link to filter by.</span>
+<span class="sd">        :type  other_link: str, NoneType</span>
+<span class="sd">        :rtype: list</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">simulator</span><span class="o">.</span><span class="n">get_closest_points</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other_body</span><span class="p">,</span> <span class="n">own_link</span><span class="p">,</span> <span class="n">other_link</span><span class="p">)</span></div></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, Adrian Roefer.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../',
+            VERSION:'0.1',
+            LANGUAGE:'None',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
