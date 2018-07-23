@@ -4,7 +4,8 @@ import rospy
 from time import time
 from math import sin
 
-from iai_bullet_sim.basic_simulator import BasicSimulator
+from iai_bullet_sim.basic_simulator import BasicSimulator, SimulatorPlugin
+
 
 class DemoIntro(object):
     def __init__(self):
@@ -89,15 +90,67 @@ class DemoContacts(object):
         while True:
             if time() - last_update >= sim.time_step:
                 sim.update()
-                print('Contacts with plate:\n  {}'.format('\n  '.join([sim.get_body_id(c.bodyB.bId()) for c in scale.get_contacts(own_link='plate')])))
+                contacts = scale.get_contacts(own_link='plate')
+                print('Contacts with plate:\n  {}'.format('\n  '.join([sim.get_body_id(c.bodyB.bId()) for c in contacts])))
                 last_update = time()
 
+
+class SimplePlugin(SimulatorPlugin):
+    def __init__(self, multibody):
+        super(SimplePlugin, self).__init__('Simple Plugin')
+        self.body = multibody
+
+    def pre_physics_update(self, simulator, deltaT):
+        self.pre_physics_js = self.body.joint_state()
+
+    def post_physics_update(self, simulator, deltaT):
+        """Implements post physics step behavior.
+
+        :type simulator: BasicSimulator
+        :type deltaT: float
+        """
+        pass
+
+    def __str__(self):
+        return self.__name
+
+    def to_dict(self, simulator):
+        """Serializes this plugin to a dictionary.
+
+        :type simulator: BasicSimulator
+        :rtype: dict
+        """
+
+
+class DemoPluginUsage(object):
+    def __init__(self):
+        pass
+
+    def run(self):
+        rospy.init_node('plugin_example')
+        sim = BasicSimulator()
+        sim.init(mode='gui')
+        floor    = sim.create_box(extents=[10,10,0.1], mass=0)
+        windmill = sim.load_urdf('package://iai_bullet_sim/urdf/windmill.urdf', useFixedBase=1)
+
+        plugin = JSPublisher(windmill, 'windmill')
+        sim.register_plugin(plugin)
+
+        windmill.apply_joint_vel_cmds({'wings_rotor': -2})
+
+        last_update = time()
+        while True:
+            if time() - last_update >= sim.time_step:
+                windmill.apply_joint_pos_cmds({'head_pan': sin(time())})
+                sim.update()
+                last_update = time()
 
 
 demos = {'intro': DemoIntro,
          'joints': DemoJoints,
          'sensor': DemoSensor,
-         'contacts': DemoContacts} # Contacts, closest points,
+         'contacts': DemoContacts,
+         'use_plugin': DemoPluginUsage} # Contacts, closest points,
 
 if __name__ == '__main__':
     if len(sys.argv) < 2:
