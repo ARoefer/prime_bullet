@@ -1,7 +1,8 @@
 import pybullet as pb
 import random
+import re
 from collections import namedtuple
-from iai_bullet_sim.utils import res_pkg_path, rot3_to_quat, Vector3, Quaternion, Frame, AABB
+from iai_bullet_sim.utils import res_pkg_path, rot3_to_quat, Vector3, Quaternion, Frame, AABB, import_class
 from iai_bullet_sim.multibody import MultiBody, JointDriver
 from iai_bullet_sim.rigid_body import RigidBody, GEOM_TYPES, BULLET_GEOM_TYPES
 from pprint import pprint
@@ -661,13 +662,11 @@ class BasicSimulator(object):
 
         return out
 
-    def load_simulator(self, config_dict, plugin_registry):
+    def load_simulator(self, config_dict):
         """Loads a simulator configuration from a dictionary.
 
         :param config_dict:     Simulator configuration.
         :type  config_dict:     dict
-        :param plugin_registry: Dictionary of plugin types to their respective classes. Used to instantiate plugins.
-        :type  plugin_registry: dict
         """
         if 'tick_rate' in config_dict:
             self.set_tick_rate(config_dict['tick_rate'])
@@ -679,12 +678,18 @@ class BasicSimulator(object):
             self.load_world(config_dict['world'])
 
         if 'plugins' in config_dict:
-            for plugin_dict in config_dict['plugins']:
-                if plugin_dict['plugin_type'] not in plugin_registry:
-                    print('Unknown plugin type: {}'.format(plugin_dict['plugin_type']))
-                    continue
 
-                self.register_plugin(plugin_registry[plugin_dict['plugin_type']].factory(self, plugin_dict))
+            for plugin_dict in config_dict['plugins']:
+                plugin_registry = {}
+                plugin = plugin_dict['plugin_type']
+                if plugin not in plugin_registry:
+                    if plugin[:8] == '<class \'' and plugin[-2:] == '\'>':
+                        plugin_registry[plugin] = import_class(plugin[8:-2])
+                    else:
+                        raise Exception('Plugin type "{}" does not match the pattern "<class \'TYPE\'>"'.format(plugin))
+
+                self.register_plugin(plugin_registry[plugin].factory(self, plugin_dict))
+
 
     def save_simulator(self, use_current_state_as_init=False):
         """Saves the simulator's state to a dictionary.
