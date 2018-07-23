@@ -1,0 +1,8 @@
+- git:
+    local-name: bullet3
+    uri: https://github.com/ARoefer/bullet3.git
+    version: master
+- git:
+    local-name: iai_bullet_sim
+    uri: https://github.com/ARoefer/iai_bullet_sim.git
+    version: master
