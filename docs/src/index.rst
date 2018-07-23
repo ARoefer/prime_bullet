@@ -11,6 +11,8 @@ Welcome to iai_bullet_sim's documentation!
    :caption: Contents:
 
    overview
+   tutorial_simulator.rst
+   tutorial_plugins.rst
    _modules/modules.rst
 
 
