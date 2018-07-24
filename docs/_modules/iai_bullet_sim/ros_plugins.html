@@ -687,11 +687,6 @@
         <span class="k">if</span> <span class="n">body</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;Body &quot;{}&quot; does not exist in the context of the given simulation.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">init_dict</span><span class="p">[</span><span class="s1">&#39;body&#39;</span><span class="p">]))</span>
         <span class="k">return</span> <span class="n">ResetTrajectoryPositionController</span><span class="p">(</span><span class="n">simulator</span><span class="p">,</span> <span class="n">body</span><span class="p">,</span> <span class="n">init_dict</span><span class="p">[</span><span class="s1">&#39;topic_prefix&#39;</span><span class="p">])</span></div></div>
-
-<span class="c1"># List of plugins provided by this file.</span>
-<span class="n">PLUGIN_LIST</span> <span class="o">=</span> <span class="p">[</span><span class="n">JSPublisher</span><span class="p">,</span> <span class="n">SensorPublisher</span><span class="p">,</span> <span class="n">JointPositionController</span><span class="p">,</span> <span class="n">JointVelocityController</span><span class="p">,</span> <span class="n">JointVelocityDeltaContoller</span><span class="p">,</span> <span class="n">TrajectoryPositionController</span><span class="p">,</span> <span class="n">LoopingTrajectoryPositionController</span><span class="p">,</span> <span class="n">ResetTrajectoryPositionController</span><span class="p">]</span>
-<span class="c1"># Map of plugin type names to their classes.</span>
-<span class="n">PLUGINS</span> <span class="o">=</span> <span class="p">{</span><span class="nb">str</span><span class="p">(</span><span class="n">p</span><span class="p">):</span> <span class="n">p</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">PLUGIN_LIST</span><span class="p">}</span>
 </pre></div>
 
            </div>

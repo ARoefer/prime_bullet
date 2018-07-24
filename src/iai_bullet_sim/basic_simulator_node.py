@@ -4,7 +4,6 @@ import yaml
 from time import time
 
 from iai_bullet_sim.basic_simulator import BasicSimulator
-from iai_bullet_sim.ros_plugins     import PLUGINS
 from iai_bullet_sim.utils           import res_pkg_path
 
 
@@ -43,7 +42,7 @@ class BasicSimulatorNode(object):
         cdict = config_dict if config_dict is not None else {'tick_rate': 50, 'gravity': [0,0,-9.81]}
         self.sim = BasicSimulator()
         self.sim.init(mode)
-        self.sim.load_simulator(cdict, PLUGINS)
+        self.sim.load_simulator(cdict)
 
     def tick(self, timer_event):
         """

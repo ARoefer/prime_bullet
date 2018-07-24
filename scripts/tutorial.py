@@ -101,25 +101,18 @@ class SimplePlugin(SimulatorPlugin):
         self.body = multibody
 
     def pre_physics_update(self, simulator, deltaT):
-        self.pre_physics_js = self.body.joint_state()
+        self.pre_physics_jp = {j: s.position for j, s in self.body.joint_state().items()}
 
     def post_physics_update(self, simulator, deltaT):
-        """Implements post physics step behavior.
-
-        :type simulator: BasicSimulator
-        :type deltaT: float
-        """
-        pass
-
-    def __str__(self):
-        return self.__name
+        jp_delta = {j: s.position - self.pre_physics_jp[j] for j, s in self.body.joint_state().items()}
+        print('\n'.join(['{:>20} moved {: 2.6f} rad'.format(j, d) for j, d in jp_delta.items()]))
 
     def to_dict(self, simulator):
-        """Serializes this plugin to a dictionary.
+        return {'body': simulator.get_body_id(self.body.bId())}
 
-        :type simulator: BasicSimulator
-        :rtype: dict
-        """
+    @classmethod
+    def factory(cls, simulator, init_dict):
+        return SimplePlugin(simulator.get_body(init_dict['body']))
 
 
 class DemoPluginUsage(object):
@@ -127,13 +120,12 @@ class DemoPluginUsage(object):
         pass
 
     def run(self):
-        rospy.init_node('plugin_example')
         sim = BasicSimulator()
         sim.init(mode='gui')
         floor    = sim.create_box(extents=[10,10,0.1], mass=0)
         windmill = sim.load_urdf('package://iai_bullet_sim/urdf/windmill.urdf', useFixedBase=1)
 
-        plugin = JSPublisher(windmill, 'windmill')
+        plugin = SimplePlugin(windmill)
         sim.register_plugin(plugin)
 
         windmill.apply_joint_vel_cmds({'wings_rotor': -2})
@@ -154,12 +146,12 @@ demos = {'intro': DemoIntro,
 
 if __name__ == '__main__':
     if len(sys.argv) < 2:
-        print('Name of demo to run required. Options are:\n  {}'.format('\n  '.join(demos.keys())))
+        print('Name of demo to run required. Options are:\n  {}'.format('\n  '.join(sorted(demos.keys()))))
     else:
         demo = sys.argv[1]
 
         if demo not in demos:
-            print('Unknown demo {}. Options are:\n  {}'.format(demo, '\n  '.join(demos.keys())))
+            print('Unknown demo {}. Options are:\n  {}'.format(demo, '\n  '.join(sorted(demos.keys()))))
         else:
             d = demos[demo]()
             d.run()

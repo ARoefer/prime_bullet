@@ -21,7 +21,13 @@ def rot3_to_quat(rot3):
 
 
 def res_pkg_path(rpath):
-    """Resolves a ROS package relative path to a global path."""
+    """Resolves a ROS package relative path to a global path.
+
+    :param rpath: Potential ROS URI to resolve.
+    :type rpath: str
+    :return: Local file system path
+    :rtype: str
+    """
     if rpath[:10] == 'package://':
         paths = os.environ['ROS_PACKAGE_PATH'].split(':')
 
@@ -35,3 +41,17 @@ def res_pkg_path(rpath):
                 return '{}/{}'.format(rpp, rpath)
         raise Exception('Package "{}" can not be found in ROS_PACKAGE_PATH!'.format(pkg))
     return rpath
+
+
+def import_class(class_path):
+    """Imports a class using a type string.
+
+    :param class_path: Type string of the class.
+    :type  class_path: str
+    :rtype: type
+    """
+    components = class_path.split('.')
+    mod = __import__(components[0])
+    for comp in components[1:]:
+        mod = getattr(mod, comp)
+    return mod

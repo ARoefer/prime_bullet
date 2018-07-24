@@ -540,8 +540,3 @@ class ResetTrajectoryPositionController(TrajectoryPositionController):
         if body is None:
             raise Exception('Body "{}" does not exist in the context of the given simulation.'.format(init_dict['body']))
         return ResetTrajectoryPositionController(simulator, body, init_dict['topic_prefix'])
-
-# List of plugins provided by this file.
-PLUGIN_LIST = [JSPublisher, SensorPublisher, JointPositionController, JointVelocityController, JointVelocityDeltaContoller, TrajectoryPositionController, LoopingTrajectoryPositionController, ResetTrajectoryPositionController]
-# Map of plugin type names to their classes.
-PLUGINS = {str(p): p for p in PLUGIN_LIST}

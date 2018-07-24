@@ -3,13 +3,16 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to iai_bullet_sim's documentation!
-==========================================
+The iai_bullet_sim
+==================
+
+This ROS package provides an object oriented wrapper around the `bullet physics <http://bulletphysics.org>`_ engine's Python interface. It is supposed to make working with bullet in Python easier and provides a small simulator which is interfaced with the ROS ecosystem.
 
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
 
+   installation
    overview
    tutorial_simulator.rst
    tutorial_plugins.rst
