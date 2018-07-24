@@ -28,7 +28,8 @@
   <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="The iai_bullet_sim" href="installation.html" /> 
+    <link rel="next" title="Overview" href="overview.html" />
+    <link rel="prev" title="The iai_bullet_sim" href="index.html" /> 
 
   
   <script src="_static/js/modernizr.min.js"></script>
@@ -47,7 +48,7 @@
           
 
           
-            <a href="#" class="icon icon-home"> iai_bullet_sim
+            <a href="index.html" class="icon icon-home"> iai_bullet_sim
           
 
           
@@ -78,8 +79,11 @@
             
             
               <p class="caption"><span class="caption-text">Contents:</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="installation.html">The iai_bullet_sim</a></li>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">The iai_bullet_sim</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#installation">Installation</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="overview.html">Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tutorial_simulator.html">Tutorial: Using the Simulator</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tutorial_plugins.html">Tutorial: Plugins</a></li>
@@ -98,7 +102,7 @@
       <nav class="wy-nav-top" aria-label="top navigation">
         
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="#">iai_bullet_sim</a>
+          <a href="index.html">iai_bullet_sim</a>
         
       </nav>
 
@@ -127,7 +131,7 @@
 
   <ul class="wy-breadcrumbs">
     
-      <li><a href="#">Docs</a> &raquo;</li>
+      <li><a href="index.html">Docs</a> &raquo;</li>
         
       <li>The iai_bullet_sim</li>
     
@@ -135,7 +139,7 @@
       <li class="wy-breadcrumbs-aside">
         
             
-            <a href="_sources/index.rst.txt" rel="nofollow"> View page source</a>
+            <a href="_sources/installation.rst.txt" rel="nofollow"> View page source</a>
           
         
       </li>
@@ -151,44 +155,41 @@
   <div class="section" id="the-iai-bullet-sim">
 <h1>The iai_bullet_sim<a class="headerlink" href="#the-iai-bullet-sim" title="Permalink to this headline">¶</a></h1>
 <p>This ROS package provides an object oriented wrapper around the <a class="reference external" href="http://bulletphysics.org">bullet physics</a> engine’s Python interface. It is supposed to make working with bullet in Python easier and provides a small simulator which is interfaced with the ROS ecosystem.</p>
-<div class="toctree-wrapper compound">
-<p class="caption"><span class="caption-text">Contents:</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="installation.html">The iai_bullet_sim</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="installation.html#installation">Installation</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="overview.html">Overview</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="overview.html#introduction">Introduction</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="tutorial_simulator.html">Tutorial: Using the Simulator</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="tutorial_simulator.html#getting-started">Getting Started</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tutorial_simulator.html#using-joints">Using Joints</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tutorial_simulator.html#using-sensors">Using Sensors</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tutorial_simulator.html#contact-points">Contact Points</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="tutorial_plugins.html">Tutorial: Plugins</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="tutorial_plugins.html#introduction-and-life-cycle">Introduction and Life Cycle</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tutorial_plugins.html#using-a-plugin">Using a Plugin</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tutorial_plugins.html#creating-a-plugin">Creating a Plugin</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="_modules/modules.html">API Documentation</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="_modules/iai_bullet_sim.html">iai_bullet_sim package</a></li>
-</ul>
-</li>
-</ul>
+<div class="section" id="installation">
+<h2>Installation<a class="headerlink" href="#installation" title="Permalink to this headline">¶</a></h2>
+<p>This installation will create a new ROS workspace and use wstool to install the simulator. The instructions were tested on a Ubuntu 16.04 with ROS kinetic and cmake 3.5.1.</p>
+<div class="literal-block-wrapper docutils container" id="id1">
+<div class="code-block-caption"><span class="caption-text">Creating a workspace</span><a class="headerlink" href="#id1" title="Permalink to this code">¶</a></div>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span class="nb">source</span> /opt/ros/kinetic/setup.bash          <span class="c1"># start using ROS kinetic</span>
+mkdir -p ~/bullet_ws/src                    <span class="c1"># create directory for workspace</span>
+<span class="nb">cd</span> ~/bullet_ws                              <span class="c1"># go to workspace directory</span>
+catkin init                                 <span class="c1"># init workspace</span>
+<span class="nb">cd</span> src                                      <span class="c1"># go to source directory of workspace</span>
+wstool init                                 <span class="c1"># init rosinstall</span>
+</pre></div>
 </div>
 </div>
-<div class="section" id="indices-and-tables">
-<h1>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this headline">¶</a></h1>
-<ul class="simple">
-<li><a class="reference internal" href="genindex.html"><span class="std std-ref">Index</span></a></li>
-<li><a class="reference internal" href="py-modindex.html"><span class="std std-ref">Module Index</span></a></li>
-<li><a class="reference internal" href="search.html"><span class="std std-ref">Search Page</span></a></li>
-</ul>
+<div class="literal-block-wrapper docutils container" id="id2">
+<div class="code-block-caption"><span class="caption-text">Cloning simulator and Bullet using wstool</span><a class="headerlink" href="#id2" title="Permalink to this code">¶</a></div>
+<div class="highlight-bash notranslate"><div class="highlight"><pre>wstool merge https://raw.githubusercontent.com/aroefer/iai_bullet_sim/master/rosinstall/catkin.rosinstall
+                                            <span class="c1"># update rosinstall file</span>
+wstool update                               <span class="c1"># pull source repositories</span>
+rosdep install --ignore-src --from-paths .  <span class="c1"># install dependencies available through apt</span>
+<span class="nb">cd</span> ..                                       <span class="c1"># go to workspace directory</span>
+catkin build                                <span class="c1"># build packages</span>
+<span class="nb">source</span> ~/bullet_ws/devel/setup.bash         <span class="c1"># source new overlay</span>
+</pre></div>
+</div>
+</div>
+<div class="literal-block-wrapper docutils container" id="id3">
+<div class="code-block-caption"><span class="caption-text">Building Bullet</span><a class="headerlink" href="#id3" title="Permalink to this code">¶</a></div>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span class="nb">cd</span> ~/bullet_ws/src/bullet3
+./build_cmake_pybullet_double.sh
+</pre></div>
+</div>
+</div>
+<p>To use the Python bindings for Bullet, you need to add them to your <strong>PYTHONPATH</strong>. If did all of the steps above, the built library should be located in <em>~/bullet_ws/bullet3/build_cmake/examples/pybullet</em>.</p>
+</div>
 </div>
 
 
@@ -199,8 +200,10 @@
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="installation.html" class="btn btn-neutral float-right" title="The iai_bullet_sim" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="overview.html" class="btn btn-neutral float-right" title="Overview" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
+      
+        <a href="index.html" class="btn btn-neutral" title="The iai_bullet_sim" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   
