@@ -66,7 +66,7 @@ class RigidBody(object):
     def reset(self):
         """Resets this object's pose and joints to their initial configuration."""
         pb.resetBasePositionAndOrientation(self.__bulletId, self.initial_pos, self.initial_rot)
-        pb.resetBaseVelocity(self.__bulletId)
+        pb.resetBaseVelocity(self.__bulletId, [0]*3, [0]*3)
         self.__last_sim_pose_update = -1
         self.__last_sim_velocity_update = -1
 

@@ -125,7 +125,7 @@ class MultiBody(object):
     def reset(self):
         """Resets this object's pose and joints to their initial configuration."""
         pb.resetBasePositionAndOrientation(self.__bulletId, self.initial_pos, self.initial_rot)
-        pb.resetBaseVelocity(self.__bulletId)
+        pb.resetBaseVelocity(self.__bulletId, [0]*3, [0]*3)
         self.set_joint_positions(self.initial_joint_state)
         self.__last_sim_pose_update = -1
         self.__last_sim_js_update = -1
