@@ -147,8 +147,9 @@
   <h1>Source code for iai_bullet_sim.basic_simulator</h1><div class="highlight"><pre>
 <span class="kn">import</span> <span class="nn">pybullet</span> <span class="k">as</span> <span class="nn">pb</span>
 <span class="kn">import</span> <span class="nn">random</span>
+<span class="kn">import</span> <span class="nn">re</span>
 <span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">namedtuple</span>
-<span class="kn">from</span> <span class="nn">iai_bullet_sim.utils</span> <span class="k">import</span> <span class="n">res_pkg_path</span><span class="p">,</span> <span class="n">rot3_to_quat</span><span class="p">,</span> <span class="n">Vector3</span><span class="p">,</span> <span class="n">Quaternion</span><span class="p">,</span> <span class="n">Frame</span><span class="p">,</span> <span class="n">AABB</span>
+<span class="kn">from</span> <span class="nn">iai_bullet_sim.utils</span> <span class="k">import</span> <span class="n">res_pkg_path</span><span class="p">,</span> <span class="n">rot3_to_quat</span><span class="p">,</span> <span class="n">Vector3</span><span class="p">,</span> <span class="n">Quaternion</span><span class="p">,</span> <span class="n">Frame</span><span class="p">,</span> <span class="n">AABB</span><span class="p">,</span> <span class="n">import_class</span>
 <span class="kn">from</span> <span class="nn">iai_bullet_sim.multibody</span> <span class="k">import</span> <span class="n">MultiBody</span><span class="p">,</span> <span class="n">JointDriver</span>
 <span class="kn">from</span> <span class="nn">iai_bullet_sim.rigid_body</span> <span class="k">import</span> <span class="n">RigidBody</span><span class="p">,</span> <span class="n">GEOM_TYPES</span><span class="p">,</span> <span class="n">BULLET_GEOM_TYPES</span>
 <span class="kn">from</span> <span class="nn">pprint</span> <span class="k">import</span> <span class="n">pprint</span>
@@ -808,13 +809,11 @@
 
         <span class="k">return</span> <span class="n">out</span></div>
 
-<div class="viewcode-block" id="BasicSimulator.load_simulator"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.basic_simulator.BasicSimulator.load_simulator">[docs]</a>    <span class="k">def</span> <span class="nf">load_simulator</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config_dict</span><span class="p">,</span> <span class="n">plugin_registry</span><span class="p">):</span>
+<div class="viewcode-block" id="BasicSimulator.load_simulator"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.basic_simulator.BasicSimulator.load_simulator">[docs]</a>    <span class="k">def</span> <span class="nf">load_simulator</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config_dict</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Loads a simulator configuration from a dictionary.</span>
 
 <span class="sd">        :param config_dict:     Simulator configuration.</span>
 <span class="sd">        :type  config_dict:     dict</span>
-<span class="sd">        :param plugin_registry: Dictionary of plugin types to their respective classes. Used to instantiate plugins.</span>
-<span class="sd">        :type  plugin_registry: dict</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="s1">&#39;tick_rate&#39;</span> <span class="ow">in</span> <span class="n">config_dict</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">set_tick_rate</span><span class="p">(</span><span class="n">config_dict</span><span class="p">[</span><span class="s1">&#39;tick_rate&#39;</span><span class="p">])</span>
@@ -826,12 +825,18 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">load_world</span><span class="p">(</span><span class="n">config_dict</span><span class="p">[</span><span class="s1">&#39;world&#39;</span><span class="p">])</span>
 
         <span class="k">if</span> <span class="s1">&#39;plugins&#39;</span> <span class="ow">in</span> <span class="n">config_dict</span><span class="p">:</span>
-            <span class="k">for</span> <span class="n">plugin_dict</span> <span class="ow">in</span> <span class="n">config_dict</span><span class="p">[</span><span class="s1">&#39;plugins&#39;</span><span class="p">]:</span>
-                <span class="k">if</span> <span class="n">plugin_dict</span><span class="p">[</span><span class="s1">&#39;plugin_type&#39;</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">plugin_registry</span><span class="p">:</span>
-                    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Unknown plugin type: {}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">plugin_dict</span><span class="p">[</span><span class="s1">&#39;plugin_type&#39;</span><span class="p">]))</span>
-                    <span class="k">continue</span>
 
-                <span class="bp">self</span><span class="o">.</span><span class="n">register_plugin</span><span class="p">(</span><span class="n">plugin_registry</span><span class="p">[</span><span class="n">plugin_dict</span><span class="p">[</span><span class="s1">&#39;plugin_type&#39;</span><span class="p">]]</span><span class="o">.</span><span class="n">factory</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">plugin_dict</span><span class="p">))</span></div>
+            <span class="k">for</span> <span class="n">plugin_dict</span> <span class="ow">in</span> <span class="n">config_dict</span><span class="p">[</span><span class="s1">&#39;plugins&#39;</span><span class="p">]:</span>
+                <span class="n">plugin_registry</span> <span class="o">=</span> <span class="p">{}</span>
+                <span class="n">plugin</span> <span class="o">=</span> <span class="n">plugin_dict</span><span class="p">[</span><span class="s1">&#39;plugin_type&#39;</span><span class="p">]</span>
+                <span class="k">if</span> <span class="n">plugin</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">plugin_registry</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">plugin</span><span class="p">[:</span><span class="mi">8</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;&lt;class </span><span class="se">\&#39;</span><span class="s1">&#39;</span> <span class="ow">and</span> <span class="n">plugin</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">:]</span> <span class="o">==</span> <span class="s1">&#39;</span><span class="se">\&#39;</span><span class="s1">&gt;&#39;</span><span class="p">:</span>
+                        <span class="n">plugin_registry</span><span class="p">[</span><span class="n">plugin</span><span class="p">]</span> <span class="o">=</span> <span class="n">import_class</span><span class="p">(</span><span class="n">plugin</span><span class="p">[</span><span class="mi">8</span><span class="p">:</span><span class="o">-</span><span class="mi">2</span><span class="p">])</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;Plugin type &quot;{}&quot; does not match the pattern &quot;&lt;class </span><span class="se">\&#39;</span><span class="s1">TYPE</span><span class="se">\&#39;</span><span class="s1">&gt;&quot;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">plugin</span><span class="p">))</span>
+
+                <span class="bp">self</span><span class="o">.</span><span class="n">register_plugin</span><span class="p">(</span><span class="n">plugin_registry</span><span class="p">[</span><span class="n">plugin</span><span class="p">]</span><span class="o">.</span><span class="n">factory</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">plugin_dict</span><span class="p">))</span></div>
+
 
 <div class="viewcode-block" id="BasicSimulator.save_simulator"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.basic_simulator.BasicSimulator.save_simulator">[docs]</a>    <span class="k">def</span> <span class="nf">save_simulator</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">use_current_state_as_init</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Saves the simulator&#39;s state to a dictionary.</span>

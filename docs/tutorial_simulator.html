@@ -159,10 +159,10 @@
 <p>In this section we are going to learn how to use the simulator. All of the examples in this section are implemented in the file <em>scripts/tutorial.py</em>. They can be executed by passing an example snippet’s name as argument during the execution.</p>
 <div class="section" id="getting-started">
 <h2>Getting Started<a class="headerlink" href="#getting-started" title="Permalink to this headline">¶</a></h2>
-<p>The basic simulator implementation is provided by the module <code class="code docutils literal notranslate"><span class="pre">basic_simulator</span></code> in the form of the class <code class="code docutils literal notranslate"><span class="pre">BasicSimulator</span></code>.
+<p>The basic simulator implementation is provided by <a class="reference internal" href="_modules/iai_bullet_sim.html#iai_bullet_sim.basic_simulator.BasicSimulator" title="iai_bullet_sim.basic_simulator.BasicSimulator"><code class="xref py py-class docutils literal notranslate"><span class="pre">BasicSimulator</span></code></a>.
 The following code uses instantiates a simulator, initializes it in gui-mode, adds two objects to it and then updates it at an interval matching its internal update step. After each update, the location of one of the objects is printed.</p>
 <div class="literal-block-wrapper docutils container" id="id1">
-<div class="code-block-caption"><span class="caption-text">intro</span><a class="headerlink" href="#id1" title="Permalink to this code">¶</a></div>
+<span id="ex-basics"></span><div class="code-block-caption"><span class="caption-text">intro</span><a class="headerlink" href="#id1" title="Permalink to this code">¶</a></div>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">time</span> <span class="kn">import</span> <span class="n">time</span>
 <span class="kn">from</span> <span class="nn">iai_bullet_sim.basic_simulator</span> <span class="kn">import</span> <span class="n">BasicSimulator</span>
 
@@ -185,7 +185,7 @@ The following code uses instantiates a simulator, initializes it in gui-mode, ad
 <p>The code itself is quite straight forward. Important to note however, is that assigning an object a mass of <em>0</em> makes this object static.</p>
 </div>
 <div class="section" id="using-joints">
-<h2>Using Joints<a class="headerlink" href="#using-joints" title="Permalink to this headline">¶</a></h2>
+<span id="ex-windmill"></span><h2>Using Joints<a class="headerlink" href="#using-joints" title="Permalink to this headline">¶</a></h2>
 <p>After having learned how to use the simulator, let us move on to loading and controlling more complex objects. Specifically, we are going to load a windmill from a URDF, make it’s rotor turn and head shake. The current joint states will are printed to the terminal during the simulation.</p>
 <div class="literal-block-wrapper docutils container" id="id2">
 <div class="code-block-caption"><span class="caption-text">joints</span><a class="headerlink" href="#id2" title="Permalink to this code">¶</a></div>
@@ -206,11 +206,11 @@ The following code uses instantiates a simulator, initializes it in gui-mode, ad
 </pre></div>
 </div>
 </div>
-<p>The <code class="code docutils literal notranslate"><span class="pre">load_urdf</span></code> function is used to instantiate a multi body from a URDF. There are three commands that can be issued to the joints of a loaded object. The joints can be given position, velocity, or effort commands. The multi body offers one method for each command type, e.g <code class="code docutils literal notranslate"><span class="pre">apply_joint_pos_cmds</span></code>. These functions are given a dictionary which maps joint names to their respective commands. All commands stay active, until they are replaced by new command. In the example above, the velocity command for the rotor is only given once, but still the rotor keeps turning throughout the demo. The positional command for the head is replaced during each update cycle, so that the head keeps performing a shaking motion.</p>
-<p>The state of a multi body’s joints can be accessed using the <code class="code docutils literal notranslate"><span class="pre">joint_state</span></code> method. It returns a dictionary, mapping joint names to <code class="code docutils literal notranslate"><span class="pre">JointState</span></code> structures, which contain the joint’s current position, velocity, exerted effort and reaction forces. The reaction forces will only be calculated if the force torque sensor is enabled for that joint.</p>
+<p>The <a class="reference internal" href="_modules/iai_bullet_sim.html#iai_bullet_sim.basic_simulator.BasicSimulator.load_urdf" title="iai_bullet_sim.basic_simulator.BasicSimulator.load_urdf"><code class="xref py py-meth docutils literal notranslate"><span class="pre">BasicSimulator.load_urdf()</span></code></a> function is used to instantiate a multi body from a URDF. There are three commands that can be issued to the joints of a loaded object. The joints can be given position, velocity, or effort commands. The multi body offers one method for each command type, e.g <a class="reference internal" href="_modules/iai_bullet_sim.html#iai_bullet_sim.multibody.MultiBody.apply_joint_pos_cmds" title="iai_bullet_sim.multibody.MultiBody.apply_joint_pos_cmds"><code class="xref py py-meth docutils literal notranslate"><span class="pre">MultiBody.apply_joint_pos_cmds()</span></code></a>. These functions are given a dictionary which maps joint names to their respective commands. All commands stay active, until they are replaced by new command. In the example above, the velocity command for the rotor is only given once, but still the rotor keeps turning throughout the demo. The positional command for the head is replaced during each update cycle, so that the head keeps performing a shaking motion.</p>
+<p>The state of a multi body’s joints can be accessed using the <a class="reference internal" href="_modules/iai_bullet_sim.html#iai_bullet_sim.multibody.MultiBody.joint_state" title="iai_bullet_sim.multibody.MultiBody.joint_state"><code class="xref py py-meth docutils literal notranslate"><span class="pre">MultiBody.joint_state()</span></code></a> method. It returns a dictionary, mapping joint names to <a class="reference internal" href="_modules/iai_bullet_sim.html#iai_bullet_sim.multibody.JointState" title="iai_bullet_sim.multibody.JointState"><code class="xref py py-class docutils literal notranslate"><span class="pre">JointState</span></code></a> structures, which contain the joint’s current position, velocity, exerted effort and reaction forces. The reaction forces will only be calculated if the force torque sensor is enabled for that joint.</p>
 </div>
 <div class="section" id="using-sensors">
-<h2>Using Sensors<a class="headerlink" href="#using-sensors" title="Permalink to this headline">¶</a></h2>
+<span id="ex-sensors"></span><h2>Using Sensors<a class="headerlink" href="#using-sensors" title="Permalink to this headline">¶</a></h2>
 <p>Aside from their basic state, joints can be set to additionally compute reaction forces. The following example loads a model of a scale from a URDF, spawns a couple of cubes onto the scale’s plate and prints out the linear force acting on the plate’s joint.</p>
 <div class="literal-block-wrapper docutils container" id="id3">
 <div class="code-block-caption"><span class="caption-text">sensor</span><a class="headerlink" href="#id3" title="Permalink to this code">¶</a></div>
@@ -234,10 +234,10 @@ The following code uses instantiates a simulator, initializes it in gui-mode, ad
 </pre></div>
 </div>
 </div>
-<p>The method <code class="code docutils literal notranslate"><span class="pre">enable_joint_sensor</span></code> is used to enable the reaction force calculation for the plate’s joint. During the simulation, <code class="code docutils literal notranslate"><span class="pre">get_sensor_states</span></code> is used to get a dictionary mapping joint names to their current reaction forces.</p>
+<p>The method <a class="reference internal" href="_modules/iai_bullet_sim.html#iai_bullet_sim.multibody.MultiBody.enable_joint_sensor" title="iai_bullet_sim.multibody.MultiBody.enable_joint_sensor"><code class="xref py py-meth docutils literal notranslate"><span class="pre">MultiBody.enable_joint_sensor()</span></code></a> is used to enable the reaction force calculation for the plate’s joint. During the simulation, <a class="reference internal" href="_modules/iai_bullet_sim.html#iai_bullet_sim.multibody.MultiBody.get_sensor_states" title="iai_bullet_sim.multibody.MultiBody.get_sensor_states"><code class="xref py py-meth docutils literal notranslate"><span class="pre">MultiBody.get_sensor_states()</span></code></a> is used to get a dictionary mapping joint names to their current reaction forces.</p>
 </div>
 <div class="section" id="contact-points">
-<h2>Contact Points<a class="headerlink" href="#contact-points" title="Permalink to this headline">¶</a></h2>
+<span id="ex-contacts"></span><h2>Contact Points<a class="headerlink" href="#contact-points" title="Permalink to this headline">¶</a></h2>
 <p>Lastly, let us take a look at contact queries. Contact queries are used to listen for contact events between objects. The following example uses the scale and cubes again. It prints out all the objects, that the scale’s plate is in contact with.</p>
 <div class="literal-block-wrapper docutils container" id="id4">
 <div class="code-block-caption"><span class="caption-text">contacts</span><a class="headerlink" href="#id4" title="Permalink to this code">¶</a></div>
@@ -263,7 +263,7 @@ The following code uses instantiates a simulator, initializes it in gui-mode, ad
 </div>
 </div>
 <p>Both rigid and multi bodies have a <code class="code docutils literal notranslate"><span class="pre">get_contacts</span></code> method, which will return a list of contact points that the object has with other objects. These contact points can be filtered to be only between two objects, or even to be only between two links of two multi bodies. When the filter options are set to <code class="code docutils literal notranslate"><span class="pre">None</span></code>, <code class="code docutils literal notranslate"><span class="pre">get_contacts</span></code> will return any contact.
-Internally the objects use <code class="code docutils literal notranslate"><span class="pre">BasicSimulator.get_contacts</span></code>. This method can be used to get a list of all contacts computed during the last physics update.</p>
+Internally the objects use <a class="reference internal" href="_modules/iai_bullet_sim.html#iai_bullet_sim.basic_simulator.BasicSimulator.get_contacts" title="iai_bullet_sim.basic_simulator.BasicSimulator.get_contacts"><code class="xref py py-meth docutils literal notranslate"><span class="pre">BasicSimulator.get_contacts()</span></code></a>. This method can be used to get a list of all contacts computed during the last physics update.</p>
 </div>
 </div>
 

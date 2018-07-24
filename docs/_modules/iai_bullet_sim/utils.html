@@ -168,7 +168,13 @@
 
 
 <div class="viewcode-block" id="res_pkg_path"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.utils.res_pkg_path">[docs]</a><span class="k">def</span> <span class="nf">res_pkg_path</span><span class="p">(</span><span class="n">rpath</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Resolves a ROS package relative path to a global path.&quot;&quot;&quot;</span>
+    <span class="sd">&quot;&quot;&quot;Resolves a ROS package relative path to a global path.</span>
+
+<span class="sd">    :param rpath: Potential ROS URI to resolve.</span>
+<span class="sd">    :type rpath: str</span>
+<span class="sd">    :return: Local file system path</span>
+<span class="sd">    :rtype: str</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">rpath</span><span class="p">[:</span><span class="mi">10</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;package://&#39;</span><span class="p">:</span>
         <span class="n">paths</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s1">&#39;ROS_PACKAGE_PATH&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;:&#39;</span><span class="p">)</span>
 
@@ -182,6 +188,20 @@
                 <span class="k">return</span> <span class="s1">&#39;{}/{}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">rpp</span><span class="p">,</span> <span class="n">rpath</span><span class="p">)</span>
         <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;Package &quot;{}&quot; can not be found in ROS_PACKAGE_PATH!&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">pkg</span><span class="p">))</span>
     <span class="k">return</span> <span class="n">rpath</span></div>
+
+
+<div class="viewcode-block" id="import_class"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.utils.import_class">[docs]</a><span class="k">def</span> <span class="nf">import_class</span><span class="p">(</span><span class="n">class_path</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Imports a class using a type string.</span>
+
+<span class="sd">    :param class_path: Type string of the class.</span>
+<span class="sd">    :type  class_path: str</span>
+<span class="sd">    :rtype: type</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">components</span> <span class="o">=</span> <span class="n">class_path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)</span>
+    <span class="n">mod</span> <span class="o">=</span> <span class="nb">__import__</span><span class="p">(</span><span class="n">components</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="k">for</span> <span class="n">comp</span> <span class="ow">in</span> <span class="n">components</span><span class="p">[</span><span class="mi">1</span><span class="p">:]:</span>
+        <span class="n">mod</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">mod</span><span class="p">,</span> <span class="n">comp</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">mod</span></div>
 </pre></div>
 
            </div>
