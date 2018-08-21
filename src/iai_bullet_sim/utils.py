@@ -3,6 +3,8 @@ from collections import namedtuple
 
 # Datastructure representing a vector
 Vector3 = namedtuple('Vector3', ['x', 'y', 'z'])
+# Datastructure representing a point
+Point3 = namedtuple('Point3', ['x', 'y', 'z'])
 # Datastructure representing a quaternion
 Quaternion = namedtuple('Quaternion', ['x', 'y', 'z', 'w'])
 # Datastructure representing a frame as a Vector3 and a Quaternion
