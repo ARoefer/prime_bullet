@@ -1,6 +1,7 @@
 import pybullet as pb
 from collections import namedtuple
 from iai_bullet_sim.utils import Vector3, Quaternion, Frame, AABB
+from math import atan2
 
 class JointDriver(object):
     """Joint drivers modify given velocity and effort commands to match robot specific joint behavior.
@@ -14,6 +15,71 @@ class JointDriver(object):
     def update_effort(self, robot_data, effort_dict):
         """Updates a given effort command."""
         pass
+
+    def to_dict(self):
+        return {}
+
+    @classmethod
+    def factory(cls, config_dict):
+        return JointDriver()
+
+class SimpleBaseDriver(JointDriver):
+    def __init__(self, max_linear_vel, max_angular_vel):
+        self.m_lin_v = max_linear_vel
+        self.m_ang_v = max_angular_vel
+        self.x_lin_joint = 'base_linear_joint'
+        self.z_ang_joint  = 'base_angular_joint'
+        self.m_vel_gain = max_linear_vel
+        self.m_ang_gain = max_angular_vel
+        self.deltaT = 0.02
+
+    def update_velocities(self, robot_data, velocities_dict):
+        """Updates a given velocity command."""
+        pose = robot_data.pose()
+        lin_vel = robot_data.linear_velocity()
+        ang_vel = robot_data.angular_velocity()
+        inv_pos, inv_rot = pb.invertTransform(pose.position, pose.quaternion)
+        ZERO_VEC = (0,0,0)
+        ZERO_ROT = (0,0,0,1)
+        if self.x_lin_joint in velocities_dict:
+            c_vel_ib, trash = pb.multiplyTransforms(ZERO_VEC, inv_rot, lin_vel, [0,0,0,1])
+            d_fwd_vel  = max(min(velocities_dict[self.x_lin_joint], self.m_lin_v), -self.m_lin_v)
+            vel_gain   = max(min(d_fwd_vel - c_vel_ib[0], self.m_vel_gain), -self.m_vel_gain) 
+            del velocities_dict[self.x_lin_joint]
+
+            d_lin_vel, trash = pb.multiplyTransforms(ZERO_VEC, pose.quaternion, [c_vel_ib[0] + vel_gain, 0, 0], [0,0,0,1])
+            lin_vel = [d_lin_vel[0], d_lin_vel[1], lin_vel[2]]
+        else:
+            lin_vel = (0, 0, lin_vel[2])
+
+        if self.z_ang_joint in velocities_dict:
+            c_ang_ib, trash = pb.multiplyTransforms(inv_pos, inv_rot, ang_vel, [0,0,0,1])
+            d_ang_vel = max(min(velocities_dict[self.z_ang_joint], self.m_ang_v), -self.m_ang_v)
+            ang_gain  = max(min(d_ang_vel - c_ang_ib[2], self.m_ang_gain), -self.m_ang_gain)
+            del velocities_dict[self.z_ang_joint]
+            ang_vel, trash = pb.multiplyTransforms(ZERO_VEC, pose.quaternion, [0.0, 0.0, c_ang_ib[2] + ang_gain], [0.0,0.0,0.0,1.0])
+        else:
+            ang_vel = (0,0, ang_vel[2])
+
+        fwd_dir, trash = pb.multiplyTransforms(ZERO_VEC, pose.quaternion, [1,0,0], [0,0,0,1])
+        yaw = atan2(fwd_dir[1], fwd_dir[0])
+        new_quat = pb.getQuaternionFromEuler([0,0,yaw])
+
+        #print(' '.join(['{}'.format(type(c)) for c in list(lin_vel) + list(ang_vel)]))
+        pb.resetBasePositionAndOrientation(robot_data.bId(), (pose.position[0], pose.position[1], robot_data.initial_pos[2]), new_quat)
+        pb.resetBaseVelocity(robot_data.bId(), lin_vel, ang_vel)
+
+    def to_dict(self):
+        return {'max_lin_vel': self.m_lin_v,
+                'max_ang_vel': self.m_ang_v,
+                'x_lin_joint': self.x_lin_joint,
+                'z_ang_joint': self.z_ang_joint}
+
+    @classmethod
+    def factory(cls, config_dict):
+        return SimpleBaseDriver(config_dict['max_lin_vel'], config_dict['max_ang_vel'])
+
+
 
 class JointState(object):
     """Represents the state of an individual bullet joint."""
@@ -77,7 +143,8 @@ class MultiBody(object):
         self.initial_rot    = initial_rot
         self.initial_joint_state = {}
 
-        multibodyName, base_link = pb.getBodyInfo(self.__bulletId)
+        base_link, multibodyName = pb.getBodyInfo(self.__bulletId)
+        print('PyBullet says:\n  Name: {}\n  Base: {}\n'.format(multibodyName, base_link))
         self.base_link = base_link
 
         for x in range(pb.getNumJoints(self.__bulletId)):
@@ -125,7 +192,6 @@ class MultiBody(object):
     def reset(self):
         """Resets this object's pose and joints to their initial configuration."""
         pb.resetBasePositionAndOrientation(self.__bulletId, self.initial_pos, self.initial_rot)
-        pb.resetbaseVelocity(self.__bulletId)
         self.set_joint_positions(self.initial_joint_state)
         self.__last_sim_pose_update = -1
         self.__last_sim_js_update = -1
@@ -146,7 +212,7 @@ class MultiBody(object):
             frame = self.pose()
             return LinkState(frame, frame, frame, zero_vector, zero_vector)
         else:
-            ls = pb.getLinkState(self.__bulletId, self.link_index_map[link], compute_vel)
+            ls = pb.getLinkState(self.__bulletId, self.link_index_map[link], 0)
             return LinkState(Frame(Vector3(*ls[0]), Quaternion(*ls[1])),
                              Frame(Vector3(*ls[2]), Quaternion(*ls[3])),
                              Frame(Vector3(*ls[4]), Quaternion(*ls[5])),
@@ -248,7 +314,8 @@ class MultiBody(object):
         :type  override_initial: bool
         """
         for j, p in state.items():
-            pb.resetJointState(self.__bulletId, self.joints[j].jointIndex, p)
+            if j in self.joints:
+                pb.resetJointState(self.__bulletId, self.joints[j].jointIndex, p)
         self.__last_sim_js_update = -1
         if override_initial:
             self.initial_joint_state.update(state)
@@ -264,8 +331,9 @@ class MultiBody(object):
         cmd_pos     = []
         self.joint_driver.update_positions(self, cmd)
         for jname in cmd.keys():
-            cmd_indices.append(self.joints[jname].jointIndex)
-            cmd_pos.append(cmd[jname])
+            if jname in self.joints:
+                cmd_indices.append(self.joints[jname].jointIndex)
+                cmd_pos.append(cmd[jname])
 
         pb.setJointMotorControlArray(self.__bulletId, cmd_indices, pb.POSITION_CONTROL, targetPositions=cmd_pos)
 
@@ -280,8 +348,11 @@ class MultiBody(object):
         cmd_vels    = []
         self.joint_driver.update_velocities(self, cmd)
         for jname in cmd.keys():
-            cmd_indices.append(self.joints[jname].jointIndex)
-            cmd_vels.append(cmd[jname])
+            if jname in self.joints:
+                cmd_indices.append(self.joints[jname].jointIndex)
+                cmd_vels.append(cmd[jname])
+
+        #print('\n'.join(['{}: {}'.format(self.__index_joint_map[cmd_indices[x]], cmd_vels[x]) for x in range(len(cmd_vels))])) # TODO: REMOVE THIS
 
         pb.setJointMotorControlArray(self.__bulletId, cmd_indices, pb.VELOCITY_CONTROL, targetVelocities=cmd_vels)
 
@@ -295,8 +366,9 @@ class MultiBody(object):
         cmd_torques = []
         self.joint_driver.update_effort(self, cmd)
         for jname in cmd.keys():
-            cmd_indices.append(self.joints[jname].jointIndex)
-            cmd_torques.append(cmd[jname])
+            if jname in self.joints:
+                cmd_indices.append(self.joints[jname].jointIndex)
+                cmd_torques.append(cmd[jname])
 
         pb.setJointMotorControlArray(self.__bulletId, cmd_indices, pb.TORQUE_CONTROL, forces=cmd_torques)
 
@@ -314,7 +386,7 @@ class MultiBody(object):
         """
         return self.simulator.get_contacts(self, other_body, own_link, other_link)
 
-    def get_closest_points(self, other_body=None, own_link=None, other_link=None):
+    def get_closest_points(self, other_body=None, own_link=None, other_link=None, dist=0.2):
         """Gets the closest points of this body to its environment.
         The closest points can be filtered by other bodies, their links and this body's own links.
 
@@ -324,6 +396,8 @@ class MultiBody(object):
         :type  own_link:   str, NoneType
         :param other_link: Other object's link to filter by.
         :type  other_link: str, NoneType
+        :param dist:       Maximum distance to search. Greater distance -> more expensive
+        :type  dist:       float
         :rtype: list
         """
-        return self.simulator.get_closest_points(self, other_body, own_link, other_link)
+        return self.simulator.get_closest_points(self, other_body, own_link, other_link, dist)
