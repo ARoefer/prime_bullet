@@ -2,7 +2,7 @@ import pybullet as pb
 import random
 import re
 from collections import namedtuple
-from iai_bullet_sim.utils import res_pkg_path, rot3_to_quat, Vector3, Quaternion, Frame, AABB, import_class
+from iai_bullet_sim.utils import res_pkg_path, rot3_to_quat, Vector3, Point3, Quaternion, Frame, AABB, import_class
 from iai_bullet_sim.multibody import MultiBody, JointDriver
 from iai_bullet_sim.rigid_body import RigidBody, GEOM_TYPES, BULLET_GEOM_TYPES
 from pprint import pprint
@@ -101,8 +101,15 @@ def invert_transform(frame_tuple):
     :rtype: iai_bullet_sim.utils.Frame
     """
     temp = pb.invertTransform(list(frame_tuple.position), list(frame_tuple.quaternion))
-    return Frame(Vector3(*temp[0]), Quaternion(*temp[1]))
+    return Frame(Point3(*temp[0]), Quaternion(*temp[1]))
 
+def transform_point(transform, point):
+    point, trash = pb.multiplyTransforms(transform.position, transform.quaternion, point, [0,0,0,1])
+    return point
+
+def transform_vector(transform, vector):
+    vec, trash = pb.multiplyTransforms((0,0,0), transform.quaternion, vector, [0,0,0,1])
+    return vec
 
 class ContactPoint(object):
     """Wrapper for bullet's contact point structure."""
@@ -255,6 +262,8 @@ class BasicSimulator(object):
         """Resets all bodies in the simulation to their initial state."""
         for body in self.bodies.values():
             body.reset()
+        for plugin in self.__plugins:
+            plugin.reset(self)
 
     def register_object(self, obj, name_override=None):
         """Registers an object with the simulator.
@@ -303,6 +312,26 @@ class BasicSimulator(object):
         """
         self.__plugins.remove(plugin)
 
+    def has_plugin_of_type(self, clazz):
+        """Returns True if at least one of the registered classes matches the given type.
+
+        :rtype: bool
+        """
+        for p in self.__plugins:
+            if isinstance(p, clazz):
+                return True
+        return False
+
+    def get_plugin_of_type(self, clazz):
+        """Returns a plugin of the given type if such a plugin is registered.
+
+        :rtype: SimulatorPlugin, NoneType
+        """
+        for p in self.__plugins:
+            if isinstance(p, clazz):
+                return p
+        return None
+
     def load_urdf(self, urdf_path, pos=[0,0,0], rot=[0,0,0,1], joint_driver=JointDriver(), useFixedBase=0, name_override=None):
         """Loads an Object from a URDF and registers it with this simulator.
 
@@ -328,7 +357,7 @@ class BasicSimulator(object):
                                                rot,
                                                0,              # MAXIMAL COORDINATES, DO NOT TOUCH!
                                                useFixedBase,
-                                               flags=pb.URDF_USE_SELF_COLLISION), self.__gen_next_color(), pos, rot, joint_driver, urdf_path)
+                                               flags=pb.URDF_USE_SELF_COLLISION_EXCLUDE_PARENT), self.__gen_next_color(), pos, rot, joint_driver, urdf_path)
 
 
         bodyId = self.register_object(new_body, name_override)
@@ -441,7 +470,7 @@ class BasicSimulator(object):
         :rtype: iai_bullet_sim.rigid_body.RigidBody
         """
         if geom_type not in GEOM_TYPES:
-            raise Exception('Unknown geometry type "{}". Options are: {}'.format(geom_type, ', '.join(geom_type.keys())))
+            raise Exception('Unknown geometry type "{}". Options are: {}'.format(geom_type, ', '.join(GEOM_TYPES.keys())))
 
         if color is None:
             color = self.__gen_next_color()
@@ -583,6 +612,7 @@ class BasicSimulator(object):
         :param world_dict: World configuration
         :type  world_dict: dict
         """
+        driver_registry = {}
         if 'objects' in world_dict:
             if type(world_dict['objects']) != list:
                 raise Exception('Field "objects" in world dictionary needs to be of type list.')
@@ -597,7 +627,22 @@ class BasicSimulator(object):
                     urdf_path = od['urdf_path']
                     fixed_base = od['fixed_base']
                     initial_joint_state = od['initial_joint_state']
-                    new_obj = self.load_urdf(urdf_path, i_pos, i_rot, joint_driver=JointDriver(), useFixedBase=fixed_base, name_override=name)
+
+                    if 'joint_driver' in od:
+                        driver_dict = od['joint_driver']
+                        driver_class = driver_dict['driver_type']
+                        if driver_class not in driver_registry:
+                            if driver_class[:8] == '<class \'' and driver_class[-2:] == '\'>':
+                                driver_registry[driver_class] = import_class(driver_class[8:-2])
+                            else:
+                                raise Exception('Driver type "{}" does not match the pattern "<class \'TYPE\'>"'.format(driver_class))
+                        joint_driver = driver_registry[driver_class].factory(driver_dict)
+                    else:    
+                        joint_driver = JointDriver()
+
+                    new_obj = self.load_urdf(urdf_path, 
+                                             i_pos, 
+                                             i_rot, joint_driver=joint_driver, useFixedBase=fixed_base, name_override=name)
                     new_obj.set_joint_positions(initial_joint_state, True)
                     for s in od['sensors']:
                         new_obj.enable_joint_sensor(s, True)
@@ -627,6 +672,9 @@ class BasicSimulator(object):
                 else:
                     in_js = b.initial_joint_state
 
+                driver_dict = {'driver_type': str(type(b.joint_driver))}
+                driver_dict.update(b.joint_driver.to_dict())
+
                 od = {'name': bname,
                       'type': 'multibody',
                       'initial_pose': {
@@ -635,7 +683,8 @@ class BasicSimulator(object):
                       'urdf_path': b.urdf_file,
                       'initial_joint_state': in_js,
                       'fixed_base': True,
-                      'sensors': list(b.joint_sensors)} # TODO: Update this!
+                      'sensors': list(b.joint_sensors),
+                      'joint_driver': driver_dict} # TODO: Update this!
                 out['objects'].append(od)
             elif isinstance(b, RigidBody):
                 in_pos = b.pose().position if use_current_state_as_init else b.initial_pos
@@ -772,3 +821,11 @@ class SimulatorPlugin(object):
         :rtype: dict
         """
         raise (NotImplementedError)
+
+    def reset(self, simulator):
+        """Implements reset behavior.
+
+        :type simulator: BasicSimulator
+        :type deltaT: float
+        """
+        pass
