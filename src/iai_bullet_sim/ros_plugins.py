@@ -1,4 +1,6 @@
 import rospy
+import tf
+
 from collections import OrderedDict
 
 from geometry_msgs.msg import WrenchStamped as WrenchMsg
@@ -6,6 +8,7 @@ from sensor_msgs.msg import JointState as JointStateMsg
 from trajectory_msgs.msg import JointTrajectory as JointTrajectoryMsg
 
 from iai_bullet_sim.basic_simulator import SimulatorPlugin
+from iai_bullet_sim.multibody import MultiBody
 
 class Watchdog(object):
     """Watchdog class. Barks if not ticked for long enough."""
@@ -35,7 +38,7 @@ class JSPublisher(SimulatorPlugin):
         """Initializes the plugin.
 
         :param multibody: Object to observe.
-        :type  multibody: iai_bullet_sim.multibody.Multibody
+        :type  multibody: iai_bullet_sim.multibody.MultiBody
         :param topic_prefixPrefix: for the topic to publish to.
         :type  topic_prefixPrefix: str
         """
@@ -132,6 +135,8 @@ class SensorPublisher(SimulatorPlugin):
             msg.wrench.torque.x = state.m[0]
             msg.wrench.torque.y = state.m[1]
             msg.wrench.torque.z = state.m[2]
+            if sensor not in self.publishers:
+                self.publishers[sensor] = rospy.Publisher('{}/sensors/{}'.format(self.__topic_prefix, sensor), WrenchMsg, queue_size=1, tcp_nodelay=True)
             self.publishers[sensor].publish(msg)
 
     def disable(self, simulator):
@@ -241,6 +246,8 @@ class JointPositionController(WatchdoggedJointController):
         :type cmd_msg: JointStateMsg
         """
         for x in range(len(cmd_msg.name)):
+            if cmd_msg.name[x] not in self.watchdogs:
+                self.watchdogs[cmd_msg.name[x]] = Watchdog(rospy.Duration(self.watchdog_timeout))    
             self.watchdogs[cmd_msg.name[x]].tick(cmd_msg.header.stamp)
             self.next_cmd[cmd_msg.name[x]] = cmd_msg.position[x]
 
@@ -253,7 +260,7 @@ class JointPositionController(WatchdoggedJointController):
         """
         if self._enabled:
             for jname in self.next_cmd.keys():
-                if jname in self.watchdogs and self.watchdogs[jname].barks():
+                if self.watchdogs[jname].barks():
                     self.next_cmd[jname] = self.body.joint_state()[jname].position # Stop the joint where it is
 
             self.body.apply_joint_pos_cmds(self.next_cmd)
@@ -301,6 +308,8 @@ class JointVelocityController(WatchdoggedJointController):
         :type cmd_msg: JointStateMsg
         """
         for x in range(len(cmd_msg.name)):
+            if cmd_msg.name[x] not in self.watchdogs:
+                self.watchdogs[cmd_msg.name[x]] = Watchdog(rospy.Duration(self.watchdog_timeout))    
             self.watchdogs[cmd_msg.name[x]].tick(cmd_msg.header.stamp)
             self.next_cmd[cmd_msg.name[x]] = cmd_msg.velocity[x]
 
@@ -313,7 +322,7 @@ class JointVelocityController(WatchdoggedJointController):
         """
         if self._enabled:
             for jname in self.next_cmd.keys():
-                if jname in self.watchdogs and self.watchdogs[jname].barks():
+                if self.watchdogs[jname].barks():
                     self.next_cmd[jname] = 0
 
             self.body.apply_joint_vel_cmds(self.next_cmd)
@@ -507,7 +516,7 @@ class ResetTrajectoryPositionController(TrajectoryPositionController):
         """Initializes the controller. Subscribes to [prefix]/commands/joint_trajectory.
 
         :type simulator: iai_bullet_sim.basic_simulator.BasicSimulator
-        :type multibody: iai_bullet_sim.multibody.Multibody
+        :type multibody: iai_bullet_sim.multibody.MultiBody
         :type topic_prefix: str
         """
         super(ResetTrajectoryPositionController, self).__init__(multibody, topic_prefix)
@@ -540,3 +549,51 @@ class ResetTrajectoryPositionController(TrajectoryPositionController):
         if body is None:
             raise Exception('Body "{}" does not exist in the context of the given simulation.'.format(init_dict['body']))
         return ResetTrajectoryPositionController(simulator, body, init_dict['topic_prefix'])
+
+
+class TFPublisher(SimulatorPlugin):
+    def __init__(self, map_frame='map'):
+        super(TFPublisher, self).__init__('TFPublisher')
+        self.map_frame = map_frame
+        self.tf_broadcaster = tf.TransformBroadcaster()
+        self._enabled = True
+
+    def post_physics_update(self, simulator, deltaT):
+        """Implements post physics step behavior.
+
+        :type simulator: BasicSimulator
+        :type deltaT: float
+        """
+        if self._enabled:
+            now = rospy.Time.now()
+            for name, body in simulator.bodies.items():
+                pose = body.pose()
+                if isinstance(body, MultiBody):
+                    self.tf_broadcaster.sendTransform(pose.position, pose.quaternion, now, '{}/{}'.format(name, body.base_link), self.map_frame)
+                else:
+                    self.tf_broadcaster.sendTransform(pose.position, pose.quaternion, now, name, self.map_frame)
+
+    def disable(self, simulator):
+        """Stops the execution of this plugin.
+
+        :type simulator: BasicSimulator
+        """
+        self._enabled = False
+
+    @classmethod
+    def factory(cls, simulator, init_dict):
+        """Instantiates the plugin from a dictionary in the context of a simulator.
+
+        :type simulator: iai_bullet_sim.basic_simulator.BasicSimulator
+        :type init_dict: dict
+        :rtype: TFPublisher
+        """
+        return TFPublisher(init_dict['map_frame'])
+
+    def to_dict(self, simulator):
+        """Serializes this plugin to a dictionary.
+
+        :type simulator: BasicSimulator
+        :rtype: dict
+        """
+        return {'map_frame': self.map_frame}
