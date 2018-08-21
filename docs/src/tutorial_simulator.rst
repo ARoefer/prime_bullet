@@ -2,11 +2,15 @@ Tutorial: Using the Simulator
 =============================
 In this section we are going to learn how to use the simulator. All of the examples in this section are implemented in the file *scripts/tutorial.py*. They can be executed by passing an example snippet's name as argument during the execution.
 
+
 Getting Started
 ---------------
 
-The basic simulator implementation is provided by the module :code:`basic_simulator` in the form of the class :code:`BasicSimulator`.
+The basic simulator implementation is provided by :class:`.BasicSimulator`.
 The following code uses instantiates a simulator, initializes it in gui-mode, adds two objects to it and then updates it at an interval matching its internal update step. After each update, the location of one of the objects is printed.
+
+
+.. _ex-basics:
 
 .. code-block:: python
     :caption: intro
@@ -32,6 +36,8 @@ The following code uses instantiates a simulator, initializes it in gui-mode, ad
 The code itself is quite straight forward. Important to note however, is that assigning an object a mass of *0* makes this object static.
 
 
+.. _ex-windmill:
+
 Using Joints
 ------------------
 After having learned how to use the simulator, let us move on to loading and controlling more complex objects. Specifically, we are going to load a windmill from a URDF, make it's rotor turn and head shake. The current joint states will are printed to the terminal during the simulation.
@@ -56,14 +62,16 @@ After having learned how to use the simulator, let us move on to loading and con
             last_update = time()
 
 
-The :code:`load_urdf` function is used to instantiate a multi body from a URDF. There are three commands that can be issued to the joints of a loaded object. The joints can be given position, velocity, or effort commands. The multi body offers one method for each command type, e.g :code:`apply_joint_pos_cmds`. These functions are given a dictionary which maps joint names to their respective commands. All commands stay active, until they are replaced by new command. In the example above, the velocity command for the rotor is only given once, but still the rotor keeps turning throughout the demo. The positional command for the head is replaced during each update cycle, so that the head keeps performing a shaking motion. 
+The :meth:`.BasicSimulator.load_urdf` function is used to instantiate a multi body from a URDF. There are three commands that can be issued to the joints of a loaded object. The joints can be given position, velocity, or effort commands. The multi body offers one method for each command type, e.g :meth:`.MultiBody.apply_joint_pos_cmds`. These functions are given a dictionary which maps joint names to their respective commands. All commands stay active, until they are replaced by new command. In the example above, the velocity command for the rotor is only given once, but still the rotor keeps turning throughout the demo. The positional command for the head is replaced during each update cycle, so that the head keeps performing a shaking motion.
 
-The state of a multi body's joints can be accessed using the :code:`joint_state` method. It returns a dictionary, mapping joint names to :code:`JointState` structures, which contain the joint's current position, velocity, exerted effort and reaction forces. The reaction forces will only be calculated if the force torque sensor is enabled for that joint.
+The state of a multi body's joints can be accessed using the :meth:`.MultiBody.joint_state` method. It returns a dictionary, mapping joint names to :class:`.JointState` structures, which contain the joint's current position, velocity, exerted effort and reaction forces. The reaction forces will only be calculated if the force torque sensor is enabled for that joint.
 
+
+.. _ex-sensors:
 
 Using Sensors
 -------------
-Aside from their basic state, joints can be set to additionally compute reaction forces. The following example loads a model of a scale from a URDF, spawns a couple of cubes onto the scale's plate and prints out the linear force acting on the plate's joint. 
+Aside from their basic state, joints can be set to additionally compute reaction forces. The following example loads a model of a scale from a URDF, spawns a couple of cubes onto the scale's plate and prints out the linear force acting on the plate's joint.
 
 
 .. code-block:: python
@@ -88,8 +96,10 @@ Aside from their basic state, joints can be set to additionally compute reaction
             last_update = time()
 
 
-The method :code:`enable_joint_sensor` is used to enable the reaction force calculation for the plate's joint. During the simulation, :code:`get_sensor_states` is used to get a dictionary mapping joint names to their current reaction forces. 
+The method :meth:`.MultiBody.enable_joint_sensor` is used to enable the reaction force calculation for the plate's joint. During the simulation, :meth:`.MultiBody.get_sensor_states` is used to get a dictionary mapping joint names to their current reaction forces.
 
+
+.. _ex-contacts:
 
 Contact Points
 --------------
@@ -120,4 +130,4 @@ Lastly, let us take a look at contact queries. Contact queries are used to liste
 
 
 Both rigid and multi bodies have a :code:`get_contacts` method, which will return a list of contact points that the object has with other objects. These contact points can be filtered to be only between two objects, or even to be only between two links of two multi bodies. When the filter options are set to :code:`None`, :code:`get_contacts` will return any contact.
-Internally the objects use :code:`BasicSimulator.get_contacts`. This method can be used to get a list of all contacts computed during the last physics update.
+Internally the objects use :meth:`.BasicSimulator.get_contacts`. This method can be used to get a list of all contacts computed during the last physics update.
