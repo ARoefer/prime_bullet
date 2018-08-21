@@ -1,0 +1,3 @@
+---
+string[] name
+iai_bullet_sim/RigidBody[] body

@@ -49,11 +49,11 @@ catkin_python_setup()
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
 ## Generate messages in the 'msg' folder
-# add_message_files(
-#   FILES
-#   Message1.msg
-#   Message2.msg
-# )
+add_message_files(
+  FILES
+  RigidBody.msg
+  MultiBody.msg
+)
 
 ## Generate services in the 'srv' folder
 add_service_files(
@@ -63,6 +63,10 @@ add_service_files(
   Empty.srv
   GetJoints.srv
   GetObjectIds.srv
+  GetMultibodies.srv
+  GetRigidBodies.srv
+  GetSimulatorState.srv
+  ObjectId.srv
   SaveSimulator.srv
   SetController.srv
   SetGravity.srv
