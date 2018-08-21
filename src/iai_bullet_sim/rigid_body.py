@@ -66,7 +66,6 @@ class RigidBody(object):
     def reset(self):
         """Resets this object's pose and joints to their initial configuration."""
         pb.resetBasePositionAndOrientation(self.__bulletId, self.initial_pos, self.initial_rot)
-        pb.resetBaseVelocity(self.__bulletId, [0]*3, [0]*3)
         self.__last_sim_pose_update = -1
         self.__last_sim_velocity_update = -1
 
@@ -133,7 +132,7 @@ class RigidBody(object):
         """
         return self.simulator.get_contacts(self, other_body, None, other_link)
 
-    def get_closest_points(self, other_body=None, other_link=None):
+    def get_closest_points(self, other_body=None, other_link=None, dist=0.2):
         """Gets the closest points of this body to its environment.
         The closest points can be filtered by other bodies and their links.
 
@@ -141,6 +140,8 @@ class RigidBody(object):
         :type  other_body: iai_bullet_sim.multibody.MultiBody, RigidBody, NoneType
         :param other_link: Other object's link to filter by.
         :type  other_link: str, NoneType
+        :param dist:       Maximum distance to search. Greater distance -> more expensive
+        :type  dist:       float
         :rtype: list
         """
-        return self.simulator.get_closest_points(self, other_body, None, other_link)
+        return self.simulator.get_closest_points(self, other_body, None, other_link, dist)
