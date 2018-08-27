@@ -28,6 +28,7 @@ class SimpleBaseDriver(JointDriver):
         self.m_lin_v = max_linear_vel
         self.m_ang_v = max_angular_vel
         self.x_lin_joint = 'base_linear_joint'
+        self.y_lin_joint = 'base_perp_joint'
         self.z_ang_joint  = 'base_angular_joint'
         self.m_vel_gain = max_linear_vel
         self.m_ang_gain = max_angular_vel
@@ -41,13 +42,25 @@ class SimpleBaseDriver(JointDriver):
         inv_pos, inv_rot = pb.invertTransform(pose.position, pose.quaternion)
         ZERO_VEC = (0,0,0)
         ZERO_ROT = (0,0,0,1)
-        if self.x_lin_joint in velocities_dict:
+        if self.x_lin_joint in velocities_dict or self.y_lin_joint in velocities_dict:
             c_vel_ib, trash = pb.multiplyTransforms(ZERO_VEC, inv_rot, lin_vel, [0,0,0,1])
-            d_fwd_vel  = max(min(velocities_dict[self.x_lin_joint], self.m_lin_v), -self.m_lin_v)
-            vel_gain   = max(min(d_fwd_vel - c_vel_ib[0], self.m_vel_gain), -self.m_vel_gain) 
-            del velocities_dict[self.x_lin_joint]
+            
+            d_fwd_vel = 0
+            d_strafe_vel = 0
+            if self.x_lin_joint in velocities_dict:
+                d_fwd_vel = max(min(velocities_dict[self.x_lin_joint], self.m_lin_v), -self.m_lin_v)
+                del velocities_dict[self.x_lin_joint]
+            
+            if self.y_lin_joint in velocities_dict:
+                d_strafe_vel = max(min(velocities_dict[self.y_lin_joint], self.m_lin_v), -self.m_lin_v)    
+                del velocities_dict[self.y_lin_joint]
 
-            d_lin_vel, trash = pb.multiplyTransforms(ZERO_VEC, pose.quaternion, [c_vel_ib[0] + vel_gain, 0, 0], [0,0,0,1])
+            fwd_vel_gain = max(min(d_fwd_vel - c_vel_ib[0], self.m_vel_gain), -self.m_vel_gain) 
+            strafe_vel_gain = max(min(d_strafe_vel - c_vel_ib[1], self.m_vel_gain), -self.m_vel_gain)
+
+            d_lin_vel, trash = pb.multiplyTransforms(ZERO_VEC, pose.quaternion, [c_vel_ib[0] + fwd_vel_gain, 
+                                                                                 c_vel_ib[1] + strafe_vel_gain, 0], 
+                                                                                 [0,0,0,1])
             lin_vel = [d_lin_vel[0], d_lin_vel[1], lin_vel[2]]
         else:
             lin_vel = (0, 0, lin_vel[2])
@@ -73,6 +86,7 @@ class SimpleBaseDriver(JointDriver):
         return {'max_lin_vel': self.m_lin_v,
                 'max_ang_vel': self.m_ang_v,
                 'x_lin_joint': self.x_lin_joint,
+                'y_lin_joint': self.y_lin_joint,
                 'z_ang_joint': self.z_ang_joint}
 
     @classmethod

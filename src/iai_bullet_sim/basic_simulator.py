@@ -753,9 +753,10 @@ class BasicSimulator(object):
                'plugins': []}
 
         for plugin in self.__plugins:
-            pdict = {'plugin_type': str(type(plugin))}
-            pdict.update(plugin.to_dict(self))
-            out['plugins'].append(pdict)
+            if 'factory' in dir(plugin) and callable(getattr(plugin, 'factory')):
+                pdict = {'plugin_type': str(type(plugin))}
+                pdict.update(plugin.to_dict(self))
+                out['plugins'].append(pdict)
         return out
 
 

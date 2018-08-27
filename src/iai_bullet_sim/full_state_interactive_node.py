@@ -3,6 +3,7 @@ import rospy
 
 from interactive_markers.interactive_marker_server import *
 
+from iai_bullet_sim.basic_simulator import BasicSimulator
 from iai_bullet_sim.full_state_node import FullStatePublishingNode
 from iai_bullet_sim.ros_plugins import TFPublisher
 from iai_bullet_sim.multibody import MultiBody
@@ -20,10 +21,10 @@ from visualization_msgs.msg import InteractiveMarkerFeedback as InteractiveMarke
 zero_pose = PoseMsg()
 
 class FullStateInteractiveNode(FullStatePublishingNode):
-    def __init__(self, server_name='iai_bullet_sim'):
-        super(FullStateInteractiveNode, self).__init__()
+    def __init__(self, server_name='iai_bullet_sim', simulator_class=BasicSimulator):
+        super(FullStateInteractiveNode, self).__init__(simulator_class)
 
-        self.__selected_object = None
+        self._selected_object = None
         self.marker_server     = None
         self.server_name       = server_name
         self.services.append(rospy.Service('select_object', ObjectId, self.srv_select_object))
@@ -38,16 +39,25 @@ class FullStateInteractiveNode(FullStatePublishingNode):
         self.marker_server = InteractiveMarkerServer(self.server_name)
         
         for name, body in self.sim.bodies.items():
-            self.add_new_marker(name, body, False, True)
+            self.add_new_marker(name, body, self.process_body_marker_feedback, False, True)
         self.marker_server.applyChanges()
         self.tf_publisher = self.sim.get_plugin_of_type(TFPublisher)
 
-    def add_new_marker(self, name, body, selected=True, delay_update=False):
+    def add_new_marker(self, name, body, callback, selected=True, delay_update=False, frame=None, pose=None):
         intMarker = InteractiveMarker()
         intMarker.name = name
-        intMarker.header.frame_id = name
+        intMarker.header.frame_id = frame if frame is not None else name
         intMarker.header.stamp = rospy.Time(0)
         intMarker.scale = 1.0
+        if pose is not None:
+            intMarker.pose.position.x = pose.position[0]
+            intMarker.pose.position.y = pose.position[1]
+            intMarker.pose.position.z = pose.position[2]
+            intMarker.pose.orientation.x = pose.quaternion[0]
+            intMarker.pose.orientation.y = pose.quaternion[1]
+            intMarker.pose.orientation.z = pose.quaternion[2]
+            intMarker.pose.orientation.w = pose.quaternion[3]
+
         control = InteractiveMarkerControlMsg()
         control.interaction_mode = InteractiveMarkerControlMsg.MOVE_3D
         control.always_visible = True
@@ -56,80 +66,83 @@ class FullStateInteractiveNode(FullStatePublishingNode):
         control.description = name
         intMarker.controls.append(control)
         make6DOFGimbal(intMarker)
-        if isinstance(body, MultiBody):
-            intMarker.header.frame_id = '{}/{}'.format(name, body.base_link)
-        else:
-            control.markers.extend(rigid_body_to_markers(body))
-            max_dim = max(control.markers[0].scale.x, control.markers[0].scale.y, control.markers[0].scale.z)
-            intMarker.scale = max_dim + 0.1
+        self.create_visual_marker(name, body, intMarker, control)
 
         activateMarker(intMarker, selected)
-        self.marker_server.insert(intMarker, self.process_marker_feedback)
-        self.markers[name] = intMarker
+        self.marker_server.insert(intMarker, callback)
+        self.markers[name] = (intMarker, callback)
 
         if not delay_update:
             self.marker_server.applyChanges()
 
+    def create_visual_marker(self, name, data, intMarker, control):
+        if isinstance(data, MultiBody):
+            intMarker.header.frame_id = '{}/{}'.format(name, data.base_link)
+        else:
+            control.markers.extend(rigid_body_to_markers(data))
+            max_dim = max(control.markers[0].scale.x, control.markers[0].scale.y, control.markers[0].scale.z)
+            intMarker.scale = max_dim + 0.1
+
     def srv_add_urdf(self, req):
         res = super(FullStateInteractiveNode, self).srv_add_urdf(req)
         if res.success:
-            self.add_new_marker(res.object_id, self.sim.bodies[res.object_id])
+            self.add_new_marker(res.object_id, self.sim.bodies[res.object_id], self.process_body_marker_feedback)
         return res
 
     def srv_add_rigid_body(self, req):
         res = super(FullStateInteractiveNode, self).srv_add_rigid_body(req)
         if res.success:
-            self.add_new_marker(res.object_id, self.sim.bodies[res.object_id])
+            self.add_new_marker(res.object_id, self.sim.bodies[res.object_id], self.process_body_marker_feedback)
         return res
 
     def srv_select_object(self, req):
         res = ObjectIdResponse()
         if req.object_id in self.sim.bodies:
-            self.select_body(req.object_id)
+            self.select_marker(req.object_id)
             res.success = True
         else:
             res.error_msg = 'Unknown object {}.'.format(req.object_id)
         return res
 
 
-    def select_body(self, object_id):
-        if self.__selected_object != object_id:
-            if self.__selected_object in self.markers:
-                cm = self.markers[self.__selected_object]
+    def select_marker(self, marker_id):
+        if self._selected_object != marker_id:
+            if self._selected_object in self.markers:
+                cm, cb = self.markers[self._selected_object]
                 activateMarker(cm, False)
-                self.marker_server.insert(cm, self.process_marker_feedback)
-            self.__selected_object = object_id
-            if self.__selected_object in self.markers:
-                cm = self.markers[self.__selected_object]
+                self.marker_server.insert(cm, cb)
+            self._selected_object = marker_id
+            if self._selected_object in self.markers:
+                cm, cb = self.markers[self._selected_object]
                 activateMarker(cm, True)
-                self.marker_server.insert(cm, self.process_marker_feedback)
+                self.marker_server.insert(cm, cb)
             self.marker_server.applyChanges()
             msg = StringMsg()
-            msg.data = self.__selected_object if self.__selected_object != None else ''
+            msg.data = self._selected_object if self._selected_object != None else ''
             self.pub_selection.publish(msg)
 
 
-    def process_marker_feedback(self, feedback):
-        if feedback.event_type == InteractiveMarkerFeedbackMsg.MOUSE_DOWN and feedback.marker_name != self.__selected_object:
-            self.select_body(feedback.marker_name)
+    def process_body_marker_feedback(self, feedback):
+        if feedback.event_type == InteractiveMarkerFeedbackMsg.MOUSE_DOWN and feedback.marker_name != self._selected_object:
+            self.select_marker(feedback.marker_name)
         
         if feedback.event_type == InteractiveMarkerFeedbackMsg.POSE_UPDATE:
-            if feedback.marker_name != self.__selected_object:
-                self.select_body(feedback.marker_name)    
+            if feedback.marker_name != self._selected_object:
+                self.select_marker(feedback.marker_name)    
             if self.is_running():
                 self.pause()
                 self.place_mode = True
 
         if feedback.event_type == InteractiveMarkerFeedbackMsg.MOUSE_UP:
-            body = self.sim.bodies[self.__selected_object]
+            body = self.sim.bodies[self._selected_object]
             obj_pose = body.pose()
             rel_frame = pose_msg_to_frame(feedback.pose)
 
             new_pos, new_rot = pb.multiplyTransforms(list(obj_pose.position), list(obj_pose.quaternion), list(rel_frame.position), list(rel_frame.quaternion))
             body.set_pose(Frame(new_pos, new_rot), True)
-            intMarker = self.markers[self.__selected_object]
+            intMarker, cb = self.markers[self._selected_object]
             intMarker.pose = zero_pose
-            self.marker_server.insert(intMarker, self.process_marker_feedback)
+            self.marker_server.insert(intMarker, cb)
             self.marker_server.applyChanges()
 
             if self.place_mode:

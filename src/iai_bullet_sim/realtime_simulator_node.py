@@ -1,11 +1,12 @@
 #!/usr/bin/env python
 import rospy
+from iai_bullet_sim.basic_simulator import BasicSimulator
 from iai_bullet_sim.basic_simulator_node import BasicSimulatorNode
 
 
-def gen_fixed_init(t):
-    def fixed_init(self):
-        t.__init__(self)
+def gen_fixed_init(t, *args):
+    def fixed_init(self, *args):
+        t.__init__(self, *args)
         self.timer = None
         self.paused = False
     return fixed_init
@@ -50,7 +51,7 @@ def gen_is_running(t):
     return is_running
 
 
-def FixedTickSimulator(super_type):
+def FixedTickSimulator(super_type, *args):
     if not issubclass(super_type, BasicSimulatorNode):
         raise Exception('Type needs to be a subtype of BasicSimulatorNode. Given type: {}'.format(str(super_type)))
 
@@ -62,4 +63,4 @@ def FixedTickSimulator(super_type):
               'run'     : gen_run(super_type),
               'stop'    : gen_stop(super_type),
               'is_running': gen_is_running(super_type)})
-    return t()
+    return t(*args)

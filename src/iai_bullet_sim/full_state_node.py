@@ -2,14 +2,15 @@ import os
 import subprocess
 import rospy
 
+from iai_bullet_sim.basic_simulator import BasicSimulator
 from iai_bullet_sim.service_simulator_node import ServiceSimulatorNode
 from iai_bullet_sim.multibody import MultiBody
 from iai_bullet_sim.utils import res_pkg_path
 from iai_bullet_sim.ros_plugins import TFPublisher
 
 class FullStatePublishingNode(ServiceSimulatorNode):
-    def __init__(self):
-        super(FullStatePublishingNode, self).__init__()
+    def __init__(self, simulator_class=BasicSimulator):
+        super(FullStatePublishingNode, self).__init__(simulator_class)
 
         self.state_publishers = {}
         self.publisher_path = '/opt/ros/{}/lib/robot_state_publisher/robot_state_publisher'.format(os.environ['ROS_DISTRO'])

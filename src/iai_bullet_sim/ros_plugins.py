@@ -285,7 +285,7 @@ class JointPositionController(WatchdoggedJointController):
         body = simulator.get_body(init_dict['body'])
         if body is None:
             raise Exception('Body "{}" does not exist in the context of the given simulation.'.format(init_dict['body']))
-        return JointPositionController(body, init_dict['topic_prefix'], init_dict['watchdog_timeout'])
+        return cls(body, init_dict['topic_prefix'], init_dict['watchdog_timeout'])
 
 
 class JointVelocityController(WatchdoggedJointController):
@@ -347,7 +347,7 @@ class JointVelocityController(WatchdoggedJointController):
         body = simulator.get_body(init_dict['body'])
         if body is None:
             raise Exception('Body "{}" does not exist in the context of the given simulation.'.format(init_dict['body']))
-        return JointVelocityController(body, init_dict['topic_prefix'], init_dict['watchdog_timeout'])
+        return cls(body, init_dict['topic_prefix'], init_dict['watchdog_timeout'])
 
 
 class JointVelocityDeltaContoller(JointVelocityController):
@@ -386,19 +386,6 @@ class JointVelocityDeltaContoller(JointVelocityController):
                 deltaMsg.name.append(j)
                 deltaMsg.velocity.append(dv - js[j].velocity)
             self.delta_publisher.publish(deltaMsg)
-
-    @classmethod
-    def factory(cls, simulator, init_dict):
-        """Instantiates the plugin from a dictionary in the context of a simulator.
-
-        :type simulator: iai_bullet_sim.basic_simulator.BasicSimulator
-        :type init_dict: dict
-        :rtype: JointVelocityDeltaController
-        """
-        body = simulator.get_body(init_dict['body'])
-        if body is None:
-            raise Exception('Body "{}" does not exist in the context of the given simulation.'.format(init_dict['body']))
-        return JointVelocityDeltaController(body, init_dict['topic_prefix'], init_dict['watchdog_timeout'])
 
 
 class TrajectoryPositionController(CommandSubscriber):
@@ -469,7 +456,7 @@ class TrajectoryPositionController(CommandSubscriber):
         body = simulator.get_body(init_dict['body'])
         if body is None:
             raise Exception('Body "{}" does not exist in the context of the given simulation.'.format(init_dict['body']))
-        return TrajectoryPositionController(body, init_dict['topic_prefix'])
+        return cls(body, init_dict['topic_prefix'])
 
 
 class LoopingTrajectoryPositionController(TrajectoryPositionController):
@@ -491,19 +478,6 @@ class LoopingTrajectoryPositionController(TrajectoryPositionController):
             self.t_start = rospy.Time.now()
             self._t_index = 0
             self.body.set_joint_positions(self.trajectory[0][1])
-
-    @classmethod
-    def factory(cls, simulator, init_dict):
-        """Instantiates the plugin from a dictionary in the context of a simulator.
-
-        :type simulator: iai_bullet_sim.basic_simulator.BasicSimulator
-        :type init_dict: dict
-        :rtype: LoopingTrajectoryPositionController
-        """
-        body = simulator.get_body(init_dict['body'])
-        if body is None:
-            raise Exception('Body "{}" does not exist in the context of the given simulation.'.format(init_dict['body']))
-        return LoopingTrajectoryPositionController(body, init_dict['topic_prefix'])
 
 
 class ResetTrajectoryPositionController(TrajectoryPositionController):
@@ -548,7 +522,7 @@ class ResetTrajectoryPositionController(TrajectoryPositionController):
         body = simulator.get_body(init_dict['body'])
         if body is None:
             raise Exception('Body "{}" does not exist in the context of the given simulation.'.format(init_dict['body']))
-        return ResetTrajectoryPositionController(simulator, body, init_dict['topic_prefix'])
+        return cls(simulator, body, init_dict['topic_prefix'])
 
 
 class TFPublisher(SimulatorPlugin):
@@ -588,7 +562,7 @@ class TFPublisher(SimulatorPlugin):
         :type init_dict: dict
         :rtype: TFPublisher
         """
-        return TFPublisher(init_dict['map_frame'])
+        return cls(init_dict['map_frame'])
 
     def to_dict(self, simulator):
         """Serializes this plugin to a dictionary.

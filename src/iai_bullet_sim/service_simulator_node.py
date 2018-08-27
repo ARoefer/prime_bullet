@@ -7,6 +7,7 @@ from geometry_msgs.msg import Pose, Vector3
 from sensor_msgs.msg import JointState
 from std_msgs.msg import ColorRGBA
 
+from iai_bullet_sim.basic_simulator import BasicSimulator
 from iai_bullet_sim.basic_simulator_node import BasicSimulatorNode
 from iai_bullet_sim.rigid_body  import RigidBody
 from iai_bullet_sim.multibody   import MultiBody
@@ -25,7 +26,8 @@ controller_map = {SetControllerRequest.TYPE_VELOCITY: JointVelocityController,
 
 class ServiceSimulatorNode(BasicSimulatorNode):
     """This class exposes a lot of the simulator's functionality to ROS services."""
-    def __init__(self):
+    def __init__(self, simulator_class=BasicSimulator):
+        super(ServiceSimulatorNode, self).__init__(simulator_class)
         self.services =[
             rospy.Service('get_object_ids', GetObjectIds, self.srv_get_obj_ids),
             rospy.Service('get_rigid_object_ids', GetObjectIds, self.srv_get_rigid_ids),
