@@ -13,6 +13,7 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   geometry_msgs
   sensor_msgs
+  visualization_msgs
 )
 
 ## System dependencies are found with CMake's conventions
@@ -73,6 +74,7 @@ add_service_files(
   SetJointSensor.srv
   SetJointState.srv
   SetObjectPose.srv
+  GetStaticGeometry.srv
 )
 
 ## Generate actions in the 'action' folder
@@ -88,6 +90,7 @@ generate_messages(
   std_msgs  # Or other packages containing msgs
   geometry_msgs
   sensor_msgs
+  visualization_msgs
 )
 
 ################################################

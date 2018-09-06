@@ -21,9 +21,7 @@ def gen_pause(t):
 
 def gen_tick(t):
     def tick(self, timer_event):
-        if not self.paused:
-            t.tick(self, timer_event)
-        elif self.tf_publisher != None:
+        if self.tf_publisher != None:
             with self.lock:
                 self.tf_publisher.post_physics_update(self.sim, 0)
     return tick
@@ -51,11 +49,11 @@ def gen_is_running(t):
     return is_running
 
 
-def FixedTickSimulator(super_type, *args):
+def DummyTickSimulator(super_type, *args):
     if not issubclass(super_type, BasicSimulatorNode):
         raise Exception('Type needs to be a subtype of BasicSimulatorNode. Given type: {}'.format(str(super_type)))
 
-    t = type('FixedTickSimulator',
+    t = type('DummyTickSimulator',
              (super_type, ),
              {'__init__': gen_fixed_init(super_type),
               'pause'   : gen_pause(super_type),

@@ -23,7 +23,7 @@ class FullStatePublishingNode(ServiceSimulatorNode):
             self.__start_publisher_for_object(name)                        
 
         if not self.sim.has_plugin_of_type(TFPublisher):
-            self.sim.register_plugin(TFPublisher())
+            self.sim.register_plugin(TFPublisher(self.sim))
 
     def __start_publisher_for_object(self, name):
         body = self.sim.bodies[name]

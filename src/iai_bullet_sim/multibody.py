@@ -1,7 +1,7 @@
 import pybullet as pb
 from collections import namedtuple
 from iai_bullet_sim.utils import Vector3, Quaternion, Frame, AABB
-from math import atan2
+from math import atan2, cos, sin, sqrt
 
 class JointDriver(object):
     """Joint drivers modify given velocity and effort commands to match robot specific joint behavior.
@@ -42,6 +42,18 @@ class SimpleBaseDriver(JointDriver):
         inv_pos, inv_rot = pb.invertTransform(pose.position, pose.quaternion)
         ZERO_VEC = (0,0,0)
         ZERO_ROT = (0,0,0,1)
+        if self.z_ang_joint in velocities_dict:
+            c_ang_ib, trash = pb.multiplyTransforms(inv_pos, inv_rot, ang_vel, [0,0,0,1])
+            d_ang_vel = max(min(velocities_dict[self.z_ang_joint], self.m_ang_v), -self.m_ang_v)
+            ang_gain  = max(min(d_ang_vel - c_ang_ib[2], self.m_ang_gain), -self.m_ang_gain)
+            del velocities_dict[self.z_ang_joint]
+            ang_vel, trash = pb.multiplyTransforms(ZERO_VEC, pose.quaternion, [0.0, 0.0, c_ang_ib[2] + ang_gain], [0.0,0.0,0.0,1.0])
+        else:
+            ang_vel = (0,0,0)
+
+        fwd_dir, trash = pb.multiplyTransforms(ZERO_VEC, pose.quaternion, [1,0,0], [0,0,0,1])
+        yaw = atan2(fwd_dir[1], fwd_dir[0])
+
         if self.x_lin_joint in velocities_dict or self.y_lin_joint in velocities_dict:
             c_vel_ib, trash = pb.multiplyTransforms(ZERO_VEC, inv_rot, lin_vel, [0,0,0,1])
             
@@ -58,29 +70,22 @@ class SimpleBaseDriver(JointDriver):
             fwd_vel_gain = max(min(d_fwd_vel - c_vel_ib[0], self.m_vel_gain), -self.m_vel_gain) 
             strafe_vel_gain = max(min(d_strafe_vel - c_vel_ib[1], self.m_vel_gain), -self.m_vel_gain)
 
-            d_lin_vel, trash = pb.multiplyTransforms(ZERO_VEC, pose.quaternion, [c_vel_ib[0] + fwd_vel_gain, 
-                                                                                 c_vel_ib[1] + strafe_vel_gain, 0], 
+
+            cos_sq = cos(ang_vel[2] * self.deltaT) ** 2
+            sin_sq = sin(ang_vel[2] * self.deltaT) ** 2
+            n_fwd_vel    = cos_sq * (c_vel_ib[0] + fwd_vel_gain) + sin_sq * (c_vel_ib[1] + strafe_vel_gain)
+            n_strafe_vel = sin_sq * (c_vel_ib[0] + fwd_vel_gain) + cos_sq * (c_vel_ib[1] + strafe_vel_gain)
+            d_lin_vel, trash = pb.multiplyTransforms(ZERO_VEC, pose.quaternion, [n_fwd_vel, n_strafe_vel, 0], 
                                                                                  [0,0,0,1])
             lin_vel = [d_lin_vel[0], d_lin_vel[1], lin_vel[2]]
         else:
             lin_vel = (0, 0, lin_vel[2])
 
-        if self.z_ang_joint in velocities_dict:
-            c_ang_ib, trash = pb.multiplyTransforms(inv_pos, inv_rot, ang_vel, [0,0,0,1])
-            d_ang_vel = max(min(velocities_dict[self.z_ang_joint], self.m_ang_v), -self.m_ang_v)
-            ang_gain  = max(min(d_ang_vel - c_ang_ib[2], self.m_ang_gain), -self.m_ang_gain)
-            del velocities_dict[self.z_ang_joint]
-            ang_vel, trash = pb.multiplyTransforms(ZERO_VEC, pose.quaternion, [0.0, 0.0, c_ang_ib[2] + ang_gain], [0.0,0.0,0.0,1.0])
-        else:
-            ang_vel = (0,0, ang_vel[2])
-
-        fwd_dir, trash = pb.multiplyTransforms(ZERO_VEC, pose.quaternion, [1,0,0], [0,0,0,1])
-        yaw = atan2(fwd_dir[1], fwd_dir[0])
         new_quat = pb.getQuaternionFromEuler([0,0,yaw])
-
         #print(' '.join(['{}'.format(type(c)) for c in list(lin_vel) + list(ang_vel)]))
-        pb.resetBasePositionAndOrientation(robot_data.bId(), (pose.position[0], pose.position[1], robot_data.initial_pos[2]), new_quat)
-        pb.resetBaseVelocity(robot_data.bId(), lin_vel, ang_vel)
+        pb.resetBasePositionAndOrientation(robot_data.bId(), (pose.position[0], pose.position[1], robot_data.initial_pos[2]), new_quat, physicsClientId=robot_data.simulator.client_id())
+        pb.resetBaseVelocity(robot_data.bId(), lin_vel, ang_vel, physicsClientId=robot_data.simulator.client_id())
+
 
     def to_dict(self):
         return {'max_lin_vel': self.m_lin_v,
@@ -144,6 +149,7 @@ class MultiBody(object):
         :type  urdf_file:    str, NoneType
         """
         self.simulator      = simulator
+        self.__client_id    = simulator.client_id()
         self.__bulletId     = bulletId
         self.color          = color
         self.joints         = {}
@@ -157,12 +163,12 @@ class MultiBody(object):
         self.initial_rot    = initial_rot
         self.initial_joint_state = {}
 
-        base_link, multibodyName = pb.getBodyInfo(self.__bulletId)
-        print('PyBullet says:\n  Name: {}\n  Base: {}\n'.format(multibodyName, base_link))
+        base_link, multibodyName = pb.getBodyInfo(self.__bulletId, physicsClientId=self.__client_id)
+        #print('PyBullet says:\n  Name: {}\n  Base: {}\n'.format(multibodyName, base_link))
         self.base_link = base_link
 
-        for x in range(pb.getNumJoints(self.__bulletId)):
-            joint = JointInfo(*pb.getJointInfo(self.__bulletId, x))
+        for x in range(pb.getNumJoints(self.__bulletId, physicsClientId=self.__client_id)):
+            joint = JointInfo(*pb.getJointInfo(self.__bulletId, x, physicsClientId=self.__client_id))
             self.joints[joint.jointName] = joint
             if joint.jointType != pb.JOINT_FIXED:
                 self.dynamic_joints[joint.jointName] = joint
@@ -171,7 +177,7 @@ class MultiBody(object):
 
         self.__index_joint_map       = {info.jointIndex: joint for joint, info in self.joints.items()}
         self.__dynamic_joint_indices = [info.jointIndex for info in self.dynamic_joints.values()]
-        print('dynamic joints:\n  {}'.format('\n  '.join([info.jointName for info in self.joints.values() if info.jointType != pb.JOINT_FIXED])))
+        #print('dynamic joints:\n  {}'.format('\n  '.join([info.jointName for info in self.joints.values() if info.jointType != pb.JOINT_FIXED])))
 
 
         self.links = {info.linkName for info in self.joints.values()}
@@ -205,7 +211,7 @@ class MultiBody(object):
 
     def reset(self):
         """Resets this object's pose and joints to their initial configuration."""
-        pb.resetBasePositionAndOrientation(self.__bulletId, self.initial_pos, self.initial_rot)
+        pb.resetBasePositionAndOrientation(self.__bulletId, self.initial_pos, self.initial_rot, physicsClientId=self.__client_id)
         self.set_joint_positions(self.initial_joint_state)
         self.__last_sim_pose_update = -1
         self.__last_sim_js_update = -1
@@ -226,7 +232,7 @@ class MultiBody(object):
             frame = self.pose()
             return LinkState(frame, frame, frame, zero_vector, zero_vector)
         else:
-            ls = pb.getLinkState(self.__bulletId, self.link_index_map[link], 0)
+            ls = pb.getLinkState(self.__bulletId, self.link_index_map[link], 0, physicsClientId=self.__client_id)
             return LinkState(Frame(Vector3(*ls[0]), Quaternion(*ls[1])),
                              Frame(Vector3(*ls[2]), Quaternion(*ls[3])),
                              Frame(Vector3(*ls[4]), Quaternion(*ls[5])),
@@ -239,7 +245,7 @@ class MultiBody(object):
         :type linkId: str, NoneType
         :rtype: AABB
         """
-        res = pb.getAABB(self.__bulletId, self.link_index_map[linkId])
+        res = pb.getAABB(self.__bulletId, self.link_index_map[linkId], physicsClientId=self.__client_id)
         return AABB(Vector3(*res[0]), Vector3(*res[1]))
 
     def joint_state(self):
@@ -248,7 +254,7 @@ class MultiBody(object):
         """
         # Avoid unnecessary updates and updates for objects without dynamic joints
         if self.simulator.get_n_update() != self.__last_sim_js_update and len(self.__dynamic_joint_indices) > 0:
-            new_js = [JointState(*x) for x in pb.getJointStates(self.__bulletId, self.__dynamic_joint_indices)]
+            new_js = [JointState(*x) for x in pb.getJointStates(self.__bulletId, self.__dynamic_joint_indices, physicsClientId=self.__client_id)]
             self.__joint_state = {self.__index_joint_map[self.__dynamic_joint_indices[x]]: new_js[x] for x in range(len(new_js))}
 
         return self.__joint_state
@@ -258,7 +264,7 @@ class MultiBody(object):
         :rtype: Frame
         """
         if self.simulator.get_n_update() != self.__last_sim_pose_update:
-            temp = pb.getBasePositionAndOrientation(self.__bulletId)
+            temp = pb.getBasePositionAndOrientation(self.__bulletId, physicsClientId=self.__client_id)
             self.__current_pose = Frame(temp[0], temp[1])
         return self.__current_pose
 
@@ -267,7 +273,7 @@ class MultiBody(object):
         :rtype: list
         """
         if self.simulator.get_n_update() != self.__last_sim_velocity_update:
-            self.__current_lin_velocity, self.__current_ang_velocity = pb.getBaseVelocity(self.__bulletId)
+            self.__current_lin_velocity, self.__current_ang_velocity = pb.getBaseVelocity(self.__bulletId, physicsClientId=self.__client_id)
             self.__last_sim_velocity_update = self.simulator.get_n_update()
         return self.__current_lin_velocity
 
@@ -276,7 +282,7 @@ class MultiBody(object):
         :rtype: list
         """
         if self.simulator.get_n_update() != self.__last_sim_velocity_update:
-            self.__current_lin_velocity, self.__current_ang_velocity = pb.getBaseVelocity(self.__bulletId)
+            self.__current_lin_velocity, self.__current_ang_velocity = pb.getBaseVelocity(self.__bulletId, physicsClientId=self.__client_id)
             self.__last_sim_velocity_update = self.simulator.get_n_update()
         return self.__current_ang_velocity
 
@@ -286,7 +292,7 @@ class MultiBody(object):
         :type joint_name: str
         :type enable: bool
         """
-        pb.enableJointForceTorqueSensor(self.__bulletId, self.joints[joint_name].jointIndex, enable)
+        pb.enableJointForceTorqueSensor(self.__bulletId, self.joints[joint_name].jointIndex, enable, physicsClientId=self.__client_id)
         if enable:
             self.joint_sensors.add(joint_name)
         else:
@@ -312,7 +318,7 @@ class MultiBody(object):
         """
         pos  = pose.position
         quat = pose.quaternion
-        pb.resetBasePositionAndOrientation(self.__bulletId, pos, quat)
+        pb.resetBasePositionAndOrientation(self.__bulletId, pos, quat, physicsClientId=self.__client_id)
         self.__last_sim_pose_update = -1
         if override_initial:
             self.initial_pos = list(pos)
@@ -329,7 +335,7 @@ class MultiBody(object):
         """
         for j, p in state.items():
             if j in self.joints:
-                pb.resetJointState(self.__bulletId, self.joints[j].jointIndex, p)
+                pb.resetJointState(self.__bulletId, self.joints[j].jointIndex, p, physicsClientId=self.__client_id)
         self.__last_sim_js_update = -1
         if override_initial:
             self.initial_joint_state.update(state)
@@ -349,7 +355,7 @@ class MultiBody(object):
                 cmd_indices.append(self.joints[jname].jointIndex)
                 cmd_pos.append(cmd[jname])
 
-        pb.setJointMotorControlArray(self.__bulletId, cmd_indices, pb.POSITION_CONTROL, targetPositions=cmd_pos)
+        pb.setJointMotorControlArray(self.__bulletId, cmd_indices, pb.POSITION_CONTROL, targetPositions=cmd_pos, physicsClientId=self.__client_id)
 
 
     def apply_joint_vel_cmds(self, cmd):
@@ -368,7 +374,7 @@ class MultiBody(object):
 
         #print('\n'.join(['{}: {}'.format(self.__index_joint_map[cmd_indices[x]], cmd_vels[x]) for x in range(len(cmd_vels))])) # TODO: REMOVE THIS
 
-        pb.setJointMotorControlArray(self.__bulletId, cmd_indices, pb.VELOCITY_CONTROL, targetVelocities=cmd_vels)
+        pb.setJointMotorControlArray(self.__bulletId, cmd_indices, pb.VELOCITY_CONTROL, targetVelocities=cmd_vels, physicsClientId=self.__client_id)
 
     def apply_joint_effort_cmds(self, cmd):
         """Sets the joints' torque goals.
@@ -384,7 +390,7 @@ class MultiBody(object):
                 cmd_indices.append(self.joints[jname].jointIndex)
                 cmd_torques.append(cmd[jname])
 
-        pb.setJointMotorControlArray(self.__bulletId, cmd_indices, pb.TORQUE_CONTROL, forces=cmd_torques)
+        pb.setJointMotorControlArray(self.__bulletId, cmd_indices, pb.TORQUE_CONTROL, forces=cmd_torques, physicsClientId=self.__client_id)
 
     def get_contacts(self, other_body=None, own_link=None, other_link=None):
         """Gets the contacts this body had during the last physics step.

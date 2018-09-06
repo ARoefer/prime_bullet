@@ -39,7 +39,13 @@ class FullStateInteractiveNode(FullStatePublishingNode):
         self.marker_server = InteractiveMarkerServer(self.server_name)
         
         for name, body in self.sim.bodies.items():
-            self.add_new_marker(name, body, self.process_body_marker_feedback, False, True)
+            if isinstance(body, MultiBody):
+                self.add_new_marker(name, body, self.process_body_marker_feedback, False, True)  
+            else:
+                if body.mass > 0.0:
+                    self.add_new_marker(name, body, self.process_body_marker_feedback, False, True)
+                else:
+                    self.add_new_marker(name, body, self.process_static_body_marker_feedback, False, True, 'map', body.pose())
         self.marker_server.applyChanges()
         self.tf_publisher = self.sim.get_plugin_of_type(TFPublisher)
 
@@ -144,6 +150,27 @@ class FullStateInteractiveNode(FullStatePublishingNode):
             intMarker.pose = zero_pose
             self.marker_server.insert(intMarker, cb)
             self.marker_server.applyChanges()
+
+            if self.place_mode:
+                self.place_mode = False
+                self.run()
+
+    def process_static_body_marker_feedback(self, feedback):
+        if feedback.event_type == InteractiveMarkerFeedbackMsg.MOUSE_DOWN and feedback.marker_name != self._selected_object:
+            self.select_marker(feedback.marker_name)
+        
+        if feedback.event_type == InteractiveMarkerFeedbackMsg.POSE_UPDATE:
+            if feedback.marker_name != self._selected_object:
+                self.select_marker(feedback.marker_name)    
+            if self.is_running():
+                self.pause()
+                self.place_mode = True
+
+        if feedback.event_type == InteractiveMarkerFeedbackMsg.MOUSE_UP:
+            body = self.sim.bodies[self._selected_object]
+            body.set_pose(pose_msg_to_frame(feedback.pose), True)
+            intMarker, cb = self.markers[self._selected_object]
+            intMarker.pose = feedback.pose
 
             if self.place_mode:
                 self.place_mode = False

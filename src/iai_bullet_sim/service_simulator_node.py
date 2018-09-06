@@ -4,6 +4,7 @@ import traceback
 from multiprocessing import Lock
 
 from geometry_msgs.msg import Pose, Vector3
+from visualization_msgs.msg import Marker as MarkerMsg
 from sensor_msgs.msg import JointState
 from std_msgs.msg import ColorRGBA
 
@@ -49,7 +50,8 @@ class ServiceSimulatorNode(BasicSimulatorNode):
             rospy.Service('reset', Empty, self.srv_reset),
             rospy.Service('pause', Empty, self.srv_pause),
             rospy.Service('run',   Empty, self.srv_run),
-            rospy.Service('get_simulator_state', GetSimulatorState, self.srv_get_state)
+            rospy.Service('get_simulator_state', GetSimulatorState, self.srv_get_state),
+            rospy.Service('get_static_geometry', GetStaticGeometry, self.srv_get_static_geometry)
         ]
         self.lock = Lock()
         self.sensor_publishers = {}
@@ -417,3 +419,61 @@ class ServiceSimulatorNode(BasicSimulatorNode):
             else:
                 res = GetSimulatorStateResponse.PAUSED
             return res
+
+    def srv_get_static_geometry(self, msg):
+        with self.lock:
+            res = GetStaticGeometryResponse()
+            for name, body in self.sim.bodies.items():
+                if isinstance(body, RigidBody) and body.mass <= 0.0:
+                    res.geometry.extend(rigid_body_to_markers(body, name))
+
+            res.success = True
+            return res
+
+
+def rigid_body_to_markers(body, name):
+    central_marker = MarkerMsg()
+    central_marker.ns = name
+    out = [central_marker]
+    pos, quat = body.pose()
+
+    for a, v in zip(['x', 'y', 'z'], pos):
+        setattr(central_marker.pose.position, a, v)
+
+    for a, v in zip(['x', 'y', 'z', 'w'], quat):
+        setattr(central_marker.pose.orientation, a, v)
+
+    for a, v in zip(['r', 'g', 'b', 'a'], body.color):
+        setattr(central_marker.color, a, v)
+    if body.type == 'box':
+        central_marker.type = MarkerMsg.CUBE
+        for a, v in zip(['x', 'y', 'z'], body.extents):
+            setattr(central_marker.scale, a, v)
+    elif body.type == 'sphere':
+        central_marker.type = MarkerMsg.SPHERE
+        for a in ['x', 'y', 'z']:
+            setattr(central_marker.scale, a, body.radius * 2)
+    elif body.type == 'cylinder' or body.type == 'capsule':
+        central_marker.type = MarkerMsg.CYLINDER
+        for a in ['x', 'y']:
+            setattr(central_marker.scale, a, body.radius * 2)
+        # if body.type == 'capsule':
+        #     central_marker.scale.z = body.height - 2 * body.radius 
+        #     upper_sphere = MarkerMsg()
+        #     upper_sphere.type  = MarkerMsg.SPHERE
+        #     upper_sphere.color = central_marker.color
+        #     upper_sphere.scale.x = body.radius
+        #     upper_sphere.pose.position.z = body.height * 0.5 - body.radius
+        #     upper_sphere.pose.orientation.w = 1
+        #     lower_sphere = MarkerMsg()
+        #     lower_sphere.type  = MarkerMsg.SPHERE
+        #     lower_sphere.color = central_marker.color
+        #     lower_sphere.scale.x = body.radius
+        #     lower_sphere.pose.position.z = -body.height * 0.5 + body.radius
+        #     lower_sphere.pose.orientation.w = 1
+        #     out.append(lower_sphere)
+        #     out.append(upper_sphere)
+        # else:
+        #     central_marker.scale.z = body.height
+
+    return out

@@ -6,6 +6,7 @@ from collections import OrderedDict
 from geometry_msgs.msg import WrenchStamped as WrenchMsg
 from sensor_msgs.msg import JointState as JointStateMsg
 from trajectory_msgs.msg import JointTrajectory as JointTrajectoryMsg
+from nav_msgs.msg import Odometry as OdometryMsg
 
 from iai_bullet_sim.basic_simulator import SimulatorPlugin
 from iai_bullet_sim.multibody import MultiBody
@@ -21,7 +22,7 @@ class Watchdog(object):
         """Sets the last time the dog was ticked.
         :type last_tick: rospy.Time
         """
-        self.last_tick = last_tick
+        self.last_tick = rospy.Time.now()#last_tick
 
     def barks(self):
         """Returns True, if last tick was long enough ago.
@@ -526,10 +527,11 @@ class ResetTrajectoryPositionController(TrajectoryPositionController):
 
 
 class TFPublisher(SimulatorPlugin):
-    def __init__(self, map_frame='map'):
+    def __init__(self, simulator, map_frame='map', objects=[]):
         super(TFPublisher, self).__init__('TFPublisher')
         self.map_frame = map_frame
         self.tf_broadcaster = tf.TransformBroadcaster()
+        self.objects  = objects if len(objects) > 0 else [(n, o) for n, o in simulator.bodies.items() if isinstance(o, MultiBody) or o.mass > 0.0]
         self._enabled = True
 
     def post_physics_update(self, simulator, deltaT):
@@ -540,13 +542,13 @@ class TFPublisher(SimulatorPlugin):
         """
         if self._enabled:
             now = rospy.Time.now()
-            for name, body in simulator.bodies.items():
+            for name, body in self.objects:
                 pose = body.pose()
                 if isinstance(body, MultiBody):
                     self.tf_broadcaster.sendTransform(pose.position, pose.quaternion, now, '{}/{}'.format(name, body.base_link), self.map_frame)
                 else:
                     self.tf_broadcaster.sendTransform(pose.position, pose.quaternion, now, name, self.map_frame)
-
+            
     def disable(self, simulator):
         """Stops the execution of this plugin.
 
@@ -562,7 +564,7 @@ class TFPublisher(SimulatorPlugin):
         :type init_dict: dict
         :rtype: TFPublisher
         """
-        return cls(init_dict['map_frame'])
+        return cls(simulator, init_dict['map_frame'], [(n, simulator.bodies[n]) for n in init_dict['objects']])
 
     def to_dict(self, simulator):
         """Serializes this plugin to a dictionary.
@@ -570,4 +572,85 @@ class TFPublisher(SimulatorPlugin):
         :type simulator: BasicSimulator
         :rtype: dict
         """
-        return {'map_frame': self.map_frame}
+        return {'map_frame': self.map_frame, 'objects': [n for n, o in self.objects]}
+
+
+
+class OdometryPublisher(SimulatorPlugin):
+    """Plugin which publishes an object's joint state to a topic.
+    The joint state will be published to [prefix]/joint_states.
+    """
+    def __init__(self, simulator, multibody, child_frame_id='/base_link'):
+        """Initializes the plugin.
+
+        :param multibody: Object to observe.
+        :type  multibody: iai_bullet_sim.multibody.MultiBody
+        :param topic_prefixPrefix: for the topic to publish to.
+        :type  topic_prefixPrefix: str
+        """
+        super(OdometryPublisher, self).__init__('Odometry Publisher')
+        name = simulator.get_body_id(multibody.bId())
+        self.publisher = rospy.Publisher('{}/odometry'.format(name), OdometryMsg, queue_size=1, tcp_nodelay=True)
+        self.body = multibody
+        self.msg_template = OdometryMsg()
+        self.msg_template.header.frame_id = 'map'
+        self.msg_template.child_frame_id = child_frame_id
+        self.__enabled = True
+
+    def post_physics_update(self, simulator, deltaT):
+        """Publishes the current joint state.
+
+        :type simulator: iai_bullet_sim.basic_simulator.BasicSimulator
+        :type deltaT: float
+        """
+        if self.__enabled is False:
+            return
+
+        pose = self.body.pose()
+        lin_vel = self.body.linear_velocity()
+        ang_vel = self.body.angular_velocity()
+
+        self.msg_template.header.stamp = rospy.Time.now()
+        self.msg_template.pose.pose.position.x = pose.position[0]
+        self.msg_template.pose.pose.position.y = pose.position[1]
+        self.msg_template.pose.pose.position.z = pose.position[2]
+        self.msg_template.pose.pose.orientation.x = pose.quaternion[0]
+        self.msg_template.pose.pose.orientation.y = pose.quaternion[1]
+        self.msg_template.pose.pose.orientation.z = pose.quaternion[2]
+        self.msg_template.pose.pose.orientation.w = pose.quaternion[3]
+
+        self.msg_template.twist.twist.linear.x = lin_vel[0]
+        self.msg_template.twist.twist.linear.y = lin_vel[1]
+        self.msg_template.twist.twist.linear.z = lin_vel[2]
+        self.msg_template.twist.twist.angular.x = ang_vel[0]        
+        self.msg_template.twist.twist.angular.y = ang_vel[1]
+        self.msg_template.twist.twist.angular.z = ang_vel[2]
+        self.publisher.publish(self.msg_template)
+
+    def disable(self, simulator):
+        """Disables the publisher.
+        :type simulator: iai_bullet_sim.basic_simulator.BasicSimulator
+        """
+        self.__enabled = False
+        self.publisher.unregister()
+
+    def to_dict(self, simulator):
+        """Serializes this plugin to a dictionary.
+        :type simulator: iai_bullet_sim.basic_simulator.BasicSimulator
+        :rtype: dict
+        """
+        return {'body': simulator.get_body_id(self.body.bId()),
+                'child_frame_id': self.msg_template.child_frame_id}
+
+    @classmethod
+    def factory(cls, simulator, init_dict):
+        """Instantiates the plugin from a dictionary in the context of a simulator.
+
+        :type simulator: iai_bullet_sim.basic_simulator.BasicSimulator
+        :type init_dict: dict
+        :rtype: JSPublisher
+        """
+        body = simulator.get_body(init_dict['body'])
+        if body is None:
+            raise Exception('Body "{}" does not exist in the context of the given simulation.'.format(init_dict['body']))
+        return cls(simulator, body, init_dict['child_frame_id'])
