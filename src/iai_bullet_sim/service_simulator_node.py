@@ -457,6 +457,7 @@ def rigid_body_to_markers(body, name):
         central_marker.type = MarkerMsg.CYLINDER
         for a in ['x', 'y']:
             setattr(central_marker.scale, a, body.radius * 2)
+        central_marker.scale.z = body.height
         # if body.type == 'capsule':
         #     central_marker.scale.z = body.height - 2 * body.radius 
         #     upper_sphere = MarkerMsg()
