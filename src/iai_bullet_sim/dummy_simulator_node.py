@@ -21,7 +21,10 @@ def gen_pause(t):
 
 def gen_tick(t):
     def tick(self, timer_event):
-        if self.tf_publisher != None:
+        if not self.paused:
+            self.sim.pre_update()
+            self.sim.post_update()
+        elif self.tf_publisher != None:
             with self.lock:
                 self.tf_publisher.post_physics_update(self.sim, 0)
     return tick
