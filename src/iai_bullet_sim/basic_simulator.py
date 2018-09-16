@@ -514,6 +514,15 @@ class BasicSimulator(object):
         return None
 
 
+    def delete_body(self, bodyId):
+        if bodyId in self.bodies:
+            body = self.bodies[bodyId]
+            pb.removeBody(body.bId(), self.__client_id)
+            del self.__bId_IdMap[body.bId()]
+            del self.bodies[bodyId]
+        return None
+
+
     def create_constraint(self, constraintId, parentBody, childBody,
                           parentLink=None, childLink=None,
                           jointType='FIXED', jointAxis=[1,0,0],

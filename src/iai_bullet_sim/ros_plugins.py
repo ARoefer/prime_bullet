@@ -564,7 +564,9 @@ class TFPublisher(SimulatorPlugin):
         :type init_dict: dict
         :rtype: TFPublisher
         """
-        return cls(simulator, init_dict['map_frame'], [(n, simulator.bodies[n]) for n in init_dict['objects']])
+        if 'objects' in init_dict:
+            return cls(simulator, init_dict['map_frame'], [(n, simulator.bodies[n]) for n in init_dict['objects']])
+        return cls(simulator, init_dict['map_frame'], [])
 
     def to_dict(self, simulator):
         """Serializes this plugin to a dictionary.
