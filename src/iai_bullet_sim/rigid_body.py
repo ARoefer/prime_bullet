@@ -39,6 +39,7 @@ class RigidBody(object):
             raise Exception('Rigid body type needs to be {}'.format(' or '.join(['"{}"'.format(t) for t in GEOM_TYPES])))
 
         self.simulator      = simulator
+        self.__client_id    = simulator.client_id()
         self.__bulletId     = bulletId
         self.type           = geom_type
         self.color          = color
@@ -65,7 +66,7 @@ class RigidBody(object):
 
     def reset(self):
         """Resets this object's pose and joints to their initial configuration."""
-        pb.resetBasePositionAndOrientation(self.__bulletId, self.initial_pos, self.initial_rot)
+        pb.resetBasePositionAndOrientation(self.__bulletId, self.initial_pos, self.initial_rot, physicsClientId=self.__client_id)
         self.__last_sim_pose_update = -1
         self.__last_sim_velocity_update = -1
 
@@ -81,7 +82,7 @@ class RigidBody(object):
         :rtype: Frame
         """
         if self.simulator.get_n_update() != self.__last_sim_pose_update:
-            temp = pb.getBasePositionAndOrientation(self.__bulletId)
+            temp = pb.getBasePositionAndOrientation(self.__bulletId, physicsClientId=self.__client_id)
             self.__current_pose = Frame(temp[0], temp[1])
             self.__last_sim_pose_update = self.simulator.get_n_update()
 
@@ -92,7 +93,7 @@ class RigidBody(object):
         :rtype: list
         """
         if self.simulator.get_n_update() != self.__last_sim_velocity_update:
-            self.__current_lin_velocity, self.__current_ang_velocity = pb.getBaseVelocity(self.__bulletId)
+            self.__current_lin_velocity, self.__current_ang_velocity = pb.getBaseVelocity(self.__bulletId, physicsClientId=self.__client_id)
             self.__last_sim_velocity_update = self.simulator.get_n_update()
         return self.__current_lin_velocity
 
@@ -101,7 +102,7 @@ class RigidBody(object):
         :rtype: list
         """
         if self.simulator.get_n_update() != self.__last_sim_velocity_update:
-            self.__current_lin_velocity, self.__current_ang_velocity = pb.getBaseVelocity(self.__bulletId)
+            self.__current_lin_velocity, self.__current_ang_velocity = pb.getBaseVelocity(self.__bulletId, physicsClientId=self.__client_id)
             self.__last_sim_velocity_update = self.simulator.get_n_update()
         return self.__current_ang_velocity
 
@@ -113,7 +114,7 @@ class RigidBody(object):
         """
         pos  = pose.position
         quat = pose.quaternion
-        pb.resetBasePositionAndOrientation(self.__bulletId, pos, quat)
+        pb.resetBasePositionAndOrientation(self.__bulletId, pos, quat, physicsClientId=self.__client_id)
         self.__last_sim_pose_update = -1
         if override_initial:
             self.initial_pos = list(pos)

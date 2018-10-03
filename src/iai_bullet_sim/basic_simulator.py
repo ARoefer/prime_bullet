@@ -104,11 +104,25 @@ def invert_transform(frame_tuple):
     return Frame(Point3(*temp[0]), Quaternion(*temp[1]))
 
 def transform_point(transform, point):
-    point, trash = pb.multiplyTransforms(transform.position, transform.quaternion, point, [0,0,0,1])
+    """
+    Transforms a given point by the given transform.
+
+    :type transform: iai_bullet_sim.utils.Frame
+    :type point: iterable
+    :rtype: tuple
+    """
+    point, _ = pb.multiplyTransforms(transform.position, transform.quaternion, point, [0,0,0,1])
     return point
 
 def transform_vector(transform, vector):
-    vec, trash = pb.multiplyTransforms((0,0,0), transform.quaternion, vector, [0,0,0,1])
+    """
+    Transforms a given point by the given transform.
+
+    :type transform: iai_bullet_sim.utils.Frame
+    :type point: iterable
+    :rtype: tuple
+    """
+    vec, _ = pb.multiplyTransforms((0,0,0), transform.quaternion, vector, [0,0,0,1])
     return vec
 
 class ContactPoint(object):
@@ -170,6 +184,7 @@ class BasicSimulator(object):
         self.tick_rate   = tick_rate
         self.gravity     = gravity
         self.time_step   = 1.0 / self.tick_rate
+        self.__client_id = 0
         self.__n_updates = 0
         self.__bId_IdMap = {}
 
@@ -185,6 +200,9 @@ class BasicSimulator(object):
         :rtype: int
         """
         return self.__n_updates
+
+    def client_id(self):
+        return self.__client_id
 
     def __gen_next_color(self):
         """Internal. Generates a new random color.
@@ -202,9 +220,15 @@ class BasicSimulator(object):
         :param mode: Mode of the connection. Options: gui | direct
         :type  mode: str
         """
-        self.physicsClient = pb.connect({'gui': pb.GUI, 'direct': pb.DIRECT}[mode])#or p.DIRECT for non-graphical version
-        pb.setGravity(*self.gravity)
-        pb.setTimeStep(self.time_step)
+        while True:
+            if pb.getConnectionInfo(self.__client_id)['isConnected'] > 0:
+                self.__client_id += 1
+            else:
+                break
+
+        self.physicsClient = pb.connect({'gui': pb.GUI, 'direct': pb.DIRECT}[mode], self.__client_id)#or p.DIRECT for non-graphical version
+        pb.setGravity(*self.gravity, physicsClientId=self.__client_id)
+        pb.setTimeStep(self.time_step, physicsClientId=self.__client_id)
 
 
     def set_tick_rate(self, tick_rate):
@@ -215,7 +239,7 @@ class BasicSimulator(object):
         self.tick_rate = tick_rate
         self.time_step = 1.0 / self.tick_rate
         if self.physicsClient is not None:
-            pb.setTimeStep(self.time_step)
+            pb.setTimeStep(self.time_step, physicsClientId=self.__client_id)
 
 
     def set_gravity(self, gravity):
@@ -225,7 +249,7 @@ class BasicSimulator(object):
         """
         self.gravity = gravity
         if self.physicsClient is not None:
-            pb.setGravity(*gravity)
+            pb.setGravity(*gravity, physicsClientId=self.__client_id)
 
     def stop(self):
         """Stops the simulation. Calls disable() on all plugins."""
@@ -234,7 +258,7 @@ class BasicSimulator(object):
 
     def kill(self):
         """Kills the connection to Bullet."""
-        pb.disconnect()
+        pb.disconnect(self.__client_id)
 
     def pre_update(self):
         """Called before every physics step."""
@@ -243,7 +267,7 @@ class BasicSimulator(object):
 
     def physics_update(self):
         """Steps the physics simulation."""
-        pb.stepSimulation()
+        pb.stepSimulation(physicsClientId=self.__client_id)
         self.__n_updates += 1
 
     def post_update(self):
@@ -277,7 +301,7 @@ class BasicSimulator(object):
         """
         if name_override is None:
             if isinstance(obj, MultiBody):
-                base_link, bodyId = pb.getBodyInfo(obj.bId())
+                base_link, bodyId = pb.getBodyInfo(obj.bId(), physicsClientId=self.__client_id)
             elif isinstance(obj, RigidBody):
                 bodyId = obj.type
             counter = 0
@@ -350,18 +374,18 @@ class BasicSimulator(object):
         :rtype: iai_bullet_sim.multibody.MultiBody
         """
         res_urdf_path = res_pkg_path(urdf_path)
-        print('Simulator: {}'.format(res_urdf_path))
+        #print('Simulator: {}'.format(res_urdf_path))
 
         new_body = MultiBody(self, pb.loadURDF(res_urdf_path,
                                                pos,
                                                rot,
                                                0,              # MAXIMAL COORDINATES, DO NOT TOUCH!
                                                useFixedBase,
-                                               flags=pb.URDF_USE_SELF_COLLISION_EXCLUDE_PARENT), self.__gen_next_color(), pos, rot, joint_driver, urdf_path)
+                                               flags=pb.URDF_USE_SELF_COLLISION_EXCLUDE_PARENT, physicsClientId=self.__client_id), self.__gen_next_color(), pos, rot, joint_driver, urdf_path)
 
 
         bodyId = self.register_object(new_body, name_override)
-        print('Created new multibody with id {}'.format(bodyId))
+        #print('Created new multibody with id {}'.format(bodyId))
         return new_body
 
 
@@ -476,10 +500,10 @@ class BasicSimulator(object):
             color = self.__gen_next_color()
 
         new_body = RigidBody(self,
-                             pb.createRigidBody(GEOM_TYPES[geom_type], radius, [0.5 * x for x in extents], height, mass, pos, rot, color),
+                             pb.createRigidBody(GEOM_TYPES[geom_type], radius, [0.5 * x for x in extents], height, mass, pos, rot, color, physicsClientId=self.__client_id),
                              geom_type, color, pos, rot, extents, radius, height, mass)
         bodyId = self.register_object(new_body, name_override)
-        print('Created new rigid body with id {}'.format(bodyId))
+        #print('Created new rigid body with id {}'.format(bodyId))
         return new_body
 
 
@@ -504,6 +528,23 @@ class BasicSimulator(object):
         return None
 
 
+    def delete_body(self, bodyId):
+        """
+        Removes body associated with the given Id from the simulation. Returns True, if body was deleted.
+
+        :param bodyId: Id of body to be deleted
+        :type  bodyId: string
+        :rtype: bool
+        """
+        if bodyId in self.bodies:
+            body = self.bodies[bodyId]
+            pb.removeBody(body.bId(), self.__client_id)
+            del self.__bId_IdMap[body.bId()]
+            del self.bodies[bodyId]
+            return True
+        return False
+
+
     def create_constraint(self, constraintId, parentBody, childBody,
                           parentLink=None, childLink=None,
                           jointType='FIXED', jointAxis=[1,0,0],
@@ -522,7 +563,7 @@ class BasicSimulator(object):
             pjo = parentJointOrientation
             cjo = childJointOrientation
             bulletId = pb.createConstraint(parent.bulletId, parentLinkId, child.bulletId,
-                                           childLinkId, type, axis, pjp, cjp, pjo, cjo)
+                                           childLinkId, type, axis, pjp, cjp, pjo, cjo, physicsClientId=self.__client_id)
             self.constraints[constraintId] = Constraint(bulletId, parent, child, parentLink, childLink,
                                                         type, axis, pjp, cjp, pjo, cjo)
         else:
@@ -540,7 +581,7 @@ class BasicSimulator(object):
         :type  filter: set
         :rtype: list
         """
-        raw_overlap = pb.getOverlappingObjects(vec3_to_list(aabb.min), vec3_to_list(aabb.max))
+        raw_overlap = pb.getOverlappingObjects(vec3_to_list(aabb.min), vec3_to_list(aabb.max), physicsClientId=self.__client_id)
         if raw_overlap == None:
             return []
 
@@ -566,13 +607,13 @@ class BasicSimulator(object):
         bulletLB = bodyB.link_index_map[linkB] if bodyB != None and linkB != None and isinstance(bodyB, MultiBody) else -1
         contacts = []
         if bulletLA == -1 and bulletLB == -1:
-            contacts = pb.getContactPoints(bulletA, bulletB)
+            contacts = pb.getContactPoints(bulletA, bulletB, physicsClientId=self.__client_id)
         elif bulletLA != -1 and bulletLB == -1:
-            contacts = pb.getContactPoints(bulletA, bulletB, linkIndexA=bulletLA)
+            contacts = pb.getContactPoints(bulletA, bulletB, linkIndexA=bulletLA, physicsClientId=self.__client_id)
         elif bulletLA == -1 and bulletLB != -1:
-            contacts = pb.getContactPoints(bulletA, bulletB, linkIndexB=bulletLB)
+            contacts = pb.getContactPoints(bulletA, bulletB, linkIndexB=bulletLB, physicsClientId=self.__client_id)
         else:
-            contacts = pb.getContactPoints(bulletA, bulletB, bulletLA, bulletLB)
+            contacts = pb.getContactPoints(bulletA, bulletB, bulletLA, bulletLB, physicsClientId=self.__client_id)
         return [self.__create_contact_point(c) for c in contacts]
 
 
@@ -596,15 +637,14 @@ class BasicSimulator(object):
         bulletLB = bodyB.link_index_map[linkB] if bodyB != None and linkB != None and isinstance(bodyB, MultiBody) else -1
         contacts = []
         if bulletLA == -1 and bulletLB == -1:
-            contacts = pb.getClosestPoints(bulletA, bulletB, distance=dist)
+            contacts = pb.getClosestPoints(bulletA, bulletB, distance=dist, physicsClientId=self.__client_id)
         elif bulletLA != -1 and bulletLB == -1:
-            contacts = pb.getClosestPoints(bulletA, bulletB, linkIndexA=bulletLA, distance=dist)
+            contacts = pb.getClosestPoints(bulletA, bulletB, linkIndexA=bulletLA, distance=dist, physicsClientId=self.__client_id)
         elif bulletLA == -1 and bulletLB != -1:
-            contacts = pb.getClosestPoints(bulletA, bulletB, linkIndexB=bulletLB, distance=dist)
+            contacts = pb.getClosestPoints(bulletA, bulletB, linkIndexB=bulletLB, distance=dist, physicsClientId=self.__client_id)
         else:
-            contacts = pb.getClosestPoints(bulletA, bulletB, dist, bulletLA, bulletLB)
+            contacts = pb.getClosestPoints(bulletA, bulletB, dist, bulletLA, bulletLB, physicsClientId=self.__client_id)
         return [self.__create_contact_point(c) for c in contacts]
-
 
     def load_world(self, world_dict):
         """Loads a world configuration from a dictionary.
@@ -753,9 +793,10 @@ class BasicSimulator(object):
                'plugins': []}
 
         for plugin in self.__plugins:
-            pdict = {'plugin_type': str(type(plugin))}
-            pdict.update(plugin.to_dict(self))
-            out['plugins'].append(pdict)
+            if 'factory' in dir(plugin) and callable(getattr(plugin, 'factory')):
+                pdict = {'plugin_type': str(type(plugin))}
+                pdict.update(plugin.to_dict(self))
+                out['plugins'].append(pdict)
         return out
 
 

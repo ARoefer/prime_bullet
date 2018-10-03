@@ -22,7 +22,8 @@ def gen_pause(t):
 def gen_tick(t):
     def tick(self, timer_event):
         if not self.paused:
-            t.tick(self, timer_event)
+            self.sim.pre_update()
+            self.sim.post_update()
         elif self.tf_publisher != None:
             with self.lock:
                 self.tf_publisher.post_physics_update(self.sim, 0)
@@ -51,18 +52,18 @@ def gen_is_running(t):
     return is_running
 
 
-def FixedTickSimulator(super_type, *args):
-    """Generates and instantiates a subclass of the super class, which ticks at a fixed rate.
+def DummyTickSimulator(super_type, *args):
+    """Generates and instantiates a subclass of the super class, which ticks, but only performs pre- and post-update.
 
     :param super_type: Type to inherit from. Must be a subtype of BasicSimulatorNode.
     :type  super_type: type
     :param args: Arguments to pass to the constructor.
-    :rtype: FixedTickSimulator
+    :rtype: DummyTickSimulator
     """
     if not issubclass(super_type, BasicSimulatorNode):
         raise Exception('Type needs to be a subtype of BasicSimulatorNode. Given type: {}'.format(str(super_type)))
 
-    t = type('FixedTickSimulator',
+    t = type('DummyTickSimulator',
              (super_type, ),
              {'__init__': gen_fixed_init(super_type),
               'pause'   : gen_pause(super_type),

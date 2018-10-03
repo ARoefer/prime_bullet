@@ -1,0 +1,4 @@
+---
+visualization_msgs/Marker[] geometry
+bool success
+string error_msg

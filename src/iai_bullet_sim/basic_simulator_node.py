@@ -8,8 +8,8 @@ from iai_bullet_sim.utils           import res_pkg_path
 
 
 class BasicSimulatorNode(object):
-    def __init__(self):
-        pass
+    def __init__(self, simulator_class=BasicSimulator):
+        self._simulator_class = simulator_class
 
     def init_from_yaml(self, yaml_path, mode='gui'):
         """Loads a simulator configuration from a YAML file and starts the simulator.
@@ -40,7 +40,7 @@ class BasicSimulatorNode(object):
         :type  mode: str
         """
         cdict = config_dict if config_dict is not None else {'tick_rate': 50, 'gravity': [0,0,-9.81]}
-        self.sim = BasicSimulator()
+        self.sim = self._simulator_class()
         self.sim.init(mode)
         self.sim.load_simulator(cdict)
 
@@ -60,12 +60,15 @@ class BasicSimulatorNode(object):
         raise (NotImplemented)
 
     def reset(self):
+        """Implements the node's reset behavior."""
         self.sim.reset()
 
     def stop(self):
+        """Implements the node's stop behavior."""
         self.sim.stop()
 
     def kill(self):
+        """Implements the node's shutdown behavior."""
         self.stop()
         self.sim.kill()
 
