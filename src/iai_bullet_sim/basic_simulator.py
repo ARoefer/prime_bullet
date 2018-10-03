@@ -104,11 +104,25 @@ def invert_transform(frame_tuple):
     return Frame(Point3(*temp[0]), Quaternion(*temp[1]))
 
 def transform_point(transform, point):
-    point, trash = pb.multiplyTransforms(transform.position, transform.quaternion, point, [0,0,0,1])
+    """
+    Transforms a given point by the given transform.
+
+    :type transform: iai_bullet_sim.utils.Frame
+    :type point: iterable
+    :rtype: tuple
+    """
+    point, _ = pb.multiplyTransforms(transform.position, transform.quaternion, point, [0,0,0,1])
     return point
 
 def transform_vector(transform, vector):
-    vec, trash = pb.multiplyTransforms((0,0,0), transform.quaternion, vector, [0,0,0,1])
+    """
+    Transforms a given point by the given transform.
+
+    :type transform: iai_bullet_sim.utils.Frame
+    :type point: iterable
+    :rtype: tuple
+    """
+    vec, _ = pb.multiplyTransforms((0,0,0), transform.quaternion, vector, [0,0,0,1])
     return vec
 
 class ContactPoint(object):
@@ -515,12 +529,20 @@ class BasicSimulator(object):
 
 
     def delete_body(self, bodyId):
+        """
+        Removes body associated with the given Id from the simulation. Returns True, if body was deleted.
+
+        :param bodyId: Id of body to be deleted
+        :type  bodyId: string
+        :rtype: bool
+        """
         if bodyId in self.bodies:
             body = self.bodies[bodyId]
             pb.removeBody(body.bId(), self.__client_id)
             del self.__bId_IdMap[body.bId()]
             del self.bodies[bodyId]
-        return None
+            return True
+        return False
 
 
     def create_constraint(self, constraintId, parentBody, childBody,

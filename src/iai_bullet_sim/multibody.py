@@ -24,7 +24,17 @@ class JointDriver(object):
         return JointDriver()
 
 class SimpleBaseDriver(JointDriver):
+    """Implements and update behavior for robots with a movable base. 
+       The base can be translated horizontally and turned around the global z-axis.
+    """
     def __init__(self, max_linear_vel, max_angular_vel):
+        """Constructor.
+
+        :param max_linear_vel: Upper bound for linear velocity
+        :type  max_linear_vel: float
+        :param max_angular_vel: Upper bound for angular velocity
+        :type  max_angular_vel: float
+        """
         self.m_lin_v = max_linear_vel
         self.m_ang_v = max_angular_vel
         self.x_lin_joint = 'base_linear_joint'
@@ -88,6 +98,10 @@ class SimpleBaseDriver(JointDriver):
 
 
     def to_dict(self):
+        """Serializes the driver to a dictionary.
+
+        :rtype: dict
+        """
         return {'max_lin_vel': self.m_lin_v,
                 'max_ang_vel': self.m_ang_v,
                 'x_lin_joint': self.x_lin_joint,
@@ -96,6 +110,12 @@ class SimpleBaseDriver(JointDriver):
 
     @classmethod
     def factory(cls, config_dict):
+        """Instantiates the driver from a dictionary.
+
+        :param config_dict: Driver configuration
+        :type  config_dict: dict
+        :rtype: SimpleBaseDriver
+        """
         return SimpleBaseDriver(config_dict['max_lin_vel'], config_dict['max_ang_vel'])
 
 

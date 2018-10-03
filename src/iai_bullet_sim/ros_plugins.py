@@ -1,10 +1,13 @@
 import rospy
 import tf
+import pybullet as pb
+import numpy as np
 
 from collections import OrderedDict
 
 from geometry_msgs.msg import WrenchStamped as WrenchMsg
 from sensor_msgs.msg import JointState as JointStateMsg
+from sensor_msgs.msg import LaserScan as LaserScanMsg
 from trajectory_msgs.msg import JointTrajectory as JointTrajectoryMsg
 from nav_msgs.msg import Odometry as OdometryMsg
 
@@ -579,16 +582,16 @@ class TFPublisher(SimulatorPlugin):
 
 
 class OdometryPublisher(SimulatorPlugin):
-    """Plugin which publishes an object's joint state to a topic.
-    The joint state will be published to [prefix]/joint_states.
-    """
+    """Plugin which publishes an object's current pose as nav_msgs/Odometry message."""
     def __init__(self, simulator, multibody, child_frame_id='/base_link'):
         """Initializes the plugin.
 
+        :param simulator: Simulator
+        :type  simulator: BasicSimulator
         :param multibody: Object to observe.
         :type  multibody: iai_bullet_sim.multibody.MultiBody
-        :param topic_prefixPrefix: for the topic to publish to.
-        :type  topic_prefixPrefix: str
+        :param child_frame_id: Name of the frame being published.
+        :type  child_frame_id: str
         """
         super(OdometryPublisher, self).__init__('Odometry Publisher')
         name = simulator.get_body_id(multibody.bId())
@@ -600,7 +603,7 @@ class OdometryPublisher(SimulatorPlugin):
         self.__enabled = True
 
     def post_physics_update(self, simulator, deltaT):
-        """Publishes the current joint state.
+        """Publishes the current odometry.
 
         :type simulator: iai_bullet_sim.basic_simulator.BasicSimulator
         :type deltaT: float
@@ -650,9 +653,176 @@ class OdometryPublisher(SimulatorPlugin):
 
         :type simulator: iai_bullet_sim.basic_simulator.BasicSimulator
         :type init_dict: dict
-        :rtype: JSPublisher
+        :rtype: OdometryPublisher
         """
         body = simulator.get_body(init_dict['body'])
         if body is None:
             raise Exception('Body "{}" does not exist in the context of the given simulation.'.format(init_dict['body']))
         return cls(simulator, body, init_dict['child_frame_id'])
+
+
+def rotation3_axis_angle(axis, angle):
+    """ Conversion of unit axis and angle to 4x4 rotation matrix according to:
+        http://www.euclideanspace.com/maths/geometry/rotations/conversions/angleToMatrix/index.htm
+    :param axis: Rotation axis
+    :type  axis: np.array
+    :param angle: Rotation angle
+    :type  angle: float
+    :rtype: np.array
+    """
+    ct = np.cos(angle)
+    st = np.sin(angle)
+    vt = 1 - ct
+    m_vt_0 = vt * axis[0]
+    m_vt_1 = vt * axis[1]
+    m_vt_2 = vt * axis[2]
+    m_st_0 = axis[0] * st
+    m_st_1 = axis[1] * st
+    m_st_2 = axis[2] * st
+    m_vt_0_1 = m_vt_0 * axis[1]
+    m_vt_0_2 = m_vt_0 * axis[2]
+    m_vt_1_2 = m_vt_1 * axis[2]
+    return np.array([[ct + m_vt_0 * axis[0], -m_st_2 + m_vt_0_1, m_st_1 + m_vt_0_2, 0],
+                      [m_st_2 + m_vt_0_1, ct + m_vt_1 * axis[1], -m_st_0 + m_vt_1_2, 0],
+                      [-m_st_1 + m_vt_0_2, m_st_0 + m_vt_1_2, ct + m_vt_2 * axis[2], 0],
+                      [0, 0, 0, 1]])
+
+def rotation3_quaternion(x, y, z, w):
+    """ Unit quaternion to 4x4 rotation matrix according to:
+        https://github.com/orocos/orocos_kinematics_dynamics/blob/master/orocos_kdl/src/frames.cpp#L167
+    """
+    x2 = x * x
+    y2 = y * y
+    z2 = z * z
+    w2 = w * w
+    return np.array([[w2 + x2 - y2 - z2, 2 * x * y - 2 * w * z, 2 * x * z + 2 * w * y, 0],
+                      [2 * x * y + 2 * w * z, w2 - x2 + y2 - z2, 2 * y * z - 2 * w * x, 0],
+                      [2 * x * z - 2 * w * y, 2 * y * z + 2 * w * x, w2 - x2 - y2 + z2, 0],
+                      [0, 0, 0, 1]])
+
+
+class LaserScanner(SimulatorPlugin):
+    """This class implements a virtual laser scanner for the simulation.
+       The generated scans are published as sensor_msgs/LaserScan.
+    """
+    def __init__(self, simulator, body, link, 
+                       ang_min, ang_max, resolution, 
+                       range_min, range_max, axis=(0,0,1),
+                       sensor_name='laser_scan'):
+        """Constructor.
+
+        :param simulator: Simulator
+        :type  simulator: BasicSimulator
+        :param body: Multibody the laser scan is performed by.
+        :type  body: MultiBody
+        :param link: Link for the scanner
+        :type  link: str
+        :param ang_min: Lower edge of the laser scan.
+        :type  ang_min: float
+        :param ang_max: Upper edge of the laser scan.
+        :type  ang_max: float
+        :param resolution: Number of rays sent out by the scanner.
+        :type  resolution: int
+        :param range_min: Closest observable distance.
+        :type  range_min: float
+        :param range_max: Furthest observable distance.
+        :type  range_max: float
+        :param axis: rotation axis of the scanner.
+        :type  axis: tuple, list
+        :param sensor_name: Name of the simulated sensor.
+        :type  sensor_name: str
+        """
+        self.body = body
+        self.link = link
+        self.sensor_name = sensor_name
+        body_name = simulator.get_body_id(body.bId())
+        if link == None or link == '':
+            self.publisher = rospy.Publisher('{}/sensors/{}'.format(body_name, sensor_name), LaserScanMsg, queue_size=1)
+        else:
+            self.publisher = rospy.Publisher('{}/sensors/{}/{}'.format(body_name, link, sensor_name), LaserScanMsg, queue_size=1)
+        self.resolution = resolution
+        ang_step = (ang_max - ang_min) / resolution
+        
+        self.msg_template = LaserScanMsg()
+        self.msg_template.header.frame_id = '{}/{}'.format(body_name, link) if link is not None else body_name
+        self.msg_template.angle_min = ang_min
+        self.msg_template.angle_max = ang_max
+        self.msg_template.angle_increment = ang_step
+        self.msg_template.range_min = range_min
+        self.msg_template.range_max = range_max
+
+        self.conversion_factor = range_max - range_min
+        
+        self.axis = axis
+        e_axis = np.array([axis[0], axis[1], axis[2], 0])
+
+        self.raw_start_points = np.hstack([(rotation3_axis_angle(e_axis, ang_min + ang_step * x) * np.array([range_min,0,0,1])).tolist() 
+                                        for x in range(resolution)]).astype(float)
+        self.raw_end_points = np.hstack([(rotation3_axis_angle(e_axis, ang_min + ang_step * x) * np.array([range_max,0,0,1])).tolist() 
+                                        for x in range(resolution)]).astype(float)
+        self._enabled = True
+
+    def post_physics_update(self, simulator, deltaT):
+        """Performs the laser scan.
+
+        :type simulator: BasicSimulator
+        :type deltaT: float
+        """
+        if self._enabled:
+            self.msg_template.header.stamp = rospy.Time.now()
+
+            if self.link != None:
+                ft_pose = self.body.get_link_state(self.link).worldFrame
+            else:
+                ft_pose = self.body.pose()
+
+            transform = np.hstack((np.zeros((4,3)), np.array([[ft_pose.position.x],[ft_pose.position.y],[ft_pose.position.z],[0]])))
+            transform = rotation3_quaternion(ft_pose.quaternion.x, 
+                                             ft_pose.quaternion.y, 
+                                             ft_pose.quaternion.z,
+                                             ft_pose.quaternion.w) + transform
+
+            start_points = np.dot(transform, self.raw_start_points).T[:,:3].tolist()
+            end_points   = np.dot(transform, self.raw_end_points).T[:,:3].tolist()
+
+            self.msg_template.ranges = [self.msg_template.range_min + r[2] * self.conversion_factor for r in pb.rayTestBatch(start_points, end_points, physicsClientId=simulator.client_id())]
+            self.publisher.publish(self.msg_template)
+
+    def disable(self, simulator):
+        """Stops the execution of this plugin.
+
+        :type simulator: BasicSimulator
+        """
+        self._enabled = False
+        self.publisher.unregister()
+
+    def to_dict(self, simulator):
+        """Serializes this plugin to a dictionary.
+
+        :type simulator: BasicSimulator
+        :rtype: dict
+        """
+        return {'body': simulator.get_body_id(self.body.bId()),
+                'link': self.link if self.link != None else '',
+                'angle_min': self.msg_template.angle_min,
+                'angle_max': self.msg_template.angle_max,
+                'range_min': self.msg_template.range_min,
+                'range_max': self.msg_template.range_max,
+                'resolution': self.resolution,
+                'axis': list(self.axis)[:3],
+                'sensor_name': self.sensor_name}
+
+    @classmethod
+    def factory(cls, simulator, init_dict):
+        body = simulator.get_body(init_dict['body'])
+        if body is None:
+            raise Exception('Body "{}" does not exist in the context of the given simulation.'.format(init_dict['body']))
+        return cls(simulator, body, 
+                              init_dict['link'], 
+                              init_dict['angle_min'],
+                              init_dict['angle_max'],
+                              init_dict['resolution'],
+                              init_dict['range_min'],
+                              init_dict['range_max'],
+                              init_dict['axis'],
+                              init_dict['sensor_name']) 

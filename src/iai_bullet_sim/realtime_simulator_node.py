@@ -52,6 +52,13 @@ def gen_is_running(t):
 
 
 def FixedTickSimulator(super_type, *args):
+    """Generates and instantiates a subclass of the super class, which ticks at a fixed rate.
+
+    :param super_type: Type to inherit from. Must be a subtype of BasicSimulatorNode.
+    :type  super_type: type
+    :param args: Arguments to pass to the constructor.
+    :rtype: FixedTickSimulator
+    """
     if not issubclass(super_type, BasicSimulatorNode):
         raise Exception('Type needs to be a subtype of BasicSimulatorNode. Given type: {}'.format(str(super_type)))
 

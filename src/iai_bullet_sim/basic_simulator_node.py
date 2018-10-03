@@ -60,12 +60,15 @@ class BasicSimulatorNode(object):
         raise (NotImplemented)
 
     def reset(self):
+        """Implements the node's reset behavior."""
         self.sim.reset()
 
     def stop(self):
+        """Implements the node's stop behavior."""
         self.sim.stop()
 
     def kill(self):
+        """Implements the node's shutdown behavior."""
         self.stop()
         self.sim.kill()
 

@@ -21,7 +21,16 @@ from visualization_msgs.msg import InteractiveMarkerFeedback as InteractiveMarke
 zero_pose = PoseMsg()
 
 class FullStateInteractiveNode(FullStatePublishingNode):
+    """This node publishes the state of the simulation and makes objects interactable through interactive markers."""
+
     def __init__(self, server_name='iai_bullet_sim', simulator_class=BasicSimulator):
+        """Instantiates the node.
+
+        :param server_name: Name for the marker server.
+        :type  server_name: str
+        :param simulator_class: Simulator class to use
+        :type  simulator_class: type
+        """
         super(FullStateInteractiveNode, self).__init__(simulator_class)
 
         self._selected_object = None
@@ -34,6 +43,13 @@ class FullStateInteractiveNode(FullStatePublishingNode):
         self.tf_publisher = None
 
     def init(self, config_dict=None, mode='direct'):
+        """Node initialization behavior.
+
+        :param config_dict: Simulator configuration
+        :type  config_dict: dict, NoneType
+        :param mode: Simulator mode. gui | direct
+        :type  mode: str
+        """
         super(FullStateInteractiveNode, self).init(config_dict, mode)
 
         self.marker_server = InteractiveMarkerServer(self.server_name)
@@ -50,6 +66,23 @@ class FullStateInteractiveNode(FullStatePublishingNode):
         self.tf_publisher = self.sim.get_plugin_of_type(TFPublisher)
 
     def add_new_marker(self, name, body, callback, selected=True, delay_update=False, frame=None, pose=None):
+        """Adds a new interactive marker to the node.
+        
+        :param name: Name of the marker
+        :type  name: str
+        :param body: Body controlled by the marker
+        :type  body: RigidBody, MultiBody
+        :param callback: Callback function for the marker
+        :type  callback: function
+        :param selected: Should the marker be selected upon creation
+        :type  selected: bool
+        :param delay_update: Delay the update to the server
+        :type  delay_update: bool
+        :param frame: Name of reference frame
+        :type  frame: NoneType, str
+        :param pose: Initial pose of the marker
+        :type  pose: NoneType, Frame
+        """
         intMarker = InteractiveMarker()
         intMarker.name = name
         intMarker.header.frame_id = frame if frame is not None else name
@@ -82,6 +115,17 @@ class FullStateInteractiveNode(FullStatePublishingNode):
             self.marker_server.applyChanges()
 
     def create_visual_marker(self, name, data, intMarker, control):
+        """Creates a visual marker from a body.
+
+        :param name: Name of the marker
+        :type  name: str
+        :param data: Body to represent
+        :type  data: RigidBody, MultiBody
+        :param intMarker: Marker this body is contained in
+        :type  intMarker: InteractiveMarker
+        :param control: Control the visual should be attached to
+        :type  control: InteractiveMarkerControlMsg
+        """
         if isinstance(data, MultiBody):
             intMarker.header.frame_id = '{}/{}'.format(name, data.base_link)
         else:
@@ -90,18 +134,21 @@ class FullStateInteractiveNode(FullStatePublishingNode):
             intMarker.scale = max_dim + 0.1
 
     def srv_add_urdf(self, req):
+        """Override of URDF-adding service. Automatically adds an interactive marker for the object."""
         res = super(FullStateInteractiveNode, self).srv_add_urdf(req)
         if res.success:
             self.add_new_marker(res.object_id, self.sim.bodies[res.object_id], self.process_body_marker_feedback)
         return res
 
     def srv_add_rigid_body(self, req):
+        """Override of rigid body adding service. Automatically adds an interactive marker for the object."""
         res = super(FullStateInteractiveNode, self).srv_add_rigid_body(req)
         if res.success:
             self.add_new_marker(res.object_id, self.sim.bodies[res.object_id], self.process_body_marker_feedback)
         return res
 
     def srv_select_object(self, req):
+        """Service changing the currently selected object."""
         res = ObjectIdResponse()
         if req.object_id in self.sim.bodies:
             self.select_marker(req.object_id)
@@ -112,6 +159,11 @@ class FullStateInteractiveNode(FullStatePublishingNode):
 
 
     def select_marker(self, marker_id):
+        """Selects the marker matching the given Id.
+
+        :param marker_id: Marker to select
+        :type  marker_id: str
+        """
         if self._selected_object != marker_id:
             if self._selected_object in self.markers:
                 cm, cb = self.markers[self._selected_object]
@@ -129,6 +181,7 @@ class FullStateInteractiveNode(FullStatePublishingNode):
 
 
     def process_body_marker_feedback(self, feedback):
+        """Processes the feedback sent by markers corresponding to dynamic objects."""
         if feedback.event_type == InteractiveMarkerFeedbackMsg.MOUSE_DOWN and feedback.marker_name != self._selected_object:
             self.select_marker(feedback.marker_name)
         
@@ -156,6 +209,7 @@ class FullStateInteractiveNode(FullStatePublishingNode):
                 self.run()
 
     def process_static_body_marker_feedback(self, feedback):
+        """Processes feedback sent by markers corresponding to static objects."""
         if feedback.event_type == InteractiveMarkerFeedbackMsg.MOUSE_DOWN and feedback.marker_name != self._selected_object:
             self.select_marker(feedback.marker_name)
         
@@ -177,11 +231,13 @@ class FullStateInteractiveNode(FullStatePublishingNode):
                 self.run()
 
 def pose_msg_to_frame(msg):
+    """Converts a geometry_msgs.msg.Pose to a Frame."""
     return Frame([msg.position.x, msg.position.y, msg.position.z],
                  [msg.orientation.x, msg.orientation.y, msg.orientation.z, msg.orientation.w ])
 
 
 def rigid_body_to_markers(body):
+    """Helper function generating visual markers for physical bodies."""
     central_marker = MarkerMsg()
     out = [central_marker]
     central_marker.pose.orientation.w = 1
@@ -222,6 +278,7 @@ def rigid_body_to_markers(body):
 
 
 def make6DOFGimbal(intMarker):
+    """Creates 6DOF gimbal marker controls.""" 
     pitch = InteractiveMarkerControlMsg()
     pitch.orientation.x = 1
     pitch.orientation.y = 0
@@ -278,6 +335,7 @@ def make6DOFGimbal(intMarker):
 
 
 def activateMarker(intMarker, active):
+    """Updates a marker to the selected or non-selected visuals."""
     if active:
         #intMarker.controls[0].interaction_mode = InteractiveMarkerControlMsg.MOVE_3D
         for control in intMarker.controls[1:4]:
