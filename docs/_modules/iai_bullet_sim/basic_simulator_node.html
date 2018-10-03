@@ -156,8 +156,8 @@
 
 
 <div class="viewcode-block" id="BasicSimulatorNode"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.basic_simulator_node.BasicSimulatorNode">[docs]</a><span class="k">class</span> <span class="nc">BasicSimulatorNode</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">pass</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">simulator_class</span><span class="o">=</span><span class="n">BasicSimulator</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_simulator_class</span> <span class="o">=</span> <span class="n">simulator_class</span>
 
 <div class="viewcode-block" id="BasicSimulatorNode.init_from_yaml"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.basic_simulator_node.BasicSimulatorNode.init_from_yaml">[docs]</a>    <span class="k">def</span> <span class="nf">init_from_yaml</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">yaml_path</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;gui&#39;</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Loads a simulator configuration from a YAML file and starts the simulator.</span>
@@ -167,7 +167,7 @@
 <span class="sd">        :param mode: Simulator mode. gui | direct</span>
 <span class="sd">        :type  mode: str</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">init</span><span class="p">(</span><span class="n">yaml</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="nb">open</span><span class="p">(</span><span class="n">res_pkg_path</span><span class="p">(</span><span class="n">yaml_path</span><span class="p">),</span> <span class="s1">&#39;r&#39;</span><span class="p">)))</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">init</span><span class="p">(</span><span class="n">yaml</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="nb">open</span><span class="p">(</span><span class="n">res_pkg_path</span><span class="p">(</span><span class="n">yaml_path</span><span class="p">),</span> <span class="s1">&#39;r&#39;</span><span class="p">)),</span> <span class="n">mode</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="BasicSimulatorNode.init_from_rosparam"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.basic_simulator_node.BasicSimulatorNode.init_from_rosparam">[docs]</a>    <span class="k">def</span> <span class="nf">init_from_rosparam</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rosparam</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;gui&#39;</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Loads a simulator configuration from a ROS parameter and starts the simulator.</span>
@@ -177,7 +177,7 @@
 <span class="sd">        :param mode: Simulator mode. gui | direct</span>
 <span class="sd">        :type  mode: str</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">init</span><span class="p">(</span><span class="n">rospy</span><span class="o">.</span><span class="n">get_param</span><span class="p">(</span><span class="n">rosparam</span><span class="p">,</span> <span class="kc">None</span><span class="p">))</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">init</span><span class="p">(</span><span class="n">rospy</span><span class="o">.</span><span class="n">get_param</span><span class="p">(</span><span class="n">rosparam</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span> <span class="n">mode</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="BasicSimulatorNode.init"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.basic_simulator_node.BasicSimulatorNode.init">[docs]</a>    <span class="k">def</span> <span class="nf">init</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config_dict</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;gui&#39;</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Initializes the simulator using a configuration dictionary or a default configuration.</span>
@@ -188,7 +188,7 @@
 <span class="sd">        :type  mode: str</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">cdict</span> <span class="o">=</span> <span class="n">config_dict</span> <span class="k">if</span> <span class="n">config_dict</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="p">{</span><span class="s1">&#39;tick_rate&#39;</span><span class="p">:</span> <span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;gravity&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="o">-</span><span class="mf">9.81</span><span class="p">]}</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">sim</span> <span class="o">=</span> <span class="n">BasicSimulator</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sim</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_simulator_class</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">sim</span><span class="o">.</span><span class="n">init</span><span class="p">(</span><span class="n">mode</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">sim</span><span class="o">.</span><span class="n">load_simulator</span><span class="p">(</span><span class="n">cdict</span><span class="p">)</span></div>
 
@@ -204,13 +204,19 @@
 <div class="viewcode-block" id="BasicSimulatorNode.pause"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.basic_simulator_node.BasicSimulatorNode.pause">[docs]</a>    <span class="k">def</span> <span class="nf">pause</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">pass</span></div>
 
+<div class="viewcode-block" id="BasicSimulatorNode.is_running"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.basic_simulator_node.BasicSimulatorNode.is_running">[docs]</a>    <span class="k">def</span> <span class="nf">is_running</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="p">(</span><span class="bp">NotImplemented</span><span class="p">)</span></div>
+
 <div class="viewcode-block" id="BasicSimulatorNode.reset"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.basic_simulator_node.BasicSimulatorNode.reset">[docs]</a>    <span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Implements the node&#39;s reset behavior.&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">sim</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="BasicSimulatorNode.stop"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.basic_simulator_node.BasicSimulatorNode.stop">[docs]</a>    <span class="k">def</span> <span class="nf">stop</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Implements the node&#39;s stop behavior.&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">sim</span><span class="o">.</span><span class="n">stop</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="BasicSimulatorNode.kill"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.basic_simulator_node.BasicSimulatorNode.kill">[docs]</a>    <span class="k">def</span> <span class="nf">kill</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Implements the node&#39;s shutdown behavior.&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">stop</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">sim</span><span class="o">.</span><span class="n">kill</span><span class="p">()</span></div>
 

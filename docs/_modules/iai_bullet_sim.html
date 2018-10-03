@@ -178,6 +178,11 @@
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <p>Class wrapping the PyBullet interface in an object oriented manner.</p>
 <dl class="method">
+<dt id="iai_bullet_sim.basic_simulator.BasicSimulator.client_id">
+<code class="descname">client_id</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="iai_bullet_sim/basic_simulator.html#BasicSimulator.client_id"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iai_bullet_sim.basic_simulator.BasicSimulator.client_id" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
 <dt id="iai_bullet_sim.basic_simulator.BasicSimulator.create_box">
 <code class="descname">create_box</code><span class="sig-paren">(</span><em>extents=[1, 1, 1], pos=[0, 0, 0], rot=[0, 0, 0, 1], mass=1, color=None, name_override=None</em><span class="sig-paren">)</span><a class="reference internal" href="iai_bullet_sim/basic_simulator.html#BasicSimulator.create_box"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iai_bullet_sim.basic_simulator.BasicSimulator.create_box" title="Permalink to this definition">¶</a></dt>
 <dd><p>Creates and registers a box shaped rigid body.</p>
@@ -313,6 +318,22 @@
 </dd></dl>
 
 <dl class="method">
+<dt id="iai_bullet_sim.basic_simulator.BasicSimulator.delete_body">
+<code class="descname">delete_body</code><span class="sig-paren">(</span><em>bodyId</em><span class="sig-paren">)</span><a class="reference internal" href="iai_bullet_sim/basic_simulator.html#BasicSimulator.delete_body"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iai_bullet_sim.basic_simulator.BasicSimulator.delete_body" title="Permalink to this definition">¶</a></dt>
+<dd><p>Removes body associated with the given Id from the simulation. Returns True, if body was deleted.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>bodyId</strong> (<em>string</em>) – Id of body to be deleted</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">bool</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
 <dt id="iai_bullet_sim.basic_simulator.BasicSimulator.deregister_plugin">
 <code class="descname">deregister_plugin</code><span class="sig-paren">(</span><em>plugin</em><span class="sig-paren">)</span><a class="reference internal" href="iai_bullet_sim/basic_simulator.html#BasicSimulator.deregister_plugin"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iai_bullet_sim.basic_simulator.BasicSimulator.deregister_plugin" title="Permalink to this definition">¶</a></dt>
 <dd><p>Removes a plugin from the simulator’s registry.</p>
@@ -428,6 +449,34 @@
 </tr>
 <tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">list</p>
 </td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="iai_bullet_sim.basic_simulator.BasicSimulator.get_plugin_of_type">
+<code class="descname">get_plugin_of_type</code><span class="sig-paren">(</span><em>clazz</em><span class="sig-paren">)</span><a class="reference internal" href="iai_bullet_sim/basic_simulator.html#BasicSimulator.get_plugin_of_type"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iai_bullet_sim.basic_simulator.BasicSimulator.get_plugin_of_type" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a plugin of the given type if such a plugin is registered.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference internal" href="#iai_bullet_sim.basic_simulator.SimulatorPlugin" title="iai_bullet_sim.basic_simulator.SimulatorPlugin">SimulatorPlugin</a>, NoneType</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="iai_bullet_sim.basic_simulator.BasicSimulator.has_plugin_of_type">
+<code class="descname">has_plugin_of_type</code><span class="sig-paren">(</span><em>clazz</em><span class="sig-paren">)</span><a class="reference internal" href="iai_bullet_sim/basic_simulator.html#BasicSimulator.has_plugin_of_type"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iai_bullet_sim.basic_simulator.BasicSimulator.has_plugin_of_type" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns True if at least one of the registered classes matches the given type.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">bool</td>
 </tr>
 </tbody>
 </table>
@@ -802,6 +851,18 @@ Implement a method class method “factory(cls, simulator, init_dict)” as fact
 </dd></dl>
 
 <dl class="method">
+<dt id="iai_bullet_sim.basic_simulator.SimulatorPlugin.reset">
+<code class="descname">reset</code><span class="sig-paren">(</span><em>simulator</em><span class="sig-paren">)</span><a class="reference internal" href="iai_bullet_sim/basic_simulator.html#SimulatorPlugin.reset"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iai_bullet_sim.basic_simulator.SimulatorPlugin.reset" title="Permalink to this definition">¶</a></dt>
+<dd><p>Implements reset behavior.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
 <dt id="iai_bullet_sim.basic_simulator.SimulatorPlugin.to_dict">
 <code class="descname">to_dict</code><span class="sig-paren">(</span><em>simulator</em><span class="sig-paren">)</span><a class="reference internal" href="iai_bullet_sim/basic_simulator.html#SimulatorPlugin.to_dict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iai_bullet_sim.basic_simulator.SimulatorPlugin.to_dict" title="Permalink to this definition">¶</a></dt>
 <dd><p>Serializes this plugin to a dictionary.</p>
@@ -912,6 +973,34 @@ Implement a method class method “factory(cls, simulator, init_dict)” as fact
 </dd></dl>
 
 <dl class="function">
+<dt id="iai_bullet_sim.basic_simulator.transform_point">
+<code class="descclassname">iai_bullet_sim.basic_simulator.</code><code class="descname">transform_point</code><span class="sig-paren">(</span><em>transform</em>, <em>point</em><span class="sig-paren">)</span><a class="reference internal" href="iai_bullet_sim/basic_simulator.html#transform_point"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iai_bullet_sim.basic_simulator.transform_point" title="Permalink to this definition">¶</a></dt>
+<dd><p>Transforms a given point by the given transform.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">tuple</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="iai_bullet_sim.basic_simulator.transform_vector">
+<code class="descclassname">iai_bullet_sim.basic_simulator.</code><code class="descname">transform_vector</code><span class="sig-paren">(</span><em>transform</em>, <em>vector</em><span class="sig-paren">)</span><a class="reference internal" href="iai_bullet_sim/basic_simulator.html#transform_vector"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iai_bullet_sim.basic_simulator.transform_vector" title="Permalink to this definition">¶</a></dt>
+<dd><p>Transforms a given point by the given transform.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">tuple</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
 <dt id="iai_bullet_sim.basic_simulator.vec3_to_list">
 <code class="descclassname">iai_bullet_sim.basic_simulator.</code><code class="descname">vec3_to_list</code><span class="sig-paren">(</span><em>vec</em><span class="sig-paren">)</span><a class="reference internal" href="iai_bullet_sim/basic_simulator.html#vec3_to_list"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iai_bullet_sim.basic_simulator.vec3_to_list" title="Permalink to this definition">¶</a></dt>
 <dd><p>Converts an indexable structure with len &gt;= 3 to a list containing the first three elements.</p>
@@ -972,7 +1061,7 @@ Implement a method class method “factory(cls, simulator, init_dict)” as fact
 <span id="iai-bullet-sim-basic-simulator-node-module"></span><h2>iai_bullet_sim.basic_simulator_node module<a class="headerlink" href="#module-iai_bullet_sim.basic_simulator_node" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
 <dt id="iai_bullet_sim.basic_simulator_node.BasicSimulatorNode">
-<em class="property">class </em><code class="descclassname">iai_bullet_sim.basic_simulator_node.</code><code class="descname">BasicSimulatorNode</code><a class="reference internal" href="iai_bullet_sim/basic_simulator_node.html#BasicSimulatorNode"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iai_bullet_sim.basic_simulator_node.BasicSimulatorNode" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">iai_bullet_sim.basic_simulator_node.</code><code class="descname">BasicSimulatorNode</code><span class="sig-paren">(</span><em>simulator_class=&lt;class 'iai_bullet_sim.basic_simulator.BasicSimulator'&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="iai_bullet_sim/basic_simulator_node.html#BasicSimulatorNode"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iai_bullet_sim.basic_simulator_node.BasicSimulatorNode" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <dl class="method">
 <dt id="iai_bullet_sim.basic_simulator_node.BasicSimulatorNode.init">
@@ -1029,9 +1118,15 @@ Implement a method class method “factory(cls, simulator, init_dict)” as fact
 </dd></dl>
 
 <dl class="method">
+<dt id="iai_bullet_sim.basic_simulator_node.BasicSimulatorNode.is_running">
+<code class="descname">is_running</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="iai_bullet_sim/basic_simulator_node.html#BasicSimulatorNode.is_running"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iai_bullet_sim.basic_simulator_node.BasicSimulatorNode.is_running" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
 <dt id="iai_bullet_sim.basic_simulator_node.BasicSimulatorNode.kill">
 <code class="descname">kill</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="iai_bullet_sim/basic_simulator_node.html#BasicSimulatorNode.kill"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iai_bullet_sim.basic_simulator_node.BasicSimulatorNode.kill" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Implements the node’s shutdown behavior.</p>
+</dd></dl>
 
 <dl class="method">
 <dt id="iai_bullet_sim.basic_simulator_node.BasicSimulatorNode.pause">
@@ -1041,7 +1136,8 @@ Implement a method class method “factory(cls, simulator, init_dict)” as fact
 <dl class="method">
 <dt id="iai_bullet_sim.basic_simulator_node.BasicSimulatorNode.reset">
 <code class="descname">reset</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="iai_bullet_sim/basic_simulator_node.html#BasicSimulatorNode.reset"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iai_bullet_sim.basic_simulator_node.BasicSimulatorNode.reset" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Implements the node’s reset behavior.</p>
+</dd></dl>
 
 <dl class="method">
 <dt id="iai_bullet_sim.basic_simulator_node.BasicSimulatorNode.run">
@@ -1087,7 +1183,8 @@ Implement a method class method “factory(cls, simulator, init_dict)” as fact
 <dl class="method">
 <dt id="iai_bullet_sim.basic_simulator_node.BasicSimulatorNode.stop">
 <code class="descname">stop</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="iai_bullet_sim/basic_simulator_node.html#BasicSimulatorNode.stop"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iai_bullet_sim.basic_simulator_node.BasicSimulatorNode.stop" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Implements the node’s stop behavior.</p>
+</dd></dl>
 
 <dl class="method">
 <dt id="iai_bullet_sim.basic_simulator_node.BasicSimulatorNode.tick">
@@ -1110,6 +1207,16 @@ Implement a method class method “factory(cls, simulator, init_dict)” as fact
 <em class="property">class </em><code class="descclassname">iai_bullet_sim.multibody.</code><code class="descname">JointDriver</code><a class="reference internal" href="iai_bullet_sim/multibody.html#JointDriver"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iai_bullet_sim.multibody.JointDriver" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <p>Joint drivers modify given velocity and effort commands to match robot specific joint behavior.</p>
+<dl class="classmethod">
+<dt id="iai_bullet_sim.multibody.JointDriver.factory">
+<em class="property">classmethod </em><code class="descname">factory</code><span class="sig-paren">(</span><em>config_dict</em><span class="sig-paren">)</span><a class="reference internal" href="iai_bullet_sim/multibody.html#JointDriver.factory"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iai_bullet_sim.multibody.JointDriver.factory" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="iai_bullet_sim.multibody.JointDriver.to_dict">
+<code class="descname">to_dict</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="iai_bullet_sim/multibody.html#JointDriver.to_dict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iai_bullet_sim.multibody.JointDriver.to_dict" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
 <dl class="method">
 <dt id="iai_bullet_sim.multibody.JointDriver.update_effort">
 <code class="descname">update_effort</code><span class="sig-paren">(</span><em>robot_data</em>, <em>effort_dict</em><span class="sig-paren">)</span><a class="reference internal" href="iai_bullet_sim/multibody.html#JointDriver.update_effort"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iai_bullet_sim.multibody.JointDriver.update_effort" title="Permalink to this definition">¶</a></dt>
@@ -1370,7 +1477,7 @@ Implement a method class method “factory(cls, simulator, init_dict)” as fact
 
 <dl class="method">
 <dt id="iai_bullet_sim.multibody.MultiBody.get_closest_points">
-<code class="descname">get_closest_points</code><span class="sig-paren">(</span><em>other_body=None</em>, <em>own_link=None</em>, <em>other_link=None</em><span class="sig-paren">)</span><a class="reference internal" href="iai_bullet_sim/multibody.html#MultiBody.get_closest_points"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iai_bullet_sim.multibody.MultiBody.get_closest_points" title="Permalink to this definition">¶</a></dt>
+<code class="descname">get_closest_points</code><span class="sig-paren">(</span><em>other_body=None</em>, <em>own_link=None</em>, <em>other_link=None</em>, <em>dist=0.2</em><span class="sig-paren">)</span><a class="reference internal" href="iai_bullet_sim/multibody.html#MultiBody.get_closest_points"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iai_bullet_sim.multibody.MultiBody.get_closest_points" title="Permalink to this definition">¶</a></dt>
 <dd><p>Gets the closest points of this body to its environment.
 The closest points can be filtered by other bodies, their links and this body’s own links.</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -1381,6 +1488,7 @@ The closest points can be filtered by other bodies, their links and this body’
 <li><strong>other_body</strong> (<a class="reference internal" href="#iai_bullet_sim.multibody.MultiBody" title="iai_bullet_sim.multibody.MultiBody"><em>MultiBody</em></a><em>, </em><a class="reference internal" href="#iai_bullet_sim.rigid_body.RigidBody" title="iai_bullet_sim.rigid_body.RigidBody"><em>iai_bullet_sim.rigid_body.RigidBody</em></a><em>, </em><em>NoneType</em>) – Other body to filter by</li>
 <li><strong>own_link</strong> (<em>str</em><em>, </em><em>NoneType</em>) – Own link to filter by</li>
 <li><strong>other_link</strong> (<em>str</em><em>, </em><em>NoneType</em>) – Other object’s link to filter by.</li>
+<li><strong>dist</strong> (<em>float</em>) – Maximum distance to search. Greater distance -&gt; more expensive</li>
 </ul>
 </td>
 </tr>
@@ -1526,6 +1634,50 @@ If None is passed as link, the object’s pose is returned as LinkState</p>
 
 </dd></dl>
 
+<dl class="class">
+<dt id="iai_bullet_sim.multibody.SimpleBaseDriver">
+<em class="property">class </em><code class="descclassname">iai_bullet_sim.multibody.</code><code class="descname">SimpleBaseDriver</code><span class="sig-paren">(</span><em>max_linear_vel</em>, <em>max_angular_vel</em><span class="sig-paren">)</span><a class="reference internal" href="iai_bullet_sim/multibody.html#SimpleBaseDriver"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iai_bullet_sim.multibody.SimpleBaseDriver" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#iai_bullet_sim.multibody.JointDriver" title="iai_bullet_sim.multibody.JointDriver"><code class="xref py py-class docutils literal notranslate"><span class="pre">iai_bullet_sim.multibody.JointDriver</span></code></a></p>
+<p>Implements and update behavior for robots with a movable base. 
+The base can be translated horizontally and turned around the global z-axis.</p>
+<dl class="classmethod">
+<dt id="iai_bullet_sim.multibody.SimpleBaseDriver.factory">
+<em class="property">classmethod </em><code class="descname">factory</code><span class="sig-paren">(</span><em>config_dict</em><span class="sig-paren">)</span><a class="reference internal" href="iai_bullet_sim/multibody.html#SimpleBaseDriver.factory"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iai_bullet_sim.multibody.SimpleBaseDriver.factory" title="Permalink to this definition">¶</a></dt>
+<dd><p>Instantiates the driver from a dictionary.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>config_dict</strong> (<em>dict</em>) – Driver configuration</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference internal" href="#iai_bullet_sim.multibody.SimpleBaseDriver" title="iai_bullet_sim.multibody.SimpleBaseDriver">SimpleBaseDriver</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="iai_bullet_sim.multibody.SimpleBaseDriver.to_dict">
+<code class="descname">to_dict</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="iai_bullet_sim/multibody.html#SimpleBaseDriver.to_dict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iai_bullet_sim.multibody.SimpleBaseDriver.to_dict" title="Permalink to this definition">¶</a></dt>
+<dd><p>Serializes the driver to a dictionary.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">dict</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="iai_bullet_sim.multibody.SimpleBaseDriver.update_velocities">
+<code class="descname">update_velocities</code><span class="sig-paren">(</span><em>robot_data</em>, <em>velocities_dict</em><span class="sig-paren">)</span><a class="reference internal" href="iai_bullet_sim/multibody.html#SimpleBaseDriver.update_velocities"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iai_bullet_sim.multibody.SimpleBaseDriver.update_velocities" title="Permalink to this definition">¶</a></dt>
+<dd><p>Updates a given velocity command.</p>
+</dd></dl>
+
+</dd></dl>
+
 </div>
 <div class="section" id="module-iai_bullet_sim.plugins">
 <span id="iai-bullet-sim-plugins-module"></span><h2>iai_bullet_sim.plugins module<a class="headerlink" href="#module-iai_bullet_sim.plugins" title="Permalink to this headline">¶</a></h2>
@@ -1589,7 +1741,7 @@ If None is passed as link, the object’s pose is returned as LinkState</p>
 
 <dl class="method">
 <dt id="iai_bullet_sim.rigid_body.RigidBody.get_closest_points">
-<code class="descname">get_closest_points</code><span class="sig-paren">(</span><em>other_body=None</em>, <em>other_link=None</em><span class="sig-paren">)</span><a class="reference internal" href="iai_bullet_sim/rigid_body.html#RigidBody.get_closest_points"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iai_bullet_sim.rigid_body.RigidBody.get_closest_points" title="Permalink to this definition">¶</a></dt>
+<code class="descname">get_closest_points</code><span class="sig-paren">(</span><em>other_body=None</em>, <em>other_link=None</em>, <em>dist=0.2</em><span class="sig-paren">)</span><a class="reference internal" href="iai_bullet_sim/rigid_body.html#RigidBody.get_closest_points"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iai_bullet_sim.rigid_body.RigidBody.get_closest_points" title="Permalink to this definition">¶</a></dt>
 <dd><p>Gets the closest points of this body to its environment.
 The closest points can be filtered by other bodies and their links.</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -1599,6 +1751,7 @@ The closest points can be filtered by other bodies and their links.</p>
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
 <li><strong>other_body</strong> (<a class="reference internal" href="#iai_bullet_sim.multibody.MultiBody" title="iai_bullet_sim.multibody.MultiBody"><em>iai_bullet_sim.multibody.MultiBody</em></a><em>, </em><a class="reference internal" href="#iai_bullet_sim.rigid_body.RigidBody" title="iai_bullet_sim.rigid_body.RigidBody"><em>RigidBody</em></a><em>, </em><em>NoneType</em>) – Other body to filter by</li>
 <li><strong>other_link</strong> (<em>str</em><em>, </em><em>NoneType</em>) – Other object’s link to filter by.</li>
+<li><strong>dist</strong> (<em>float</em>) – Maximum distance to search. Greater distance -&gt; more expensive</li>
 </ul>
 </td>
 </tr>
@@ -1843,20 +1996,6 @@ If a joint’s watchdog barks, the joint is commanded to stop.</p>
 <dd><p>Bases: <a class="reference internal" href="#iai_bullet_sim.ros_plugins.JointVelocityController" title="iai_bullet_sim.ros_plugins.JointVelocityController"><code class="xref py py-class docutils literal notranslate"><span class="pre">iai_bullet_sim.ros_plugins.JointVelocityController</span></code></a></p>
 <p>Joint-level controller which accepts joint velocities as goals and
 publishes the delta between those goals and the current joint velocities.</p>
-<dl class="classmethod">
-<dt id="iai_bullet_sim.ros_plugins.JointVelocityDeltaContoller.factory">
-<em class="property">classmethod </em><code class="descname">factory</code><span class="sig-paren">(</span><em>simulator</em>, <em>init_dict</em><span class="sig-paren">)</span><a class="reference internal" href="iai_bullet_sim/ros_plugins.html#JointVelocityDeltaContoller.factory"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iai_bullet_sim.ros_plugins.JointVelocityDeltaContoller.factory" title="Permalink to this definition">¶</a></dt>
-<dd><p>Instantiates the plugin from a dictionary in the context of a simulator.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">JointVelocityDeltaController</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
 <dl class="method">
 <dt id="iai_bullet_sim.ros_plugins.JointVelocityDeltaContoller.post_physics_update">
 <code class="descname">post_physics_update</code><span class="sig-paren">(</span><em>simulator</em>, <em>deltaT</em><span class="sig-paren">)</span><a class="reference internal" href="iai_bullet_sim/ros_plugins.html#JointVelocityDeltaContoller.post_physics_update"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iai_bullet_sim.ros_plugins.JointVelocityDeltaContoller.post_physics_update" title="Permalink to this definition">¶</a></dt>
@@ -1873,6 +2012,57 @@ the current joint velocities and publishes the result.</p>
 </dd></dl>
 
 <dl class="class">
+<dt id="iai_bullet_sim.ros_plugins.LaserScanner">
+<em class="property">class </em><code class="descclassname">iai_bullet_sim.ros_plugins.</code><code class="descname">LaserScanner</code><span class="sig-paren">(</span><em>simulator</em>, <em>body</em>, <em>link</em>, <em>ang_min</em>, <em>ang_max</em>, <em>resolution</em>, <em>range_min</em>, <em>range_max</em>, <em>axis=(0</em>, <em>0</em>, <em>1)</em>, <em>sensor_name='laser_scan'</em><span class="sig-paren">)</span><a class="reference internal" href="iai_bullet_sim/ros_plugins.html#LaserScanner"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iai_bullet_sim.ros_plugins.LaserScanner" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#iai_bullet_sim.basic_simulator.SimulatorPlugin" title="iai_bullet_sim.basic_simulator.SimulatorPlugin"><code class="xref py py-class docutils literal notranslate"><span class="pre">iai_bullet_sim.basic_simulator.SimulatorPlugin</span></code></a></p>
+<p>This class implements a virtual laser scanner for the simulation.
+The generated scans are published as sensor_msgs/LaserScan on the topic BODY/sensors/link/sensor_name.</p>
+<dl class="method">
+<dt id="iai_bullet_sim.ros_plugins.LaserScanner.disable">
+<code class="descname">disable</code><span class="sig-paren">(</span><em>simulator</em><span class="sig-paren">)</span><a class="reference internal" href="iai_bullet_sim/ros_plugins.html#LaserScanner.disable"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iai_bullet_sim.ros_plugins.LaserScanner.disable" title="Permalink to this definition">¶</a></dt>
+<dd><p>Stops the execution of this plugin.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="iai_bullet_sim.ros_plugins.LaserScanner.factory">
+<em class="property">classmethod </em><code class="descname">factory</code><span class="sig-paren">(</span><em>simulator</em>, <em>init_dict</em><span class="sig-paren">)</span><a class="reference internal" href="iai_bullet_sim/ros_plugins.html#LaserScanner.factory"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iai_bullet_sim.ros_plugins.LaserScanner.factory" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="iai_bullet_sim.ros_plugins.LaserScanner.post_physics_update">
+<code class="descname">post_physics_update</code><span class="sig-paren">(</span><em>simulator</em>, <em>deltaT</em><span class="sig-paren">)</span><a class="reference internal" href="iai_bullet_sim/ros_plugins.html#LaserScanner.post_physics_update"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iai_bullet_sim.ros_plugins.LaserScanner.post_physics_update" title="Permalink to this definition">¶</a></dt>
+<dd><p>Performs the laser scan.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="iai_bullet_sim.ros_plugins.LaserScanner.to_dict">
+<code class="descname">to_dict</code><span class="sig-paren">(</span><em>simulator</em><span class="sig-paren">)</span><a class="reference internal" href="iai_bullet_sim/ros_plugins.html#LaserScanner.to_dict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iai_bullet_sim.ros_plugins.LaserScanner.to_dict" title="Permalink to this definition">¶</a></dt>
+<dd><p>Serializes this plugin to a dictionary.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">dict</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
 <dt id="iai_bullet_sim.ros_plugins.LoopingTrajectoryPositionController">
 <em class="property">class </em><code class="descclassname">iai_bullet_sim.ros_plugins.</code><code class="descname">LoopingTrajectoryPositionController</code><span class="sig-paren">(</span><em>multibody</em>, <em>topic_prefix=''</em><span class="sig-paren">)</span><a class="reference internal" href="iai_bullet_sim/ros_plugins.html#LoopingTrajectoryPositionController"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iai_bullet_sim.ros_plugins.LoopingTrajectoryPositionController" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#iai_bullet_sim.ros_plugins.TrajectoryPositionController" title="iai_bullet_sim.ros_plugins.TrajectoryPositionController"><code class="xref py py-class docutils literal notranslate"><span class="pre">iai_bullet_sim.ros_plugins.TrajectoryPositionController</span></code></a></p>
@@ -1880,20 +2070,6 @@ the current joint velocities and publishes the result.</p>
 It will pass the positional part of the trajectory on to the joints.
 It does not interpolate between trajectory points.
 The controller loops the trajectory execution.</p>
-<dl class="classmethod">
-<dt id="iai_bullet_sim.ros_plugins.LoopingTrajectoryPositionController.factory">
-<em class="property">classmethod </em><code class="descname">factory</code><span class="sig-paren">(</span><em>simulator</em>, <em>init_dict</em><span class="sig-paren">)</span><a class="reference internal" href="iai_bullet_sim/ros_plugins.html#LoopingTrajectoryPositionController.factory"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iai_bullet_sim.ros_plugins.LoopingTrajectoryPositionController.factory" title="Permalink to this definition">¶</a></dt>
-<dd><p>Instantiates the plugin from a dictionary in the context of a simulator.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference internal" href="#iai_bullet_sim.ros_plugins.LoopingTrajectoryPositionController" title="iai_bullet_sim.ros_plugins.LoopingTrajectoryPositionController">LoopingTrajectoryPositionController</a></td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
 <dl class="method">
 <dt id="iai_bullet_sim.ros_plugins.LoopingTrajectoryPositionController.pre_physics_update">
 <code class="descname">pre_physics_update</code><span class="sig-paren">(</span><em>simulator</em>, <em>deltaT</em><span class="sig-paren">)</span><a class="reference internal" href="iai_bullet_sim/ros_plugins.html#LoopingTrajectoryPositionController.pre_physics_update"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iai_bullet_sim.ros_plugins.LoopingTrajectoryPositionController.pre_physics_update" title="Permalink to this definition">¶</a></dt>
@@ -1905,6 +2081,54 @@ Will restart trajectory execution when it is finished.</p>
 <tbody valign="top">
 </tbody>
 </table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="iai_bullet_sim.ros_plugins.OdometryPublisher">
+<em class="property">class </em><code class="descclassname">iai_bullet_sim.ros_plugins.</code><code class="descname">OdometryPublisher</code><span class="sig-paren">(</span><em>simulator</em>, <em>multibody</em>, <em>child_frame_id='/base_link'</em><span class="sig-paren">)</span><a class="reference internal" href="iai_bullet_sim/ros_plugins.html#OdometryPublisher"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iai_bullet_sim.ros_plugins.OdometryPublisher" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#iai_bullet_sim.basic_simulator.SimulatorPlugin" title="iai_bullet_sim.basic_simulator.SimulatorPlugin"><code class="xref py py-class docutils literal notranslate"><span class="pre">iai_bullet_sim.basic_simulator.SimulatorPlugin</span></code></a></p>
+<p>Plugin which publishes an object’s current pose as nav_msgs/Odometry message.</p>
+<dl class="method">
+<dt id="iai_bullet_sim.ros_plugins.OdometryPublisher.disable">
+<code class="descname">disable</code><span class="sig-paren">(</span><em>simulator</em><span class="sig-paren">)</span><a class="reference internal" href="iai_bullet_sim/ros_plugins.html#OdometryPublisher.disable"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iai_bullet_sim.ros_plugins.OdometryPublisher.disable" title="Permalink to this definition">¶</a></dt>
+<dd><p>Disables the publisher.
+:type simulator: iai_bullet_sim.basic_simulator.BasicSimulator</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="iai_bullet_sim.ros_plugins.OdometryPublisher.factory">
+<em class="property">classmethod </em><code class="descname">factory</code><span class="sig-paren">(</span><em>simulator</em>, <em>init_dict</em><span class="sig-paren">)</span><a class="reference internal" href="iai_bullet_sim/ros_plugins.html#OdometryPublisher.factory"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iai_bullet_sim.ros_plugins.OdometryPublisher.factory" title="Permalink to this definition">¶</a></dt>
+<dd><p>Instantiates the plugin from a dictionary in the context of a simulator.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference internal" href="#iai_bullet_sim.ros_plugins.OdometryPublisher" title="iai_bullet_sim.ros_plugins.OdometryPublisher">OdometryPublisher</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="iai_bullet_sim.ros_plugins.OdometryPublisher.post_physics_update">
+<code class="descname">post_physics_update</code><span class="sig-paren">(</span><em>simulator</em>, <em>deltaT</em><span class="sig-paren">)</span><a class="reference internal" href="iai_bullet_sim/ros_plugins.html#OdometryPublisher.post_physics_update"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iai_bullet_sim.ros_plugins.OdometryPublisher.post_physics_update" title="Permalink to this definition">¶</a></dt>
+<dd><p>Publishes the current odometry.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="iai_bullet_sim.ros_plugins.OdometryPublisher.to_dict">
+<code class="descname">to_dict</code><span class="sig-paren">(</span><em>simulator</em><span class="sig-paren">)</span><a class="reference internal" href="iai_bullet_sim/ros_plugins.html#OdometryPublisher.to_dict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iai_bullet_sim.ros_plugins.OdometryPublisher.to_dict" title="Permalink to this definition">¶</a></dt>
+<dd><p>Serializes this plugin to a dictionary.
+:type simulator: iai_bullet_sim.basic_simulator.BasicSimulator
+:rtype: dict</p>
 </dd></dl>
 
 </dd></dl>
@@ -1996,6 +2220,64 @@ The sensor data will be published to [prefix]/sensors/[sensor] as geometry_msgs/
 </dd></dl>
 
 <dl class="class">
+<dt id="iai_bullet_sim.ros_plugins.TFPublisher">
+<em class="property">class </em><code class="descclassname">iai_bullet_sim.ros_plugins.</code><code class="descname">TFPublisher</code><span class="sig-paren">(</span><em>simulator</em>, <em>map_frame='map'</em>, <em>objects=[]</em><span class="sig-paren">)</span><a class="reference internal" href="iai_bullet_sim/ros_plugins.html#TFPublisher"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iai_bullet_sim.ros_plugins.TFPublisher" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#iai_bullet_sim.basic_simulator.SimulatorPlugin" title="iai_bullet_sim.basic_simulator.SimulatorPlugin"><code class="xref py py-class docutils literal notranslate"><span class="pre">iai_bullet_sim.basic_simulator.SimulatorPlugin</span></code></a></p>
+<dl class="method">
+<dt id="iai_bullet_sim.ros_plugins.TFPublisher.disable">
+<code class="descname">disable</code><span class="sig-paren">(</span><em>simulator</em><span class="sig-paren">)</span><a class="reference internal" href="iai_bullet_sim/ros_plugins.html#TFPublisher.disable"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iai_bullet_sim.ros_plugins.TFPublisher.disable" title="Permalink to this definition">¶</a></dt>
+<dd><p>Stops the execution of this plugin.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="iai_bullet_sim.ros_plugins.TFPublisher.factory">
+<em class="property">classmethod </em><code class="descname">factory</code><span class="sig-paren">(</span><em>simulator</em>, <em>init_dict</em><span class="sig-paren">)</span><a class="reference internal" href="iai_bullet_sim/ros_plugins.html#TFPublisher.factory"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iai_bullet_sim.ros_plugins.TFPublisher.factory" title="Permalink to this definition">¶</a></dt>
+<dd><p>Instantiates the plugin from a dictionary in the context of a simulator.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference internal" href="#iai_bullet_sim.ros_plugins.TFPublisher" title="iai_bullet_sim.ros_plugins.TFPublisher">TFPublisher</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="iai_bullet_sim.ros_plugins.TFPublisher.post_physics_update">
+<code class="descname">post_physics_update</code><span class="sig-paren">(</span><em>simulator</em>, <em>deltaT</em><span class="sig-paren">)</span><a class="reference internal" href="iai_bullet_sim/ros_plugins.html#TFPublisher.post_physics_update"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iai_bullet_sim.ros_plugins.TFPublisher.post_physics_update" title="Permalink to this definition">¶</a></dt>
+<dd><p>Implements post physics step behavior.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="iai_bullet_sim.ros_plugins.TFPublisher.to_dict">
+<code class="descname">to_dict</code><span class="sig-paren">(</span><em>simulator</em><span class="sig-paren">)</span><a class="reference internal" href="iai_bullet_sim/ros_plugins.html#TFPublisher.to_dict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iai_bullet_sim.ros_plugins.TFPublisher.to_dict" title="Permalink to this definition">¶</a></dt>
+<dd><p>Serializes this plugin to a dictionary.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">dict</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
 <dt id="iai_bullet_sim.ros_plugins.TrajectoryPositionController">
 <em class="property">class </em><code class="descclassname">iai_bullet_sim.ros_plugins.</code><code class="descname">TrajectoryPositionController</code><span class="sig-paren">(</span><em>multibody</em>, <em>topic_prefix=''</em><span class="sig-paren">)</span><a class="reference internal" href="iai_bullet_sim/ros_plugins.html#TrajectoryPositionController"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iai_bullet_sim.ros_plugins.TrajectoryPositionController" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#iai_bullet_sim.ros_plugins.CommandSubscriber" title="iai_bullet_sim.ros_plugins.CommandSubscriber"><code class="xref py py-class docutils literal notranslate"><span class="pre">iai_bullet_sim.ros_plugins.CommandSubscriber</span></code></a></p>
@@ -2076,99 +2358,221 @@ Instantiates a watchdog per joint and subscribes to a command topic.
 The topic is always of type sensor_msgs/JointState.</p>
 </dd></dl>
 
+<dl class="function">
+<dt id="iai_bullet_sim.ros_plugins.rotation3_axis_angle">
+<code class="descclassname">iai_bullet_sim.ros_plugins.</code><code class="descname">rotation3_axis_angle</code><span class="sig-paren">(</span><em>axis</em>, <em>angle</em><span class="sig-paren">)</span><a class="reference internal" href="iai_bullet_sim/ros_plugins.html#rotation3_axis_angle"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iai_bullet_sim.ros_plugins.rotation3_axis_angle" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="docutils">
+<dt>Conversion of unit axis and angle to 4x4 rotation matrix according to:</dt>
+<dd><a class="reference external" href="http://www.euclideanspace.com/maths/geometry/rotations/conversions/angleToMatrix/index.htm">http://www.euclideanspace.com/maths/geometry/rotations/conversions/angleToMatrix/index.htm</a></dd>
+</dl>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>axis</strong> (<em>np.array</em>) – Rotation axis</li>
+<li><strong>angle</strong> (<em>float</em>) – Rotation angle</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">np.array</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="iai_bullet_sim.ros_plugins.rotation3_quaternion">
+<code class="descclassname">iai_bullet_sim.ros_plugins.</code><code class="descname">rotation3_quaternion</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>z</em>, <em>w</em><span class="sig-paren">)</span><a class="reference internal" href="iai_bullet_sim/ros_plugins.html#rotation3_quaternion"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iai_bullet_sim.ros_plugins.rotation3_quaternion" title="Permalink to this definition">¶</a></dt>
+<dd><p>Unit quaternion to 4x4 rotation matrix according to:
+<a class="reference external" href="https://github.com/orocos/orocos_kinematics_dynamics/blob/master/orocos_kdl/src/frames.cpp#L167">https://github.com/orocos/orocos_kinematics_dynamics/blob/master/orocos_kdl/src/frames.cpp#L167</a></p>
+</dd></dl>
+
 </div>
 <div class="section" id="module-iai_bullet_sim.service_simulator_node">
 <span id="iai-bullet-sim-service-simulator-node-module"></span><h2>iai_bullet_sim.service_simulator_node module<a class="headerlink" href="#module-iai_bullet_sim.service_simulator_node" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
 <dt id="iai_bullet_sim.service_simulator_node.ServiceSimulatorNode">
-<em class="property">class </em><code class="descclassname">iai_bullet_sim.service_simulator_node.</code><code class="descname">ServiceSimulatorNode</code><a class="reference internal" href="iai_bullet_sim/service_simulator_node.html#ServiceSimulatorNode"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iai_bullet_sim.service_simulator_node.ServiceSimulatorNode" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">iai_bullet_sim.service_simulator_node.</code><code class="descname">ServiceSimulatorNode</code><span class="sig-paren">(</span><em>simulator_class=&lt;class 'iai_bullet_sim.basic_simulator.BasicSimulator'&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="iai_bullet_sim/service_simulator_node.html#ServiceSimulatorNode"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iai_bullet_sim.service_simulator_node.ServiceSimulatorNode" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#iai_bullet_sim.basic_simulator_node.BasicSimulatorNode" title="iai_bullet_sim.basic_simulator_node.BasicSimulatorNode"><code class="xref py py-class docutils literal notranslate"><span class="pre">iai_bullet_sim.basic_simulator_node.BasicSimulatorNode</span></code></a></p>
 <p>This class exposes a lot of the simulator’s functionality to ROS services.</p>
 <dl class="method">
 <dt id="iai_bullet_sim.service_simulator_node.ServiceSimulatorNode.srv_add_controller">
 <code class="descname">srv_add_controller</code><span class="sig-paren">(</span><em>req</em><span class="sig-paren">)</span><a class="reference internal" href="iai_bullet_sim/service_simulator_node.html#ServiceSimulatorNode.srv_add_controller"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iai_bullet_sim.service_simulator_node.ServiceSimulatorNode.srv_add_controller" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Adds a controller to a multibody.</p>
+</dd></dl>
 
 <dl class="method">
 <dt id="iai_bullet_sim.service_simulator_node.ServiceSimulatorNode.srv_add_rigid_body">
 <code class="descname">srv_add_rigid_body</code><span class="sig-paren">(</span><em>req</em><span class="sig-paren">)</span><a class="reference internal" href="iai_bullet_sim/service_simulator_node.html#ServiceSimulatorNode.srv_add_rigid_body"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iai_bullet_sim.service_simulator_node.ServiceSimulatorNode.srv_add_rigid_body" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Adds a rigid body to the simulation.</p>
+</dd></dl>
 
 <dl class="method">
 <dt id="iai_bullet_sim.service_simulator_node.ServiceSimulatorNode.srv_add_urdf">
 <code class="descname">srv_add_urdf</code><span class="sig-paren">(</span><em>req</em><span class="sig-paren">)</span><a class="reference internal" href="iai_bullet_sim/service_simulator_node.html#ServiceSimulatorNode.srv_add_urdf"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iai_bullet_sim.service_simulator_node.ServiceSimulatorNode.srv_add_urdf" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Adds a multi body to the simulation.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="iai_bullet_sim.service_simulator_node.ServiceSimulatorNode.srv_get_multibodies">
+<code class="descname">srv_get_multibodies</code><span class="sig-paren">(</span><em>req</em><span class="sig-paren">)</span><a class="reference internal" href="iai_bullet_sim/service_simulator_node.html#ServiceSimulatorNode.srv_get_multibodies"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iai_bullet_sim.service_simulator_node.ServiceSimulatorNode.srv_get_multibodies" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a serialized version of all multibodies.</p>
+</dd></dl>
 
 <dl class="method">
 <dt id="iai_bullet_sim.service_simulator_node.ServiceSimulatorNode.srv_get_multibody_ids">
 <code class="descname">srv_get_multibody_ids</code><span class="sig-paren">(</span><em>req</em><span class="sig-paren">)</span><a class="reference internal" href="iai_bullet_sim/service_simulator_node.html#ServiceSimulatorNode.srv_get_multibody_ids"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iai_bullet_sim.service_simulator_node.ServiceSimulatorNode.srv_get_multibody_ids" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Returns the Ids of all multibodies.</p>
+</dd></dl>
 
 <dl class="method">
 <dt id="iai_bullet_sim.service_simulator_node.ServiceSimulatorNode.srv_get_obj_ids">
 <code class="descname">srv_get_obj_ids</code><span class="sig-paren">(</span><em>req</em><span class="sig-paren">)</span><a class="reference internal" href="iai_bullet_sim/service_simulator_node.html#ServiceSimulatorNode.srv_get_obj_ids"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iai_bullet_sim.service_simulator_node.ServiceSimulatorNode.srv_get_obj_ids" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Returns the Ids of all objects.</p>
+</dd></dl>
 
 <dl class="method">
 <dt id="iai_bullet_sim.service_simulator_node.ServiceSimulatorNode.srv_get_obj_joints">
 <code class="descname">srv_get_obj_joints</code><span class="sig-paren">(</span><em>req</em><span class="sig-paren">)</span><a class="reference internal" href="iai_bullet_sim/service_simulator_node.html#ServiceSimulatorNode.srv_get_obj_joints"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iai_bullet_sim.service_simulator_node.ServiceSimulatorNode.srv_get_obj_joints" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Returns the names of all joints belonging to the queried object.</p>
+</dd></dl>
 
 <dl class="method">
 <dt id="iai_bullet_sim.service_simulator_node.ServiceSimulatorNode.srv_get_rigid_ids">
 <code class="descname">srv_get_rigid_ids</code><span class="sig-paren">(</span><em>req</em><span class="sig-paren">)</span><a class="reference internal" href="iai_bullet_sim/service_simulator_node.html#ServiceSimulatorNode.srv_get_rigid_ids"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iai_bullet_sim.service_simulator_node.ServiceSimulatorNode.srv_get_rigid_ids" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Returns the Ids of all rigid objects.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="iai_bullet_sim.service_simulator_node.ServiceSimulatorNode.srv_get_rigidbodies">
+<code class="descname">srv_get_rigidbodies</code><span class="sig-paren">(</span><em>req</em><span class="sig-paren">)</span><a class="reference internal" href="iai_bullet_sim/service_simulator_node.html#ServiceSimulatorNode.srv_get_rigidbodies"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iai_bullet_sim.service_simulator_node.ServiceSimulatorNode.srv_get_rigidbodies" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a serialized version of all rigid bodies.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="iai_bullet_sim.service_simulator_node.ServiceSimulatorNode.srv_get_state">
+<code class="descname">srv_get_state</code><span class="sig-paren">(</span><em>msg</em><span class="sig-paren">)</span><a class="reference internal" href="iai_bullet_sim/service_simulator_node.html#ServiceSimulatorNode.srv_get_state"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iai_bullet_sim.service_simulator_node.ServiceSimulatorNode.srv_get_state" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gets the current run-state of the simulation.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="iai_bullet_sim.service_simulator_node.ServiceSimulatorNode.srv_get_static_geometry">
+<code class="descname">srv_get_static_geometry</code><span class="sig-paren">(</span><em>msg</em><span class="sig-paren">)</span><a class="reference internal" href="iai_bullet_sim/service_simulator_node.html#ServiceSimulatorNode.srv_get_static_geometry"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iai_bullet_sim.service_simulator_node.ServiceSimulatorNode.srv_get_static_geometry" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gets a visualization_msgs/MarkerArray representing the static geometry in the world.</p>
+</dd></dl>
 
 <dl class="method">
 <dt id="iai_bullet_sim.service_simulator_node.ServiceSimulatorNode.srv_load_from_rosparam">
 <code class="descname">srv_load_from_rosparam</code><span class="sig-paren">(</span><em>req</em><span class="sig-paren">)</span><a class="reference internal" href="iai_bullet_sim/service_simulator_node.html#ServiceSimulatorNode.srv_load_from_rosparam"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iai_bullet_sim.service_simulator_node.ServiceSimulatorNode.srv_load_from_rosparam" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Loads the simulator’s configuration from a ROS parameter.</p>
+</dd></dl>
 
 <dl class="method">
 <dt id="iai_bullet_sim.service_simulator_node.ServiceSimulatorNode.srv_load_from_yaml">
 <code class="descname">srv_load_from_yaml</code><span class="sig-paren">(</span><em>req</em><span class="sig-paren">)</span><a class="reference internal" href="iai_bullet_sim/service_simulator_node.html#ServiceSimulatorNode.srv_load_from_yaml"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iai_bullet_sim.service_simulator_node.ServiceSimulatorNode.srv_load_from_yaml" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Loads the simulator’s configuration from a YAML file.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="iai_bullet_sim.service_simulator_node.ServiceSimulatorNode.srv_pause">
+<code class="descname">srv_pause</code><span class="sig-paren">(</span><em>msg</em><span class="sig-paren">)</span><a class="reference internal" href="iai_bullet_sim/service_simulator_node.html#ServiceSimulatorNode.srv_pause"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iai_bullet_sim.service_simulator_node.ServiceSimulatorNode.srv_pause" title="Permalink to this definition">¶</a></dt>
+<dd><p>Pauses the simulation.</p>
+</dd></dl>
 
 <dl class="method">
 <dt id="iai_bullet_sim.service_simulator_node.ServiceSimulatorNode.srv_remove_controller">
 <code class="descname">srv_remove_controller</code><span class="sig-paren">(</span><em>req</em><span class="sig-paren">)</span><a class="reference internal" href="iai_bullet_sim/service_simulator_node.html#ServiceSimulatorNode.srv_remove_controller"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iai_bullet_sim.service_simulator_node.ServiceSimulatorNode.srv_remove_controller" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Removes a controller from a multibody.</p>
+</dd></dl>
 
 <dl class="method">
 <dt id="iai_bullet_sim.service_simulator_node.ServiceSimulatorNode.srv_reset">
 <code class="descname">srv_reset</code><span class="sig-paren">(</span><em>req</em><span class="sig-paren">)</span><a class="reference internal" href="iai_bullet_sim/service_simulator_node.html#ServiceSimulatorNode.srv_reset"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iai_bullet_sim.service_simulator_node.ServiceSimulatorNode.srv_reset" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Resets the state of the entire simulation.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="iai_bullet_sim.service_simulator_node.ServiceSimulatorNode.srv_reset_object">
+<code class="descname">srv_reset_object</code><span class="sig-paren">(</span><em>req</em><span class="sig-paren">)</span><a class="reference internal" href="iai_bullet_sim/service_simulator_node.html#ServiceSimulatorNode.srv_reset_object"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iai_bullet_sim.service_simulator_node.ServiceSimulatorNode.srv_reset_object" title="Permalink to this definition">¶</a></dt>
+<dd><p>Resets the state of a specific object.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="iai_bullet_sim.service_simulator_node.ServiceSimulatorNode.srv_run">
+<code class="descname">srv_run</code><span class="sig-paren">(</span><em>msg</em><span class="sig-paren">)</span><a class="reference internal" href="iai_bullet_sim/service_simulator_node.html#ServiceSimulatorNode.srv_run"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iai_bullet_sim.service_simulator_node.ServiceSimulatorNode.srv_run" title="Permalink to this definition">¶</a></dt>
+<dd><p>Runs the simulation.</p>
+</dd></dl>
 
 <dl class="method">
 <dt id="iai_bullet_sim.service_simulator_node.ServiceSimulatorNode.srv_save_to_rosparam">
 <code class="descname">srv_save_to_rosparam</code><span class="sig-paren">(</span><em>req</em><span class="sig-paren">)</span><a class="reference internal" href="iai_bullet_sim/service_simulator_node.html#ServiceSimulatorNode.srv_save_to_rosparam"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iai_bullet_sim.service_simulator_node.ServiceSimulatorNode.srv_save_to_rosparam" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Saves the simulator’s configuration to a ROS parameter.</p>
+</dd></dl>
 
 <dl class="method">
 <dt id="iai_bullet_sim.service_simulator_node.ServiceSimulatorNode.srv_save_to_yaml">
 <code class="descname">srv_save_to_yaml</code><span class="sig-paren">(</span><em>req</em><span class="sig-paren">)</span><a class="reference internal" href="iai_bullet_sim/service_simulator_node.html#ServiceSimulatorNode.srv_save_to_yaml"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iai_bullet_sim.service_simulator_node.ServiceSimulatorNode.srv_save_to_yaml" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Saves the simulator’s configuration to a YAML file.</p>
+</dd></dl>
 
 <dl class="method">
 <dt id="iai_bullet_sim.service_simulator_node.ServiceSimulatorNode.srv_set_gravity">
 <code class="descname">srv_set_gravity</code><span class="sig-paren">(</span><em>req</em><span class="sig-paren">)</span><a class="reference internal" href="iai_bullet_sim/service_simulator_node.html#ServiceSimulatorNode.srv_set_gravity"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iai_bullet_sim.service_simulator_node.ServiceSimulatorNode.srv_set_gravity" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Sets the gravity vector.</p>
+</dd></dl>
 
 <dl class="method">
 <dt id="iai_bullet_sim.service_simulator_node.ServiceSimulatorNode.srv_set_joint_sensor">
 <code class="descname">srv_set_joint_sensor</code><span class="sig-paren">(</span><em>req</em><span class="sig-paren">)</span><a class="reference internal" href="iai_bullet_sim/service_simulator_node.html#ServiceSimulatorNode.srv_set_joint_sensor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iai_bullet_sim.service_simulator_node.ServiceSimulatorNode.srv_set_joint_sensor" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Sets the state of a joint sensor for a specified joint.</p>
+</dd></dl>
 
 <dl class="method">
 <dt id="iai_bullet_sim.service_simulator_node.ServiceSimulatorNode.srv_set_joint_state">
 <code class="descname">srv_set_joint_state</code><span class="sig-paren">(</span><em>req</em><span class="sig-paren">)</span><a class="reference internal" href="iai_bullet_sim/service_simulator_node.html#ServiceSimulatorNode.srv_set_joint_state"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iai_bullet_sim.service_simulator_node.ServiceSimulatorNode.srv_set_joint_state" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Sets the a multibody’s joint state.</p>
+</dd></dl>
 
 <dl class="method">
 <dt id="iai_bullet_sim.service_simulator_node.ServiceSimulatorNode.srv_set_pose">
 <code class="descname">srv_set_pose</code><span class="sig-paren">(</span><em>req</em><span class="sig-paren">)</span><a class="reference internal" href="iai_bullet_sim/service_simulator_node.html#ServiceSimulatorNode.srv_set_pose"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iai_bullet_sim.service_simulator_node.ServiceSimulatorNode.srv_set_pose" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Sets the pose of an object.</p>
+</dd></dl>
 
+<dl class="method">
+<dt id="iai_bullet_sim.service_simulator_node.ServiceSimulatorNode.tick">
+<code class="descname">tick</code><span class="sig-paren">(</span><em>timer_event</em><span class="sig-paren">)</span><a class="reference internal" href="iai_bullet_sim/service_simulator_node.html#ServiceSimulatorNode.tick"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iai_bullet_sim.service_simulator_node.ServiceSimulatorNode.tick" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="iai_bullet_sim.service_simulator_node.rigid_body_to_markers">
+<code class="descclassname">iai_bullet_sim.service_simulator_node.</code><code class="descname">rigid_body_to_markers</code><span class="sig-paren">(</span><em>body</em>, <em>name</em><span class="sig-paren">)</span><a class="reference internal" href="iai_bullet_sim/service_simulator_node.html#rigid_body_to_markers"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iai_bullet_sim.service_simulator_node.rigid_body_to_markers" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates a visualization_msgs/Marker list to represent a rigid body.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>body</strong> (<a class="reference internal" href="#iai_bullet_sim.rigid_body.RigidBody" title="iai_bullet_sim.rigid_body.RigidBody"><em>RigidBody</em></a>) – Rigid body to visualize</li>
+<li><strong>name</strong> (<em>str</em>) – Namespace for the marker</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">list</p>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 </div>
@@ -2206,6 +2610,30 @@ The topic is always of type sensor_msgs/JointState.</p>
 <dt id="iai_bullet_sim.utils.Frame.quaternion">
 <code class="descname">quaternion</code><a class="headerlink" href="#iai_bullet_sim.utils.Frame.quaternion" title="Permalink to this definition">¶</a></dt>
 <dd><p>Alias for field number 1</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="iai_bullet_sim.utils.Point3">
+<em class="property">class </em><code class="descclassname">iai_bullet_sim.utils.</code><code class="descname">Point3</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>z</em><span class="sig-paren">)</span><a class="headerlink" href="#iai_bullet_sim.utils.Point3" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code></p>
+<dl class="attribute">
+<dt id="iai_bullet_sim.utils.Point3.x">
+<code class="descname">x</code><a class="headerlink" href="#iai_bullet_sim.utils.Point3.x" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 0</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="iai_bullet_sim.utils.Point3.y">
+<code class="descname">y</code><a class="headerlink" href="#iai_bullet_sim.utils.Point3.y" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 1</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="iai_bullet_sim.utils.Point3.z">
+<code class="descname">z</code><a class="headerlink" href="#iai_bullet_sim.utils.Point3.z" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 2</p>
 </dd></dl>
 
 </dd></dl>

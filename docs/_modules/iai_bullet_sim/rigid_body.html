@@ -187,6 +187,7 @@
             <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;Rigid body type needs to be {}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39; or &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="s1">&#39;&quot;{}&quot;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">GEOM_TYPES</span><span class="p">])))</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">simulator</span>      <span class="o">=</span> <span class="n">simulator</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__client_id</span>    <span class="o">=</span> <span class="n">simulator</span><span class="o">.</span><span class="n">client_id</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">__bulletId</span>     <span class="o">=</span> <span class="n">bulletId</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">type</span>           <span class="o">=</span> <span class="n">geom_type</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">color</span>          <span class="o">=</span> <span class="n">color</span>
@@ -213,8 +214,7 @@
 
 <div class="viewcode-block" id="RigidBody.reset"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.rigid_body.RigidBody.reset">[docs]</a>    <span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Resets this object&#39;s pose and joints to their initial configuration.&quot;&quot;&quot;</span>
-        <span class="n">pb</span><span class="o">.</span><span class="n">resetBasePositionAndOrientation</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__bulletId</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">initial_pos</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">initial_rot</span><span class="p">)</span>
-        <span class="n">pb</span><span class="o">.</span><span class="n">resetbaseVelocity</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__bulletId</span><span class="p">)</span>
+        <span class="n">pb</span><span class="o">.</span><span class="n">resetBasePositionAndOrientation</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__bulletId</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">initial_pos</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">initial_rot</span><span class="p">,</span> <span class="n">physicsClientId</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">__client_id</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">__last_sim_pose_update</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">__last_sim_velocity_update</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span></div>
 
@@ -230,7 +230,7 @@
 <span class="sd">        :rtype: Frame</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">simulator</span><span class="o">.</span><span class="n">get_n_update</span><span class="p">()</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__last_sim_pose_update</span><span class="p">:</span>
-            <span class="n">temp</span> <span class="o">=</span> <span class="n">pb</span><span class="o">.</span><span class="n">getBasePositionAndOrientation</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__bulletId</span><span class="p">)</span>
+            <span class="n">temp</span> <span class="o">=</span> <span class="n">pb</span><span class="o">.</span><span class="n">getBasePositionAndOrientation</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__bulletId</span><span class="p">,</span> <span class="n">physicsClientId</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">__client_id</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">__current_pose</span> <span class="o">=</span> <span class="n">Frame</span><span class="p">(</span><span class="n">temp</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">temp</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">__last_sim_pose_update</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">simulator</span><span class="o">.</span><span class="n">get_n_update</span><span class="p">()</span>
 
@@ -241,7 +241,7 @@
 <span class="sd">        :rtype: list</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">simulator</span><span class="o">.</span><span class="n">get_n_update</span><span class="p">()</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__last_sim_velocity_update</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">__current_lin_velocity</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">__current_ang_velocity</span> <span class="o">=</span> <span class="n">pb</span><span class="o">.</span><span class="n">getBaseVelocity</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__bulletId</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__current_lin_velocity</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">__current_ang_velocity</span> <span class="o">=</span> <span class="n">pb</span><span class="o">.</span><span class="n">getBaseVelocity</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__bulletId</span><span class="p">,</span> <span class="n">physicsClientId</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">__client_id</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">__last_sim_velocity_update</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">simulator</span><span class="o">.</span><span class="n">get_n_update</span><span class="p">()</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__current_lin_velocity</span></div>
 
@@ -250,7 +250,7 @@
 <span class="sd">        :rtype: list</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">simulator</span><span class="o">.</span><span class="n">get_n_update</span><span class="p">()</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__last_sim_velocity_update</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">__current_lin_velocity</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">__current_ang_velocity</span> <span class="o">=</span> <span class="n">pb</span><span class="o">.</span><span class="n">getBaseVelocity</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__bulletId</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__current_lin_velocity</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">__current_ang_velocity</span> <span class="o">=</span> <span class="n">pb</span><span class="o">.</span><span class="n">getBaseVelocity</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__bulletId</span><span class="p">,</span> <span class="n">physicsClientId</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">__client_id</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">__last_sim_velocity_update</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">simulator</span><span class="o">.</span><span class="n">get_n_update</span><span class="p">()</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__current_ang_velocity</span></div>
 
@@ -262,7 +262,7 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">pos</span>  <span class="o">=</span> <span class="n">pose</span><span class="o">.</span><span class="n">position</span>
         <span class="n">quat</span> <span class="o">=</span> <span class="n">pose</span><span class="o">.</span><span class="n">quaternion</span>
-        <span class="n">pb</span><span class="o">.</span><span class="n">resetBasePositionAndOrientation</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__bulletId</span><span class="p">,</span> <span class="n">pos</span><span class="p">,</span> <span class="n">quat</span><span class="p">)</span>
+        <span class="n">pb</span><span class="o">.</span><span class="n">resetBasePositionAndOrientation</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__bulletId</span><span class="p">,</span> <span class="n">pos</span><span class="p">,</span> <span class="n">quat</span><span class="p">,</span> <span class="n">physicsClientId</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">__client_id</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">__last_sim_pose_update</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
         <span class="k">if</span> <span class="n">override_initial</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">initial_pos</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">pos</span><span class="p">)</span>
@@ -281,7 +281,7 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">simulator</span><span class="o">.</span><span class="n">get_contacts</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other_body</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">other_link</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="RigidBody.get_closest_points"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.rigid_body.RigidBody.get_closest_points">[docs]</a>    <span class="k">def</span> <span class="nf">get_closest_points</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other_body</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">other_link</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="RigidBody.get_closest_points"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.rigid_body.RigidBody.get_closest_points">[docs]</a>    <span class="k">def</span> <span class="nf">get_closest_points</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other_body</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">other_link</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dist</span><span class="o">=</span><span class="mf">0.2</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Gets the closest points of this body to its environment.</span>
 <span class="sd">        The closest points can be filtered by other bodies and their links.</span>
 
@@ -289,9 +289,11 @@
 <span class="sd">        :type  other_body: iai_bullet_sim.multibody.MultiBody, RigidBody, NoneType</span>
 <span class="sd">        :param other_link: Other object&#39;s link to filter by.</span>
 <span class="sd">        :type  other_link: str, NoneType</span>
+<span class="sd">        :param dist:       Maximum distance to search. Greater distance -&gt; more expensive</span>
+<span class="sd">        :type  dist:       float</span>
 <span class="sd">        :rtype: list</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">simulator</span><span class="o">.</span><span class="n">get_closest_points</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other_body</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">other_link</span><span class="p">)</span></div></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">simulator</span><span class="o">.</span><span class="n">get_closest_points</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other_body</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">other_link</span><span class="p">,</span> <span class="n">dist</span><span class="p">)</span></div></div>
 </pre></div>
 
            </div>
