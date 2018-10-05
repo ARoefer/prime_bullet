@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.2.0/css/solid.css" integrity="sha384-wnAC7ln+XN0UKdcPvJvtqIH3jOjs9pnKnq9qX68ImXvOGz2JuFoEiCjT8jyZQX2z" crossorigin="anonymous">
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.2.0/css/fontawesome.css" integrity="sha384-HbmWTHay9psM8qyzEKPc8odH4DsOuzdejtnr+OFtDmOcIVnhgReQ4GZBH7uwcjf6" crossorigin="anonymous">
+<script type="text/javascript" src="https://static.robotwebtools.org/roslibjs/current/roslib.js"></script>
+<link href="https://fonts.googleapis.com/css?family=Roboto" rel="stylesheet">
+<link rel="stylesheet" href="style.css"/>
+<script src="controls.js"></script>
+</head>
+
+<body>
+  <h1>Gebsyas Control Panel</h1>
+
+  <h2>Objects</h2>
+  <div id="objectList">
+  </div>
+
+  <h2>Actions</h2>
+  <div id="actionList">
+    <button class="accordion action">Add Rigid Body</button>
+    <div class="panel action">
+      <form id="form_rigid_body">
+        <label for="name">Name</label>
+        <input name="name" placeholder="Leave blank for automatic name" type="text"><br>
+        <h4>Shape</h4>
+        <label for="geom_type">Geometry</label>
+        <select id="rigidGeom" name="geom_type" onchange="update_rigid_form('form_rigid_body')">
+          <option value="box">Box</option>
+          <option value="sphere">Sphere</option>
+          <option value="cylinder">Cylinder</option>
+          <option value="capsule">Capsule</option>
+P        </select><br>
+        <label for="x" class="boxThings">Depth</label>
+        <input type="number" step="0.0001" name="x" min="0" value="1" class="boxThings"><br class="boxThings">
+        <label for="y" class="boxThings">Width</label>
+        <input type="number" step="0.0001" name="y" min="0" value="1" class="boxThings"><br class="boxThings">
+        <label for="z" class="boxThings cylinderThings">Height</label>
+        <input type="number" step="0.0001" name="z" min="0" value="1" class="boxThings cylinderThings"><br class="boxThings cylinderThings">
+        
+        <label for="radius" class="sphereThings" style="display:none">Radius</label>
+        <input type="number" step="0.0001" name="radius" min="0" value="1" style="display:none" class="sphereThings"><br class="sphereThings">
+        <label for="mass">Mass</label>
+        <input type="number" step="0.0001" name="mass" value="1" min="0"><br>
+        <h4>Position</h4>
+        <label for="position_x">X</label>
+        <input type="number" step="0.0001" name="position_x" value="0"><br>
+        <label for="position_y">Y</label>
+        <input type="number" step="0.0001" name="position_y" value="0"><br>
+        <label for="position_z">Z</label>
+        <input type="number" step="0.0001" name="position_z" value="0"><br>
+        <input type="submit" value="Add Object">
+      </form>
+    </div>
+    <button class="accordion action">Add URDF</button>
+    <div class="panel action">
+      <form id="form_urdf">
+        <label for="urdf_path">URDF Path</label>
+        <input name="urdf_path" type="text" placeholder="package://robot_pkg/robot.urdf"><br>
+        <!-- <label for="fixed">Fixed Base</label>
+        <input type="checkbox" name="fixed" value="true" checked><br> -->
+        <h4>Position</h4>
+        <label for="position_x">X</label>
+        <input type="number" step="0.0001" name="position_x" value="0"><br>
+        <label for="position_y">Y</label>
+        <input type="number" step="0.0001" name="position_y" value="0"><br>
+        <label for="position_z">Z</label>
+        <input type="number" step="0.0001" name="position_z" value="0"><br>
+        <input type="submit" value="Add URDF">
+      </form>
+    </div>
+    <button class="accordion action">Add Controller</button>
+    <div class="panel action"><p>This is a test!</p></div>
+    <button class="accordion action">Remove Controller</button>
+    <div class="panel action"><p>This is a test!</p></div>
+    <button class="accordion action">Set Gravity</button>
+    <div class="panel action">
+      <form id="form_gravity">
+        <label for="gravity_x">X</label>
+        <input type="number" step="0.0001" name="gravity_x" value="0"><br>
+        <label for="gravity_y">Y</label>
+        <input type="number" step="0.0001" name="gravity_y" value="0"><br>
+        <label for="gravity_z">Z</label>
+        <input type="number" step="0.0001" name="gravity_z" value="-9.81"><br>
+        <input type="submit" value="Set Gravity">
+      </form>
+    </div>
+  </div>
+  
+  <!-- The Modal -->
+  <div id="saveModal" class="modal">
+
+    <!-- Modal content -->
+    <div class="modal-content">
+      <span class="close" onclick="close_save_modal()">&times;</span>
+      <div class="tab">
+        <button id="defaultSave" class="tablinks" onclick="openTab(event, 'tabYAML')">YAML</button>
+        <button class="tablinks" onclick="openTab(event, 'tabROSParam')">ROS Parameter</button>
+      </div>
+      <div id="tabYAML" class="tabcontent">
+        <form id="form_save_yaml">
+          <label for="yaml_path">File Path</label>
+          <input name="yaml_path" type="text" placeholder="package://some_pkg/my_config.yaml"><br>
+          <input type="submit" value="Save to YAML">
+        </form>
+      </div>
+      <div id="tabROSParam" class="tabcontent">
+        <form id="form_save_rosparam">
+          <label for="rosparam">ROS Parameter</label>
+          <input name="rosparam" type="text" placeholder="/my_simconfig"><br>
+          <input type="submit" value="Save to ROS Parameter">
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div id="statusIndicator">
+    <p id="connecting" class="statusDisplay">
+      Connecting to rosbridge...
+    </p>
+    <div id="connected" class="statusDisplay" style="display:none">
+      <button class="iconBtn" onclick="reset_simulator()"><i class="fas fa-backward"></i></button>
+      <button class="iconBtn" onclick="toggle_run_mode()"><i id="run_indicator" class="fas fa-play"></i></button>
+      <button class="iconBtn" onclick="open_save_modal()"><i class="fas fa-save"></i></button>
+      <p>Connected to ROS</p>
+    </div>
+    <p id="error" class="statusDisplay" style="display:none">
+      Error in the backend!
+    </p>
+    <p id="closed" class="statusDisplay" style="display:none">
+      Connection to ROS closed.
+    </p>
+    <p class="errorDisplay" class="statusDisplay" style="display:none;"></p>
+  </div>
+</body>
+
+<script>
+// Get the element with id="defaultOpen" and click on it
+document.getElementById("defaultSave").click();
+</script>
+</html>
