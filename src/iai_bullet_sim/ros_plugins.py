@@ -251,7 +251,7 @@ class JointPositionController(WatchdoggedJointController):
         """
         for x in range(len(cmd_msg.name)):
             if cmd_msg.name[x] not in self.watchdogs:
-                self.watchdogs[cmd_msg.name[x]] = Watchdog(rospy.Duration(self.watchdog_timeout))    
+                self.watchdogs[cmd_msg.name[x]] = Watchdog(rospy.Duration(self.watchdog_timeout))
             self.watchdogs[cmd_msg.name[x]].tick(cmd_msg.header.stamp)
             self.next_cmd[cmd_msg.name[x]] = cmd_msg.position[x]
 
@@ -313,7 +313,7 @@ class JointVelocityController(WatchdoggedJointController):
         """
         for x in range(len(cmd_msg.name)):
             if cmd_msg.name[x] not in self.watchdogs:
-                self.watchdogs[cmd_msg.name[x]] = Watchdog(rospy.Duration(self.watchdog_timeout))    
+                self.watchdogs[cmd_msg.name[x]] = Watchdog(rospy.Duration(self.watchdog_timeout))
             self.watchdogs[cmd_msg.name[x]].tick(cmd_msg.header.stamp)
             self.next_cmd[cmd_msg.name[x]] = cmd_msg.velocity[x]
 
@@ -551,7 +551,7 @@ class TFPublisher(SimulatorPlugin):
                     self.tf_broadcaster.sendTransform(pose.position, pose.quaternion, now, '{}/{}'.format(name, body.base_link), self.map_frame)
                 else:
                     self.tf_broadcaster.sendTransform(pose.position, pose.quaternion, now, name, self.map_frame)
-            
+
     def disable(self, simulator):
         """Stops the execution of this plugin.
 
@@ -627,7 +627,7 @@ class OdometryPublisher(SimulatorPlugin):
         self.msg_template.twist.twist.linear.x = lin_vel[0]
         self.msg_template.twist.twist.linear.y = lin_vel[1]
         self.msg_template.twist.twist.linear.z = lin_vel[2]
-        self.msg_template.twist.twist.angular.x = ang_vel[0]        
+        self.msg_template.twist.twist.angular.x = ang_vel[0]
         self.msg_template.twist.twist.angular.y = ang_vel[1]
         self.msg_template.twist.twist.angular.z = ang_vel[2]
         self.publisher.publish(self.msg_template)
@@ -705,8 +705,8 @@ class LaserScanner(SimulatorPlugin):
     """This class implements a virtual laser scanner for the simulation.
        The generated scans are published as sensor_msgs/LaserScan.
     """
-    def __init__(self, simulator, body, link, 
-                       ang_min, ang_max, resolution, 
+    def __init__(self, simulator, body, link,
+                       ang_min, ang_max, resolution,
                        range_min, range_max, axis=(0,0,1),
                        sensor_name='laser_scan'):
         """Constructor.
@@ -742,7 +742,7 @@ class LaserScanner(SimulatorPlugin):
             self.publisher = rospy.Publisher('{}/sensors/{}/{}'.format(body_name, link, sensor_name), LaserScanMsg, queue_size=1)
         self.resolution = resolution
         ang_step = (ang_max - ang_min) / resolution
-        
+
         self.msg_template = LaserScanMsg()
         self.msg_template.header.frame_id = '{}/{}'.format(body_name, link) if link is not None else body_name
         self.msg_template.angle_min = ang_min
@@ -752,14 +752,15 @@ class LaserScanner(SimulatorPlugin):
         self.msg_template.range_max = range_max
 
         self.conversion_factor = range_max - range_min
-        
+
         self.axis = axis
         e_axis = np.array([axis[0], axis[1], axis[2], 0])
 
-        self.raw_start_points = np.hstack([(rotation3_axis_angle(e_axis, ang_min + ang_step * x) * np.array([range_min,0,0,1])).tolist() 
+        self.raw_start_points = np.hstack([rotation3_axis_angle(e_axis, ang_min + ang_step * x).dot(np.array([[range_min],[0],[0],[1]]))
                                         for x in range(resolution)]).astype(float)
-        self.raw_end_points = np.hstack([(rotation3_axis_angle(e_axis, ang_min + ang_step * x) * np.array([range_max,0,0,1])).tolist() 
+        self.raw_end_points = np.hstack([rotation3_axis_angle(e_axis, ang_min + ang_step * x).dot(np.array([[range_max],[0],[0],[1]]))
                                         for x in range(resolution)]).astype(float)
+
         self._enabled = True
 
     def post_physics_update(self, simulator, deltaT):
@@ -777,8 +778,8 @@ class LaserScanner(SimulatorPlugin):
                 ft_pose = self.body.pose()
 
             transform = np.hstack((np.zeros((4,3)), np.array([[ft_pose.position.x],[ft_pose.position.y],[ft_pose.position.z],[0]])))
-            transform = rotation3_quaternion(ft_pose.quaternion.x, 
-                                             ft_pose.quaternion.y, 
+            transform = rotation3_quaternion(ft_pose.quaternion.x,
+                                             ft_pose.quaternion.y,
                                              ft_pose.quaternion.z,
                                              ft_pose.quaternion.w) + transform
 
@@ -817,12 +818,12 @@ class LaserScanner(SimulatorPlugin):
         body = simulator.get_body(init_dict['body'])
         if body is None:
             raise Exception('Body "{}" does not exist in the context of the given simulation.'.format(init_dict['body']))
-        return cls(simulator, body, 
-                              init_dict['link'], 
+        return cls(simulator, body,
+                              init_dict['link'],
                               init_dict['angle_min'],
                               init_dict['angle_max'],
                               init_dict['resolution'],
                               init_dict['range_min'],
                               init_dict['range_max'],
                               init_dict['axis'],
-                              init_dict['sensor_name']) 
+                              init_dict['sensor_name'])
