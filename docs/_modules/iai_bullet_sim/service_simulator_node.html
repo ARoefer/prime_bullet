@@ -194,6 +194,7 @@
             <span class="n">rospy</span><span class="o">.</span><span class="n">Service</span><span class="p">(</span><span class="s1">&#39;set_gravity&#39;</span><span class="p">,</span> <span class="n">SetGravity</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">srv_set_gravity</span><span class="p">),</span>
             <span class="n">rospy</span><span class="o">.</span><span class="n">Service</span><span class="p">(</span><span class="s1">&#39;save_to_yaml&#39;</span><span class="p">,</span> <span class="n">SaveSimulator</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">srv_save_to_yaml</span><span class="p">),</span>
             <span class="n">rospy</span><span class="o">.</span><span class="n">Service</span><span class="p">(</span><span class="s1">&#39;save_to_rosparam&#39;</span><span class="p">,</span> <span class="n">SaveSimulator</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">srv_save_to_rosparam</span><span class="p">),</span>
+            <span class="n">rospy</span><span class="o">.</span><span class="n">Service</span><span class="p">(</span><span class="s1">&#39;delete_object&#39;</span><span class="p">,</span> <span class="n">ObjectId</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">srv_delete_object</span><span class="p">),</span>
             <span class="n">rospy</span><span class="o">.</span><span class="n">Service</span><span class="p">(</span><span class="s1">&#39;reset_object&#39;</span><span class="p">,</span> <span class="n">ObjectId</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">srv_reset_object</span><span class="p">),</span>
             <span class="n">rospy</span><span class="o">.</span><span class="n">Service</span><span class="p">(</span><span class="s1">&#39;reset&#39;</span><span class="p">,</span> <span class="n">Empty</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">srv_reset</span><span class="p">),</span>
             <span class="n">rospy</span><span class="o">.</span><span class="n">Service</span><span class="p">(</span><span class="s1">&#39;pause&#39;</span><span class="p">,</span> <span class="n">Empty</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">srv_pause</span><span class="p">),</span>
@@ -210,6 +211,7 @@
             <span class="nb">super</span><span class="p">(</span><span class="n">ServiceSimulatorNode</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">tick</span><span class="p">(</span><span class="n">timer_event</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="ServiceSimulatorNode.srv_get_obj_ids"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.service_simulator_node.ServiceSimulatorNode.srv_get_obj_ids">[docs]</a>    <span class="k">def</span> <span class="nf">srv_get_obj_ids</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">req</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;srv_get_obj_ids() called&#39;</span><span class="p">)</span>
         <span class="sd">&quot;&quot;&quot;Returns the Ids of all objects.&quot;&quot;&quot;</span>
         <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">lock</span><span class="p">:</span>
             <span class="n">res</span> <span class="o">=</span> <span class="n">GetObjectIdsResponse</span><span class="p">()</span>
@@ -217,6 +219,7 @@
             <span class="k">return</span> <span class="n">res</span></div>
 
 <div class="viewcode-block" id="ServiceSimulatorNode.srv_get_rigid_ids"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.service_simulator_node.ServiceSimulatorNode.srv_get_rigid_ids">[docs]</a>    <span class="k">def</span> <span class="nf">srv_get_rigid_ids</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">req</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;srv_get_rigid_ids() called&#39;</span><span class="p">)</span>
         <span class="sd">&quot;&quot;&quot;Returns the Ids of all rigid objects.&quot;&quot;&quot;</span>
         <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">lock</span><span class="p">:</span>
             <span class="n">res</span> <span class="o">=</span> <span class="n">GetObjectIdsResponse</span><span class="p">()</span>
@@ -224,6 +227,7 @@
             <span class="k">return</span> <span class="n">res</span></div>
 
 <div class="viewcode-block" id="ServiceSimulatorNode.srv_get_multibody_ids"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.service_simulator_node.ServiceSimulatorNode.srv_get_multibody_ids">[docs]</a>    <span class="k">def</span> <span class="nf">srv_get_multibody_ids</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">req</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;srv_get_multibody_ids() called&#39;</span><span class="p">)</span>
         <span class="sd">&quot;&quot;&quot;Returns the Ids of all multibodies.&quot;&quot;&quot;</span>
         <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">lock</span><span class="p">:</span>
             <span class="n">res</span> <span class="o">=</span> <span class="n">GetObjectIdsResponse</span><span class="p">()</span>
@@ -231,10 +235,11 @@
             <span class="k">return</span> <span class="n">res</span></div>
 
 <div class="viewcode-block" id="ServiceSimulatorNode.srv_get_multibodies"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.service_simulator_node.ServiceSimulatorNode.srv_get_multibodies">[docs]</a>    <span class="k">def</span> <span class="nf">srv_get_multibodies</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">req</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;srv_get_multibodies() called&#39;</span><span class="p">)</span>
         <span class="sd">&quot;&quot;&quot;Returns a serialized version of all multibodies.&quot;&quot;&quot;</span>
         <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">lock</span><span class="p">:</span>
             <span class="n">res</span> <span class="o">=</span> <span class="n">GetMultibodiesResponse</span><span class="p">()</span>
-            
+
             <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">body</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim</span><span class="o">.</span><span class="n">bodies</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
                 <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">body</span><span class="p">,</span> <span class="n">MultiBody</span><span class="p">):</span>
                     <span class="n">msg</span> <span class="o">=</span> <span class="n">MultiBodyMsg</span><span class="p">()</span>
@@ -262,10 +267,11 @@
             <span class="k">return</span> <span class="n">res</span></div>
 
 <div class="viewcode-block" id="ServiceSimulatorNode.srv_get_rigidbodies"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.service_simulator_node.ServiceSimulatorNode.srv_get_rigidbodies">[docs]</a>    <span class="k">def</span> <span class="nf">srv_get_rigidbodies</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">req</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;srv_get_rigidbodies() called&#39;</span><span class="p">)</span>
         <span class="sd">&quot;&quot;&quot;Returns a serialized version of all rigid bodies.&quot;&quot;&quot;</span>
         <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">lock</span><span class="p">:</span>
             <span class="n">res</span> <span class="o">=</span> <span class="n">GetRigidBodiesResponse</span><span class="p">()</span>
-            
+
             <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">body</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim</span><span class="o">.</span><span class="n">bodies</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
                 <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">body</span><span class="p">,</span> <span class="n">RigidBody</span><span class="p">):</span>
                     <span class="n">msg</span> <span class="o">=</span> <span class="n">RigidBodyMsg</span><span class="p">()</span>
@@ -274,7 +280,7 @@
                         <span class="nb">setattr</span><span class="p">(</span><span class="n">msg</span><span class="o">.</span><span class="n">extents</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
                     <span class="n">msg</span><span class="o">.</span><span class="n">height</span>  <span class="o">=</span> <span class="n">body</span><span class="o">.</span><span class="n">height</span>
                     <span class="n">msg</span><span class="o">.</span><span class="n">radius</span>  <span class="o">=</span> <span class="n">body</span><span class="o">.</span><span class="n">radius</span>
-                    <span class="n">msg</span><span class="o">.</span><span class="n">mass</span>    <span class="o">=</span> <span class="n">body</span><span class="o">.</span><span class="n">mass</span> 
+                    <span class="n">msg</span><span class="o">.</span><span class="n">mass</span>    <span class="o">=</span> <span class="n">body</span><span class="o">.</span><span class="n">mass</span>
                     <span class="k">for</span> <span class="n">a</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">([</span><span class="s1">&#39;r&#39;</span><span class="p">,</span> <span class="s1">&#39;g&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="s1">&#39;a&#39;</span><span class="p">],</span> <span class="n">body</span><span class="o">.</span><span class="n">color</span><span class="p">):</span>
                         <span class="nb">setattr</span><span class="p">(</span><span class="n">msg</span><span class="o">.</span><span class="n">color</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
                     <span class="k">for</span> <span class="n">a</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">([</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="s1">&#39;y&#39;</span><span class="p">,</span> <span class="s1">&#39;z&#39;</span><span class="p">],</span> <span class="n">body</span><span class="o">.</span><span class="n">initial_pos</span><span class="p">):</span>
@@ -287,6 +293,7 @@
             <span class="k">return</span> <span class="n">res</span></div>
 
 <div class="viewcode-block" id="ServiceSimulatorNode.srv_get_obj_joints"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.service_simulator_node.ServiceSimulatorNode.srv_get_obj_joints">[docs]</a>    <span class="k">def</span> <span class="nf">srv_get_obj_joints</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">req</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;srv_get_obj_joints() called&#39;</span><span class="p">)</span>
         <span class="sd">&quot;&quot;&quot;Returns the names of all joints belonging to the queried object.&quot;&quot;&quot;</span>
         <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">lock</span><span class="p">:</span>
             <span class="n">res</span> <span class="o">=</span> <span class="n">GetJointsResponse</span><span class="p">()</span>
@@ -304,6 +311,7 @@
             <span class="k">return</span> <span class="n">res</span></div>
 
 <div class="viewcode-block" id="ServiceSimulatorNode.srv_add_rigid_body"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.service_simulator_node.ServiceSimulatorNode.srv_add_rigid_body">[docs]</a>    <span class="k">def</span> <span class="nf">srv_add_rigid_body</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">req</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;srv_add_rigid_body() called&#39;</span><span class="p">)</span>
         <span class="sd">&quot;&quot;&quot;Adds a rigid body to the simulation.&quot;&quot;&quot;</span>
         <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">lock</span><span class="p">:</span>
             <span class="n">res</span>   <span class="o">=</span> <span class="n">AddRigidObjectResponse</span><span class="p">()</span>
@@ -324,6 +332,7 @@
             <span class="k">return</span> <span class="n">res</span></div>
 
 <div class="viewcode-block" id="ServiceSimulatorNode.srv_add_urdf"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.service_simulator_node.ServiceSimulatorNode.srv_add_urdf">[docs]</a>    <span class="k">def</span> <span class="nf">srv_add_urdf</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">req</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;srv_add_urdf() called&#39;</span><span class="p">)</span>
         <span class="sd">&quot;&quot;&quot;Adds a multi body to the simulation.&quot;&quot;&quot;</span>
         <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">lock</span><span class="p">:</span>
             <span class="n">res</span>   <span class="o">=</span> <span class="n">AddURDFResponse</span><span class="p">()</span>
@@ -345,6 +354,7 @@
             <span class="k">return</span> <span class="n">res</span></div>
 
 <div class="viewcode-block" id="ServiceSimulatorNode.srv_add_controller"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.service_simulator_node.ServiceSimulatorNode.srv_add_controller">[docs]</a>    <span class="k">def</span> <span class="nf">srv_add_controller</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">req</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;srv_add_controller() called&#39;</span><span class="p">)</span>
         <span class="sd">&quot;&quot;&quot;Adds a controller to a multibody.&quot;&quot;&quot;</span>
         <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">lock</span><span class="p">:</span>
             <span class="n">res</span> <span class="o">=</span> <span class="n">SetControllerResponse</span><span class="p">()</span>
@@ -383,6 +393,7 @@
             <span class="k">return</span> <span class="n">res</span></div>
 
 <div class="viewcode-block" id="ServiceSimulatorNode.srv_remove_controller"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.service_simulator_node.ServiceSimulatorNode.srv_remove_controller">[docs]</a>    <span class="k">def</span> <span class="nf">srv_remove_controller</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">req</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;srv_remove_controller() called&#39;</span><span class="p">)</span>
         <span class="sd">&quot;&quot;&quot;Removes a controller from a multibody.&quot;&quot;&quot;</span>
         <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">lock</span><span class="p">:</span>
             <span class="n">res</span> <span class="o">=</span> <span class="n">SetControllerResponse</span><span class="p">()</span>
@@ -403,6 +414,7 @@
             <span class="k">return</span> <span class="n">res</span></div>
 
 <div class="viewcode-block" id="ServiceSimulatorNode.srv_set_joint_sensor"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.service_simulator_node.ServiceSimulatorNode.srv_set_joint_sensor">[docs]</a>    <span class="k">def</span> <span class="nf">srv_set_joint_sensor</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">req</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;srv_set_joint_sensor() called&#39;</span><span class="p">)</span>
         <span class="sd">&quot;&quot;&quot;Sets the state of a joint sensor for a specified joint.&quot;&quot;&quot;</span>
         <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">lock</span><span class="p">:</span>
             <span class="n">res</span>  <span class="o">=</span> <span class="n">SetJointSensorResponse</span><span class="p">()</span>
@@ -435,6 +447,7 @@
             <span class="k">return</span> <span class="n">res</span></div>
 
 <div class="viewcode-block" id="ServiceSimulatorNode.srv_set_joint_state"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.service_simulator_node.ServiceSimulatorNode.srv_set_joint_state">[docs]</a>    <span class="k">def</span> <span class="nf">srv_set_joint_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">req</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;srv_set_joint_state() called&#39;</span><span class="p">)</span>
         <span class="sd">&quot;&quot;&quot;Sets the a multibody&#39;s joint state.&quot;&quot;&quot;</span>
         <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">lock</span><span class="p">:</span>
             <span class="n">res</span>  <span class="o">=</span> <span class="n">SetJointStateResponse</span><span class="p">()</span>
@@ -458,6 +471,7 @@
             <span class="k">return</span> <span class="n">res</span></div>
 
 <div class="viewcode-block" id="ServiceSimulatorNode.srv_set_pose"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.service_simulator_node.ServiceSimulatorNode.srv_set_pose">[docs]</a>    <span class="k">def</span> <span class="nf">srv_set_pose</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">req</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;srv_set_pose() called&#39;</span><span class="p">)</span>
         <span class="sd">&quot;&quot;&quot;Sets the pose of an object.&quot;&quot;&quot;</span>
         <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">lock</span><span class="p">:</span>
             <span class="n">res</span>  <span class="o">=</span> <span class="n">SetObjectPoseResponse</span><span class="p">()</span>
@@ -479,6 +493,7 @@
             <span class="k">return</span> <span class="n">res</span></div>
 
 <div class="viewcode-block" id="ServiceSimulatorNode.srv_save_to_yaml"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.service_simulator_node.ServiceSimulatorNode.srv_save_to_yaml">[docs]</a>    <span class="k">def</span> <span class="nf">srv_save_to_yaml</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">req</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;srv_save_to_yaml() called&#39;</span><span class="p">)</span>
         <span class="sd">&quot;&quot;&quot;Saves the simulator&#39;s configuration to a YAML file.&quot;&quot;&quot;</span>
         <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">lock</span><span class="p">:</span>
             <span class="n">res</span> <span class="o">=</span> <span class="n">SaveSimulatorResponse</span><span class="p">()</span>
@@ -492,6 +507,7 @@
             <span class="k">return</span> <span class="n">res</span></div>
 
 <div class="viewcode-block" id="ServiceSimulatorNode.srv_save_to_rosparam"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.service_simulator_node.ServiceSimulatorNode.srv_save_to_rosparam">[docs]</a>    <span class="k">def</span> <span class="nf">srv_save_to_rosparam</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">req</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;srv_save_to_rosparam() called&#39;</span><span class="p">)</span>
         <span class="sd">&quot;&quot;&quot;Saves the simulator&#39;s configuration to a ROS parameter.&quot;&quot;&quot;</span>
         <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">lock</span><span class="p">:</span>
             <span class="n">res</span> <span class="o">=</span> <span class="n">SaveSimulatorResponse</span><span class="p">()</span>
@@ -505,16 +521,34 @@
             <span class="k">return</span> <span class="n">res</span></div>
 
 <div class="viewcode-block" id="ServiceSimulatorNode.srv_load_from_yaml"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.service_simulator_node.ServiceSimulatorNode.srv_load_from_yaml">[docs]</a>    <span class="k">def</span> <span class="nf">srv_load_from_yaml</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">req</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;srv_load_from_yaml() called&#39;</span><span class="p">)</span>
         <span class="sd">&quot;&quot;&quot;Loads the simulator&#39;s configuration from a YAML file.&quot;&quot;&quot;</span>
         <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">lock</span><span class="p">:</span>
             <span class="k">pass</span></div>
 
 <div class="viewcode-block" id="ServiceSimulatorNode.srv_load_from_rosparam"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.service_simulator_node.ServiceSimulatorNode.srv_load_from_rosparam">[docs]</a>    <span class="k">def</span> <span class="nf">srv_load_from_rosparam</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">req</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;srv_load_from_rosparam() called&#39;</span><span class="p">)</span>
         <span class="sd">&quot;&quot;&quot;Loads the simulator&#39;s configuration from a ROS parameter.&quot;&quot;&quot;</span>
         <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">lock</span><span class="p">:</span>
             <span class="k">pass</span></div>
 
+<div class="viewcode-block" id="ServiceSimulatorNode.srv_delete_object"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.service_simulator_node.ServiceSimulatorNode.srv_delete_object">[docs]</a>    <span class="k">def</span> <span class="nf">srv_delete_object</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">req</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;srv_delete_object() called&#39;</span><span class="p">)</span>
+        <span class="sd">&quot;&quot;&quot;Resets the state of a specific object.&quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">lock</span><span class="p">:</span>
+            <span class="n">res</span> <span class="o">=</span> <span class="n">ObjectIdResponse</span><span class="p">()</span>
+            <span class="n">res</span><span class="o">.</span><span class="n">success</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="k">if</span> <span class="n">req</span><span class="o">.</span><span class="n">object_id</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim</span><span class="o">.</span><span class="n">bodies</span><span class="p">:</span>
+                <span class="n">res</span><span class="o">.</span><span class="n">error_msg</span> <span class="o">=</span> <span class="s1">&#39;Object {} does not exist.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">req</span><span class="o">.</span><span class="n">object_id</span><span class="p">)</span>
+                <span class="k">return</span> <span class="n">res</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">sim</span><span class="o">.</span><span class="n">delete_body</span><span class="p">(</span><span class="n">req</span><span class="o">.</span><span class="n">object_id</span><span class="p">)</span>
+
+            <span class="n">res</span><span class="o">.</span><span class="n">success</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="k">return</span> <span class="n">res</span></div>
+
 <div class="viewcode-block" id="ServiceSimulatorNode.srv_reset_object"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.service_simulator_node.ServiceSimulatorNode.srv_reset_object">[docs]</a>    <span class="k">def</span> <span class="nf">srv_reset_object</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">req</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;srv_reset_object() called&#39;</span><span class="p">)</span>
         <span class="sd">&quot;&quot;&quot;Resets the state of a specific object.&quot;&quot;&quot;</span>
         <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">lock</span><span class="p">:</span>
             <span class="n">res</span> <span class="o">=</span> <span class="n">ObjectIdResponse</span><span class="p">()</span>
@@ -530,6 +564,7 @@
             <span class="k">return</span> <span class="n">res</span></div>
 
 <div class="viewcode-block" id="ServiceSimulatorNode.srv_reset"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.service_simulator_node.ServiceSimulatorNode.srv_reset">[docs]</a>    <span class="k">def</span> <span class="nf">srv_reset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">req</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;srv_reset() called&#39;</span><span class="p">)</span>
         <span class="sd">&quot;&quot;&quot;Resets the state of the entire simulation.&quot;&quot;&quot;</span>
         <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">lock</span><span class="p">:</span>
             <span class="n">res</span> <span class="o">=</span> <span class="n">EmptyResponse</span><span class="p">()</span>
@@ -543,6 +578,7 @@
             <span class="k">return</span> <span class="n">res</span></div>
 
 <div class="viewcode-block" id="ServiceSimulatorNode.srv_set_gravity"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.service_simulator_node.ServiceSimulatorNode.srv_set_gravity">[docs]</a>    <span class="k">def</span> <span class="nf">srv_set_gravity</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">req</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;srv_set_gravity() called&#39;</span><span class="p">)</span>
         <span class="sd">&quot;&quot;&quot;Sets the gravity vector.&quot;&quot;&quot;</span>
         <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">lock</span><span class="p">:</span>
             <span class="n">res</span> <span class="o">=</span> <span class="n">SetGravityResponse</span><span class="p">()</span>
@@ -556,6 +592,7 @@
             <span class="k">return</span> <span class="n">res</span></div>
 
 <div class="viewcode-block" id="ServiceSimulatorNode.srv_pause"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.service_simulator_node.ServiceSimulatorNode.srv_pause">[docs]</a>    <span class="k">def</span> <span class="nf">srv_pause</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">msg</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;srv_pause() called&#39;</span><span class="p">)</span>
         <span class="sd">&quot;&quot;&quot;Pauses the simulation.&quot;&quot;&quot;</span>
         <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">lock</span><span class="p">:</span>
             <span class="n">res</span> <span class="o">=</span> <span class="n">EmptyResponse</span><span class="p">()</span>
@@ -569,6 +606,7 @@
             <span class="k">return</span> <span class="n">res</span></div>
 
 <div class="viewcode-block" id="ServiceSimulatorNode.srv_run"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.service_simulator_node.ServiceSimulatorNode.srv_run">[docs]</a>    <span class="k">def</span> <span class="nf">srv_run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">msg</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;srv_run() called&#39;</span><span class="p">)</span>
         <span class="sd">&quot;&quot;&quot;Runs the simulation.&quot;&quot;&quot;</span>
         <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">lock</span><span class="p">:</span>
             <span class="n">res</span> <span class="o">=</span> <span class="n">EmptyResponse</span><span class="p">()</span>
@@ -582,6 +620,7 @@
             <span class="k">return</span> <span class="n">res</span></div>
 
 <div class="viewcode-block" id="ServiceSimulatorNode.srv_get_state"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.service_simulator_node.ServiceSimulatorNode.srv_get_state">[docs]</a>    <span class="k">def</span> <span class="nf">srv_get_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">msg</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;srv_get_state() called&#39;</span><span class="p">)</span>
         <span class="sd">&quot;&quot;&quot;Gets the current run-state of the simulation.&quot;&quot;&quot;</span>
         <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">lock</span><span class="p">:</span>
             <span class="n">res</span> <span class="o">=</span> <span class="n">GetSimulatorStateResponse</span><span class="p">()</span>
@@ -592,6 +631,7 @@
             <span class="k">return</span> <span class="n">res</span></div>
 
 <div class="viewcode-block" id="ServiceSimulatorNode.srv_get_static_geometry"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.service_simulator_node.ServiceSimulatorNode.srv_get_static_geometry">[docs]</a>    <span class="k">def</span> <span class="nf">srv_get_static_geometry</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">msg</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;srv_get_static_geometry() called&#39;</span><span class="p">)</span>
         <span class="sd">&quot;&quot;&quot;Gets a visualization_msgs/MarkerArray representing the static geometry in the world.&quot;&quot;&quot;</span>
         <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">lock</span><span class="p">:</span>
             <span class="n">res</span> <span class="o">=</span> <span class="n">GetStaticGeometryResponse</span><span class="p">()</span>
@@ -639,7 +679,7 @@
             <span class="nb">setattr</span><span class="p">(</span><span class="n">central_marker</span><span class="o">.</span><span class="n">scale</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">body</span><span class="o">.</span><span class="n">radius</span> <span class="o">*</span> <span class="mi">2</span><span class="p">)</span>
         <span class="n">central_marker</span><span class="o">.</span><span class="n">scale</span><span class="o">.</span><span class="n">z</span> <span class="o">=</span> <span class="n">body</span><span class="o">.</span><span class="n">height</span>
         <span class="c1"># if body.type == &#39;capsule&#39;:</span>
-        <span class="c1">#     central_marker.scale.z = body.height - 2 * body.radius </span>
+        <span class="c1">#     central_marker.scale.z = body.height - 2 * body.radius</span>
         <span class="c1">#     upper_sphere = MarkerMsg()</span>
         <span class="c1">#     upper_sphere.type  = MarkerMsg.SPHERE</span>
         <span class="c1">#     upper_sphere.color = central_marker.color</span>

@@ -328,6 +328,7 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">physicsClient</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">bodies</span>      <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">deletion_cbs</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">constraints</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">tick_rate</span>   <span class="o">=</span> <span class="n">tick_rate</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">gravity</span>     <span class="o">=</span> <span class="n">gravity</span>
@@ -469,6 +470,20 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">__bId_IdMap</span><span class="p">[</span><span class="n">obj</span><span class="o">.</span><span class="n">bId</span><span class="p">()]</span> <span class="o">=</span> <span class="n">name_override</span>
             <span class="k">return</span> <span class="n">name_override</span></div>
 
+<div class="viewcode-block" id="BasicSimulator.register_deletion_cb"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.basic_simulator.BasicSimulator.register_deletion_cb">[docs]</a>    <span class="k">def</span> <span class="nf">register_deletion_cb</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bodyId</span><span class="p">,</span> <span class="n">cb</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Registers a callback function which is called when the specified object is deleted.</span>
+
+<span class="sd">        :param bodyId: Body to listen for</span>
+<span class="sd">        :type  bodyId: str</span>
+<span class="sd">        :param cb: Callback to be called. Signature f(BasicSimulator, str, RigidBody/MultiBody)</span>
+<span class="sd">        :tyoe  cb: function</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">bodyId</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">bodies</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;Can not register deletion callback for unknown body {}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">bodyId</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="n">bodyId</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">deletion_cbs</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">deletion_cbs</span><span class="p">[</span><span class="n">bodyId</span><span class="p">]</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">deletion_cbs</span><span class="p">[</span><span class="n">bodyId</span><span class="p">]</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">cb</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="BasicSimulator.register_plugin"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.basic_simulator.BasicSimulator.register_plugin">[docs]</a>    <span class="k">def</span> <span class="nf">register_plugin</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">plugin</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Registers a plugin with the simulator.</span>
@@ -686,6 +701,10 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="n">bodyId</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">bodies</span><span class="p">:</span>
             <span class="n">body</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bodies</span><span class="p">[</span><span class="n">bodyId</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">bodyId</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">deletion_cbs</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">cb</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">deletion_cbs</span><span class="p">[</span><span class="n">bodyId</span><span class="p">]:</span>
+                    <span class="n">cb</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bodyId</span><span class="p">,</span> <span class="n">body</span><span class="p">)</span>
+                <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">deletion_cbs</span><span class="p">[</span><span class="n">bodyId</span><span class="p">]</span>
             <span class="n">pb</span><span class="o">.</span><span class="n">removeBody</span><span class="p">(</span><span class="n">body</span><span class="o">.</span><span class="n">bId</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">__client_id</span><span class="p">)</span>
             <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">__bId_IdMap</span><span class="p">[</span><span class="n">body</span><span class="o">.</span><span class="n">bId</span><span class="p">()]</span>
             <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">bodies</span><span class="p">[</span><span class="n">bodyId</span><span class="p">]</span>
@@ -825,11 +844,11 @@
                             <span class="k">else</span><span class="p">:</span>
                                 <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;Driver type &quot;{}&quot; does not match the pattern &quot;&lt;class </span><span class="se">\&#39;</span><span class="s1">TYPE</span><span class="se">\&#39;</span><span class="s1">&gt;&quot;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">driver_class</span><span class="p">))</span>
                         <span class="n">joint_driver</span> <span class="o">=</span> <span class="n">driver_registry</span><span class="p">[</span><span class="n">driver_class</span><span class="p">]</span><span class="o">.</span><span class="n">factory</span><span class="p">(</span><span class="n">driver_dict</span><span class="p">)</span>
-                    <span class="k">else</span><span class="p">:</span>    
+                    <span class="k">else</span><span class="p">:</span>
                         <span class="n">joint_driver</span> <span class="o">=</span> <span class="n">JointDriver</span><span class="p">()</span>
 
-                    <span class="n">new_obj</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">load_urdf</span><span class="p">(</span><span class="n">urdf_path</span><span class="p">,</span> 
-                                             <span class="n">i_pos</span><span class="p">,</span> 
+                    <span class="n">new_obj</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">load_urdf</span><span class="p">(</span><span class="n">urdf_path</span><span class="p">,</span>
+                                             <span class="n">i_pos</span><span class="p">,</span>
                                              <span class="n">i_rot</span><span class="p">,</span> <span class="n">joint_driver</span><span class="o">=</span><span class="n">joint_driver</span><span class="p">,</span> <span class="n">useFixedBase</span><span class="o">=</span><span class="n">fixed_base</span><span class="p">,</span> <span class="n">name_override</span><span class="o">=</span><span class="n">name</span><span class="p">)</span>
                     <span class="n">new_obj</span><span class="o">.</span><span class="n">set_joint_positions</span><span class="p">(</span><span class="n">initial_joint_state</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
                     <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">od</span><span class="p">[</span><span class="s1">&#39;sensors&#39;</span><span class="p">]:</span>

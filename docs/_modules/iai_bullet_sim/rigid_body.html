@@ -212,6 +212,14 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__bulletId</span></div>
 
+<div class="viewcode-block" id="RigidBody.register_deletion_cb"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.rigid_body.RigidBody.register_deletion_cb">[docs]</a>    <span class="k">def</span> <span class="nf">register_deletion_cb</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cb</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Registers a callback function which is called when this object is deleted.</span>
+
+<span class="sd">        :param cb: Callback to be called. Signature f(BasicSimulator, str, RigidBody/MultiBody)</span>
+<span class="sd">        :tyoe  cb: function</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">simulator</span><span class="o">.</span><span class="n">register_deletion_cb</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">simulator</span><span class="o">.</span><span class="n">get_body_id</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bId</span><span class="p">()),</span> <span class="n">cb</span><span class="p">)</span></div>
+
 <div class="viewcode-block" id="RigidBody.reset"><a class="viewcode-back" href="../iai_bullet_sim.html#iai_bullet_sim.rigid_body.RigidBody.reset">[docs]</a>    <span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Resets this object&#39;s pose and joints to their initial configuration.&quot;&quot;&quot;</span>
         <span class="n">pb</span><span class="o">.</span><span class="n">resetBasePositionAndOrientation</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__bulletId</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">initial_pos</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">initial_rot</span><span class="p">,</span> <span class="n">physicsClientId</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">__client_id</span><span class="p">)</span>
