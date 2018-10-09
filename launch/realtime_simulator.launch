@@ -3,6 +3,6 @@
         <arg name="port" value="9097"/>
     </include>
 
-    <node pkg="iai_bullet_sim" type="realtime_simulator.py" name="iai_bullet_simulator"/>
+    <node pkg="iai_bullet_sim" type="realtime_simulator.py" name="iai_bullet_simulator" output="screen"/>
     <node pkg="iai_bullet_sim" type="run_web_gui.sh" name="simulator_gui" cwd="node"/>
 </launch>
