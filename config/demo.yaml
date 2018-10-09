@@ -1,0 +1,91 @@
+gravity: [0, 0, -9.81]
+plugins:
+- map_frame: map
+  objects: [windmill, box, cylinder, box.0, box.1, sphere]
+  plugin_type: <class 'iai_bullet_sim.ros_plugins.TFPublisher'>
+- {body: windmill, plugin_type: <class 'iai_bullet_sim.ros_plugins.JSPublisher'>,
+  topic_prefix: windmill}
+tick_rate: 50
+world:
+  constraints: []
+  objects:
+  - fixed_base: true
+    initial_joint_state: {head_pan: 0.0, wings_rotor: -1.0}
+    initial_pose:
+      position: [2.0, -1.0, 0.0]
+      rotation: [0.0, 0.0, 0.0, 1.0]
+    joint_driver: {driver_type: <class 'iai_bullet_sim.multibody.JointDriver'>}
+    name: windmill
+    sensors: []
+    type: multibody
+    urdf_path: package://iai_bullet_sim/urdf/windmill.urdf
+  - color: [1, 1, 1, 1.0]
+    extents: [1.0, 1.0, 1.0]
+    geom_type: box
+    height: 1.0
+    initial_pose:
+      position: [4.99984884262085, 3.00030779838562, 0.49998995661735535]
+      rotation: [1.3525197573471814e-05, 0.34989622235298157, -8.982351573649794e-06,
+        0.9367884993553162]
+    mass: 100.0
+    name: box
+    radius: 1.0
+    type: rigid_body
+  - color: [0.95, 0.28500000000000003, 1.0054944651088418, 1.0]
+    extents: [0.4, 0.4, 0.4]
+    geom_type: cylinder
+    height: 0.4
+    initial_pose:
+      position: [4.999454498291016, 3.0000267028808594, 2.4833176136016846]
+      rotation: [5.332727960194461e-05, -0.0001121205641538836, 0.0006356585072353482,
+        0.9999997615814209]
+    mass: 60.0
+    name: cylinder
+    radius: 0.1
+    type: rigid_body
+  - color: [-0.04740569533300365, 0.28500000000000003, 0.95, 1.0]
+    extents: [0.6, 0.6, 0.6]
+    geom_type: box
+    height: 0.6
+    initial_pose:
+      position: [4.999782085418701, 2.9999709129333496, 1.2999571561813354]
+      rotation: [0.3470879793167114, -5.9634367062244564e-05, -2.1976557036396116e-05,
+        0.9378325939178467]
+    mass: 100.0
+    name: box.0
+    radius: 1.0
+    type: rigid_body
+  - color: [0.28500000000000003, 0.95, 0.3406830744428341, 1.0]
+    extents: [40.0, 40.0, 1.0]
+    geom_type: box
+    height: 1.0
+    initial_pose:
+      position: [0.0, 0.0, -0.5]
+      rotation: [0.0, 0.0, 0.0, 1.0]
+    mass: 0.0
+    name: floor
+    radius: 1.0
+    type: rigid_body
+  - color: [0.28500000000000003, 1.1945852157342844, 0.95, 1.0]
+    extents: [1.0, 1.0, 1.0]
+    geom_type: sphere
+    height: 1.0
+    initial_pose:
+      position: [5.0, 3.0, 4.0]
+      rotation: [0.0, 0.0, 0.0, 1.0]
+    mass: 20.0
+    name: sphere
+    radius: 1.0
+    type: rigid_body
+  - color: [0.811450080220923, 0.95, 0.28500000000000003, 1.0]
+    extents: [0.4, 0.4, 0.4]
+    geom_type: box
+    height: 0.4
+    initial_pose:
+      position: [4.998992443084717, 2.99967098236084, 1.7999504804611206]
+      rotation: [0.00013391036191023886, -0.42997369170188904, 0.00023923693515826017,
+        0.9028413891792297]
+    mass: 60.0
+    name: box.1
+    radius: 1.0
+    type: rigid_body

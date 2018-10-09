@@ -46,6 +46,7 @@ class ServiceSimulatorNode(BasicSimulatorNode):
             rospy.Service('set_gravity', SetGravity, self.srv_set_gravity),
             rospy.Service('save_to_yaml', SaveSimulator, self.srv_save_to_yaml),
             rospy.Service('save_to_rosparam', SaveSimulator, self.srv_save_to_rosparam),
+            rospy.Service('delete_object', ObjectId, self.srv_delete_object),
             rospy.Service('reset_object', ObjectId, self.srv_reset_object),
             rospy.Service('reset', Empty, self.srv_reset),
             rospy.Service('pause', Empty, self.srv_pause),
@@ -62,6 +63,7 @@ class ServiceSimulatorNode(BasicSimulatorNode):
             super(ServiceSimulatorNode, self).tick(timer_event)
 
     def srv_get_obj_ids(self, req):
+        print('srv_get_obj_ids() called')
         """Returns the Ids of all objects."""
         with self.lock:
             res = GetObjectIdsResponse()
@@ -69,6 +71,7 @@ class ServiceSimulatorNode(BasicSimulatorNode):
             return res
 
     def srv_get_rigid_ids(self, req):
+        print('srv_get_rigid_ids() called')
         """Returns the Ids of all rigid objects."""
         with self.lock:
             res = GetObjectIdsResponse()
@@ -76,6 +79,7 @@ class ServiceSimulatorNode(BasicSimulatorNode):
             return res
 
     def srv_get_multibody_ids(self, req):
+        print('srv_get_multibody_ids() called')
         """Returns the Ids of all multibodies."""
         with self.lock:
             res = GetObjectIdsResponse()
@@ -83,10 +87,11 @@ class ServiceSimulatorNode(BasicSimulatorNode):
             return res
 
     def srv_get_multibodies(self, req):
+        print('srv_get_multibodies() called')
         """Returns a serialized version of all multibodies."""
         with self.lock:
             res = GetMultibodiesResponse()
-            
+
             for name, body in self.sim.bodies.items():
                 if isinstance(body, MultiBody):
                     msg = MultiBodyMsg()
@@ -114,10 +119,11 @@ class ServiceSimulatorNode(BasicSimulatorNode):
             return res
 
     def srv_get_rigidbodies(self, req):
+        print('srv_get_rigidbodies() called')
         """Returns a serialized version of all rigid bodies."""
         with self.lock:
             res = GetRigidBodiesResponse()
-            
+
             for name, body in self.sim.bodies.items():
                 if isinstance(body, RigidBody):
                     msg = RigidBodyMsg()
@@ -126,7 +132,7 @@ class ServiceSimulatorNode(BasicSimulatorNode):
                         setattr(msg.extents, a, v)
                     msg.height  = body.height
                     msg.radius  = body.radius
-                    msg.mass    = body.mass 
+                    msg.mass    = body.mass
                     for a, v in zip(['r', 'g', 'b', 'a'], body.color):
                         setattr(msg.color, a, v)
                     for a, v in zip(['x', 'y', 'z'], body.initial_pos):
@@ -139,6 +145,7 @@ class ServiceSimulatorNode(BasicSimulatorNode):
             return res
 
     def srv_get_obj_joints(self, req):
+        print('srv_get_obj_joints() called')
         """Returns the names of all joints belonging to the queried object."""
         with self.lock:
             res = GetJointsResponse()
@@ -156,6 +163,7 @@ class ServiceSimulatorNode(BasicSimulatorNode):
             return res
 
     def srv_add_rigid_body(self, req):
+        print('srv_add_rigid_body() called')
         """Adds a rigid body to the simulation."""
         with self.lock:
             res   = AddRigidObjectResponse()
@@ -176,6 +184,7 @@ class ServiceSimulatorNode(BasicSimulatorNode):
             return res
 
     def srv_add_urdf(self, req):
+        print('srv_add_urdf() called')
         """Adds a multi body to the simulation."""
         with self.lock:
             res   = AddURDFResponse()
@@ -197,6 +206,7 @@ class ServiceSimulatorNode(BasicSimulatorNode):
             return res
 
     def srv_add_controller(self, req):
+        print('srv_add_controller() called')
         """Adds a controller to a multibody."""
         with self.lock:
             res = SetControllerResponse()
@@ -235,6 +245,7 @@ class ServiceSimulatorNode(BasicSimulatorNode):
             return res
 
     def srv_remove_controller(self, req):
+        print('srv_remove_controller() called')
         """Removes a controller from a multibody."""
         with self.lock:
             res = SetControllerResponse()
@@ -255,6 +266,7 @@ class ServiceSimulatorNode(BasicSimulatorNode):
             return res
 
     def srv_set_joint_sensor(self, req):
+        print('srv_set_joint_sensor() called')
         """Sets the state of a joint sensor for a specified joint."""
         with self.lock:
             res  = SetJointSensorResponse()
@@ -287,6 +299,7 @@ class ServiceSimulatorNode(BasicSimulatorNode):
             return res
 
     def srv_set_joint_state(self, req):
+        print('srv_set_joint_state() called')
         """Sets the a multibody's joint state."""
         with self.lock:
             res  = SetJointStateResponse()
@@ -310,6 +323,7 @@ class ServiceSimulatorNode(BasicSimulatorNode):
             return res
 
     def srv_set_pose(self, req):
+        print('srv_set_pose() called')
         """Sets the pose of an object."""
         with self.lock:
             res  = SetObjectPoseResponse()
@@ -331,6 +345,7 @@ class ServiceSimulatorNode(BasicSimulatorNode):
             return res
 
     def srv_save_to_yaml(self, req):
+        print('srv_save_to_yaml() called')
         """Saves the simulator's configuration to a YAML file."""
         with self.lock:
             res = SaveSimulatorResponse()
@@ -344,6 +359,7 @@ class ServiceSimulatorNode(BasicSimulatorNode):
             return res
 
     def srv_save_to_rosparam(self, req):
+        print('srv_save_to_rosparam() called')
         """Saves the simulator's configuration to a ROS parameter."""
         with self.lock:
             res = SaveSimulatorResponse()
@@ -357,16 +373,34 @@ class ServiceSimulatorNode(BasicSimulatorNode):
             return res
 
     def srv_load_from_yaml(self, req):
+        print('srv_load_from_yaml() called')
         """Loads the simulator's configuration from a YAML file."""
         with self.lock:
             pass
 
     def srv_load_from_rosparam(self, req):
+        print('srv_load_from_rosparam() called')
         """Loads the simulator's configuration from a ROS parameter."""
         with self.lock:
             pass
 
+    def srv_delete_object(self, req):
+        print('srv_delete_object() called')
+        """Resets the state of a specific object."""
+        with self.lock:
+            res = ObjectIdResponse()
+            res.success = False
+            if req.object_id not in self.sim.bodies:
+                res.error_msg = 'Object {} does not exist.'.format(req.object_id)
+                return res
+
+            self.sim.delete_body(req.object_id)
+
+            res.success = True
+            return res
+
     def srv_reset_object(self, req):
+        print('srv_reset_object() called')
         """Resets the state of a specific object."""
         with self.lock:
             res = ObjectIdResponse()
@@ -382,6 +416,7 @@ class ServiceSimulatorNode(BasicSimulatorNode):
             return res
 
     def srv_reset(self, req):
+        print('srv_reset() called')
         """Resets the state of the entire simulation."""
         with self.lock:
             res = EmptyResponse()
@@ -395,6 +430,7 @@ class ServiceSimulatorNode(BasicSimulatorNode):
             return res
 
     def srv_set_gravity(self, req):
+        print('srv_set_gravity() called')
         """Sets the gravity vector."""
         with self.lock:
             res = SetGravityResponse()
@@ -408,6 +444,7 @@ class ServiceSimulatorNode(BasicSimulatorNode):
             return res
 
     def srv_pause(self, msg):
+        print('srv_pause() called')
         """Pauses the simulation."""
         with self.lock:
             res = EmptyResponse()
@@ -421,6 +458,7 @@ class ServiceSimulatorNode(BasicSimulatorNode):
             return res
 
     def srv_run(self, msg):
+        print('srv_run() called')
         """Runs the simulation."""
         with self.lock:
             res = EmptyResponse()
@@ -434,6 +472,7 @@ class ServiceSimulatorNode(BasicSimulatorNode):
             return res
 
     def srv_get_state(self, msg):
+        print('srv_get_state() called')
         """Gets the current run-state of the simulation."""
         with self.lock:
             res = GetSimulatorStateResponse()
@@ -444,6 +483,7 @@ class ServiceSimulatorNode(BasicSimulatorNode):
             return res
 
     def srv_get_static_geometry(self, msg):
+        print('srv_get_static_geometry() called')
         """Gets a visualization_msgs/MarkerArray representing the static geometry in the world."""
         with self.lock:
             res = GetStaticGeometryResponse()
@@ -491,7 +531,7 @@ def rigid_body_to_markers(body, name):
             setattr(central_marker.scale, a, body.radius * 2)
         central_marker.scale.z = body.height
         # if body.type == 'capsule':
-        #     central_marker.scale.z = body.height - 2 * body.radius 
+        #     central_marker.scale.z = body.height - 2 * body.radius
         #     upper_sphere = MarkerMsg()
         #     upper_sphere.type  = MarkerMsg.SPHERE
         #     upper_sphere.color = central_marker.color

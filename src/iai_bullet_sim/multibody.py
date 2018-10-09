@@ -24,7 +24,7 @@ class JointDriver(object):
         return JointDriver()
 
 class SimpleBaseDriver(JointDriver):
-    """Implements and update behavior for robots with a movable base. 
+    """Implements and update behavior for robots with a movable base.
        The base can be translated horizontally and turned around the global z-axis.
     """
     def __init__(self, max_linear_vel, max_angular_vel):
@@ -66,18 +66,18 @@ class SimpleBaseDriver(JointDriver):
 
         if self.x_lin_joint in velocities_dict or self.y_lin_joint in velocities_dict:
             c_vel_ib, trash = pb.multiplyTransforms(ZERO_VEC, inv_rot, lin_vel, [0,0,0,1])
-            
+
             d_fwd_vel = 0
             d_strafe_vel = 0
             if self.x_lin_joint in velocities_dict:
                 d_fwd_vel = max(min(velocities_dict[self.x_lin_joint], self.m_lin_v), -self.m_lin_v)
                 del velocities_dict[self.x_lin_joint]
-            
+
             if self.y_lin_joint in velocities_dict:
-                d_strafe_vel = max(min(velocities_dict[self.y_lin_joint], self.m_lin_v), -self.m_lin_v)    
+                d_strafe_vel = max(min(velocities_dict[self.y_lin_joint], self.m_lin_v), -self.m_lin_v)
                 del velocities_dict[self.y_lin_joint]
 
-            fwd_vel_gain = max(min(d_fwd_vel - c_vel_ib[0], self.m_vel_gain), -self.m_vel_gain) 
+            fwd_vel_gain = max(min(d_fwd_vel - c_vel_ib[0], self.m_vel_gain), -self.m_vel_gain)
             strafe_vel_gain = max(min(d_strafe_vel - c_vel_ib[1], self.m_vel_gain), -self.m_vel_gain)
 
 
@@ -85,7 +85,7 @@ class SimpleBaseDriver(JointDriver):
             sin_sq = sin(ang_vel[2] * self.deltaT) ** 2
             n_fwd_vel    = cos_sq * (c_vel_ib[0] + fwd_vel_gain) + sin_sq * (c_vel_ib[1] + strafe_vel_gain)
             n_strafe_vel = sin_sq * (c_vel_ib[0] + fwd_vel_gain) + cos_sq * (c_vel_ib[1] + strafe_vel_gain)
-            d_lin_vel, trash = pb.multiplyTransforms(ZERO_VEC, pose.quaternion, [n_fwd_vel, n_strafe_vel, 0], 
+            d_lin_vel, trash = pb.multiplyTransforms(ZERO_VEC, pose.quaternion, [n_fwd_vel, n_strafe_vel, 0],
                                                                                  [0,0,0,1])
             lin_vel = [d_lin_vel[0], d_lin_vel[1], lin_vel[2]]
         else:
@@ -228,6 +228,14 @@ class MultiBody(object):
         :rtype: long
         """
         return self.__bulletId
+
+    def register_deletion_cb(self, cb):
+        """Registers a callback function which is called when this object is deleted.
+
+        :param cb: Callback to be called. Signature f(BasicSimulator, str, RigidBody/MultiBody)
+        :tyoe  cb: function
+        """
+        self.simulator.register_deletion_cb(self.simulator.get_body_id(self.bId()), cb)
 
     def reset(self):
         """Resets this object's pose and joints to their initial configuration."""
