@@ -51,6 +51,11 @@ class JSPublisher(SimulatorPlugin):
         self.body = multibody
         self.topic_prefix = topic_prefix
         self.__enabled = True
+        self.body.register_deletion_cb(self.on_obj_deleted)
+
+    def on_obj_deleted(self, simulator, Id, obj):
+        self.disable(simulator)
+        simulator.deregister_plugin(self)
 
     def post_physics_update(self, simulator, deltaT):
         """Publishes the current joint state.
@@ -119,6 +124,11 @@ class SensorPublisher(SimulatorPlugin):
         self.body = multibody
         self.__topic_prefix = topic_prefix
         self.__enabled = True
+        self.body.register_deletion_cb(self.on_obj_deleted)
+
+    def on_obj_deleted(self, simulator, Id, obj):
+        self.disable(simulator)
+        simulator.deregister_plugin(self)
 
     def post_physics_update(self, simulator, deltaT):
         """Publishes the current sensor states.
@@ -191,6 +201,11 @@ class CommandSubscriber(SimulatorPlugin):
         self.body = multibody
         self.subscriber = rospy.Subscriber(topic, topic_type, callback=self.cmd_callback, queue_size=1)
         self._enabled = True
+        self.body.register_deletion_cb(self.on_obj_deleted)
+
+    def on_obj_deleted(self, simulator, Id, obj):
+        self.disable(simulator)
+        simulator.deregister_plugin(self)
 
     def cmd_callback(self, cmd_msg):
         """Implements the command processing behavior."""
@@ -530,12 +545,22 @@ class ResetTrajectoryPositionController(TrajectoryPositionController):
 
 
 class TFPublisher(SimulatorPlugin):
-    def __init__(self, simulator, map_frame='map', objects=[]):
+    def __init__(self, simulator, map_frame='map', objects={}):
         super(TFPublisher, self).__init__('TFPublisher')
         self.map_frame = map_frame
         self.tf_broadcaster = tf.TransformBroadcaster()
-        self.objects  = objects if len(objects) > 0 else [(n, o) for n, o in simulator.bodies.items() if isinstance(o, MultiBody) or o.mass > 0.0]
+        self.objects  = objects if len(objects) > 0 else {n: o for n, o in simulator.bodies.items() if isinstance(o, MultiBody) or o.mass > 0.0}
+        for obj in self.objects.values():
+            obj.register_deletion_cb(self.on_obj_deleted)
         self._enabled = True
+
+    def add_object(self, Id, obj):
+        self.objects[Id] = obj
+        obj.register_deletion_cb(self.on_obj_deleted)
+
+    def on_obj_deleted(self, simulator, Id, obj):
+        if Id in self.objects:
+            del self.objects[Id]
 
     def post_physics_update(self, simulator, deltaT):
         """Implements post physics step behavior.
@@ -545,7 +570,7 @@ class TFPublisher(SimulatorPlugin):
         """
         if self._enabled:
             now = rospy.Time.now()
-            for name, body in self.objects:
+            for name, body in self.objects.items():
                 pose = body.pose()
                 if isinstance(body, MultiBody):
                     self.tf_broadcaster.sendTransform(pose.position, pose.quaternion, now, '{}/{}'.format(name, body.base_link), self.map_frame)
@@ -568,8 +593,8 @@ class TFPublisher(SimulatorPlugin):
         :rtype: TFPublisher
         """
         if 'objects' in init_dict:
-            return cls(simulator, init_dict['map_frame'], [(n, simulator.bodies[n]) for n in init_dict['objects']])
-        return cls(simulator, init_dict['map_frame'], [])
+            return cls(simulator, init_dict['map_frame'], {n: simulator.bodies[n] for n in init_dict['objects']})
+        return cls(simulator, init_dict['map_frame'], {})
 
     def to_dict(self, simulator):
         """Serializes this plugin to a dictionary.
@@ -577,7 +602,7 @@ class TFPublisher(SimulatorPlugin):
         :type simulator: BasicSimulator
         :rtype: dict
         """
-        return {'map_frame': self.map_frame, 'objects': [n for n, o in self.objects]}
+        return {'map_frame': self.map_frame, 'objects': [n for n in self.objects.keys()]}
 
 
 
@@ -597,10 +622,15 @@ class OdometryPublisher(SimulatorPlugin):
         name = simulator.get_body_id(multibody.bId())
         self.publisher = rospy.Publisher('{}/odometry'.format(name), OdometryMsg, queue_size=1, tcp_nodelay=True)
         self.body = multibody
+        simulator.register_deletion_cb(name, self.on_obj_deleted)
         self.msg_template = OdometryMsg()
         self.msg_template.header.frame_id = 'map'
         self.msg_template.child_frame_id = child_frame_id
         self.__enabled = True
+
+    def on_obj_deleted(self, simulator, Id, obj):
+        self.disable(simulator)
+        simulator.deregister_plugin(self)
 
     def post_physics_update(self, simulator, deltaT):
         """Publishes the current odometry.
@@ -736,6 +766,8 @@ class LaserScanner(SimulatorPlugin):
         self.link = link
         self.sensor_name = sensor_name
         body_name = simulator.get_body_id(body.bId())
+        simulator.register_deletion_cb(body_name, self.on_obj_deleted)
+
         if link == None or link == '':
             self.publisher = rospy.Publisher('{}/sensors/{}'.format(body_name, sensor_name), LaserScanMsg, queue_size=1)
         else:
@@ -762,6 +794,10 @@ class LaserScanner(SimulatorPlugin):
                                         for x in range(resolution)]).astype(float)
 
         self._enabled = True
+
+    def on_obj_deleted(self, simulator, Id, obj):
+        self.disable(simulator)
+        simulator.deregister_plugin(self)
 
     def post_physics_update(self, simulator, deltaT):
         """Performs the laser scan.

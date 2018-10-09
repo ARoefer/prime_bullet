@@ -180,6 +180,7 @@ class BasicSimulator(object):
         """
         self.physicsClient = None
         self.bodies      = {}
+        self.deletion_cbs = {}
         self.constraints = {}
         self.tick_rate   = tick_rate
         self.gravity     = gravity
@@ -321,6 +322,20 @@ class BasicSimulator(object):
             self.__bId_IdMap[obj.bId()] = name_override
             return name_override
 
+    def register_deletion_cb(self, bodyId, cb):
+        """Registers a callback function which is called when the specified object is deleted.
+
+        :param bodyId: Body to listen for
+        :type  bodyId: str
+        :param cb: Callback to be called. Signature f(BasicSimulator, str, RigidBody/MultiBody)
+        :tyoe  cb: function
+        """
+        if bodyId not in self.bodies:
+            raise Exception('Can not register deletion callback for unknown body {}'.format(bodyId))
+
+        if bodyId not in self.deletion_cbs:
+            self.deletion_cbs[bodyId] = set()
+        self.deletion_cbs[bodyId].add(cb)
 
     def register_plugin(self, plugin):
         """Registers a plugin with the simulator.
@@ -538,6 +553,10 @@ class BasicSimulator(object):
         """
         if bodyId in self.bodies:
             body = self.bodies[bodyId]
+            if bodyId in self.deletion_cbs:
+                for cb in self.deletion_cbs[bodyId]:
+                    cb(self, bodyId, body)
+                del self.deletion_cbs[bodyId]
             pb.removeBody(body.bId(), self.__client_id)
             del self.__bId_IdMap[body.bId()]
             del self.bodies[bodyId]
@@ -677,11 +696,11 @@ class BasicSimulator(object):
                             else:
                                 raise Exception('Driver type "{}" does not match the pattern "<class \'TYPE\'>"'.format(driver_class))
                         joint_driver = driver_registry[driver_class].factory(driver_dict)
-                    else:    
+                    else:
                         joint_driver = JointDriver()
 
-                    new_obj = self.load_urdf(urdf_path, 
-                                             i_pos, 
+                    new_obj = self.load_urdf(urdf_path,
+                                             i_pos,
                                              i_rot, joint_driver=joint_driver, useFixedBase=fixed_base, name_override=name)
                     new_obj.set_joint_positions(initial_joint_state, True)
                     for s in od['sensors']:

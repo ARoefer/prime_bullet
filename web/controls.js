@@ -1,32 +1,3 @@
-var template_rb_form = `<h4>Shape</h4> \
-          <label for="geom_type">Geometry</label> \
-          <select id="rigidGeom" name="geom_type" onchange="update_rigid_form(\'{}\')"> \
-            <option value="box">Box</option> \
-            <option value="sphere">Sphere</option> \
-            <option value="cylinder">Cylinder</option> \
-            <option value="capsule">Capsule</option> \
-          </select><br> \
-          <label for="x" class="boxThings">Depth</label> \
-          <input type="number" step="0.0001" name="x" min="0" value="{}" class="boxThings"><br lass="boxThings"> \
-          <label for="y" class="boxThings">Width</label> \
-          <input type="number" step="0.0001" name="y" min="0" value="{}" class="boxThings"><br lass="boxThings"> \
-          <label for="z" class="boxThings cylinderThings">Height</label> \
-          <input type="number" step="0.0001" name="z" min="0" value="{}" class="boxThings ylinderThings"><br class="boxThings cylinderThings"> \
-           \
-          <label for="radius" class="sphereThings" style="display:none">Radius</label> \
-          <input type="number" step="0.0001" name="radius" min="0" value="{}" style="display:none" class="sphereThings"><br class="sphereThings"> \
-          <label for="mass">Mass</label> \
-          <input type="number" step="0.0001" name="mass" value="{}" min="0"><br> \
-          <h4>Position</h4> \
-          <label for="position_x">X</label> \
-          <input type="number" step="0.0001" name="position_x" value="{}"><br> \
-          <label for="position_y">Y</label> \
-          <input type="number" step="0.0001" name="position_y" value="{}"><br> \
-          <label for="position_z">Z</label> \
-          <input type="number" step="0.0001" name="position_z" value="{}"><br> \
-          <label for="color">Color</label> \
-          <input type="color" value="{}"><br>`;
-
 
 String.prototype.format = function () {
   var i = 0, args = arguments;
@@ -41,16 +12,14 @@ var simState = {running: false};
 var empty_request = new ROSLIB.ServiceRequest({});
 
 $(function() {
-  
-  $('.accordion').click(accordion_handler('.action'));
 
-  refresh_objects();
+  $('.accordion').click(accordion_handler('.action', false));
 
   $('#form_rigid_body').on('submit', function(event) {
     // Stop the form from submitting since we’re handling that with AJAX.
     event.preventDefault();
     const data = formToJSON(this.elements);
-    
+
     console.log(data);
 
     var add_body_request = new ROSLIB.ServiceRequest({
@@ -66,7 +35,7 @@ $(function() {
                           z: 0,
                           w: 1}},
       mass: parseFloat(data['mass']),
-      color: {r: 0, g: 0, b: 0, a: 0},     
+      color: {r: 0, g: 0, b: 0, a: 0},
       name: data['name']
     });
     srv_add_rigid_body.callService(add_body_request, function(result) {
@@ -79,7 +48,7 @@ $(function() {
     // Stop the form from submitting since we’re handling that with AJAX.
     event.preventDefault();
     const data = formToJSON(this.elements);
-    
+
     console.log(data);
 
     var add_body_request = new ROSLIB.ServiceRequest({
@@ -91,7 +60,7 @@ $(function() {
             orientation: {x: 0,
                           y: 0,
                           z: 0,
-                          w: 1}},    
+                          w: 1}},
       name: ""
     });
     srv_add_urdf.callService(add_body_request, function(result) {
@@ -172,6 +141,7 @@ ros.on('connection', function() {
   console.log('Connection made!');
   $('.statusDisplay').hide();
   document.getElementById('connected').style.display = 'block';
+  refresh_objects();
 });
 ros.on('close', function() {
   console.log('Connection closed.');
@@ -283,6 +253,11 @@ var srv_reset_object = new ROSLIB.Service({ros: ros,
   serviceType: 'iai_bullet_sim/ObjectId'
 });
 
+var srv_delete_object = new ROSLIB.Service({ros: ros,
+  name: '/delete_object',
+  serviceType: 'iai_bullet_sim/ObjectId'
+});
+
 var srv_reset = new ROSLIB.Service({ros: ros,
   name: '/reset',
   serviceType: 'iai_bullet_sim/Empty'
@@ -320,20 +295,14 @@ listener_selection.subscribe(function(message) {
     var accordion = document.getElementById(ref_id);
     if (accordion) {
       if (!accordion.classList.contains('active')) {
+        console.log('Selected was externally changed to {}'.format(ref_id))
         accordion.click();
       }
     }
   }
 });
 
-var template_obj_accordion = 
-        `<button class="objectReference accordion" id="{}">{}</button> 
-        <div class="panel objectReference">
-        <button class="iconBtn objBtn btnDelete"><i class="fas fa-trash"></i></button>
-        <button class="iconBtn objBtn btnReset" onclick="reset_object('{}')"><i class="fas fa-backward"></i></button>
-        <form id="{}">{}</form>
-        {}
-        </div>`;
+
 
 function refresh_objects() {
   var body_request = new ROSLIB.ServiceRequest({});
@@ -348,16 +317,12 @@ function refresh_objects() {
     for (x in result.name) {
       objects.rigid[result.name[x]] = rigidMsg2RigidInternal(result.body[x]);
       var id = 'ref_{}'.format(result.name[x]);
-      var form_id = 'form_{}'.format(result.name[x]);
-      $('#objectList').append(template_obj_accordion.format(id, 
-                                                            result.name[x],
-                                                            result.name[x], 
-                                                            form_id, create_rigid_body_form_content(objects.rigid[result.name[x]], form_id)
-                                                            ),'');
+      var form_id = 'form_{}'.format(result.name[x].replace('.','__'));
+      $('#objectList').append(generate_rigidbody_accordion(id, result.name[x], form_id, objects.rigid[result.name[x]]));
       $('#{} input'.format(form_id)).prop('disabled', true);
       $('#{} select'.format(form_id)).prop('disabled', true);
       update_rigid_form(form_id);
-      $('#{}.accordion'.format(id)).click(accordion_handler('.objectReference'));
+      document.getElementById(id).onclick = accordion_handler('.objectReference', true);
     }
   });
 
@@ -366,25 +331,14 @@ function refresh_objects() {
     for (x in result.name) {
       objects.multi[result.name[x]] = result.body[x];
       var id = 'ref_{}'.format(result.name[x]);
-      var form_id = 'form_{}'.format(result.name[x]);
-      $('#objectList').append(template_obj_accordion.format(id, 
-                                                            result.name[x], 
-                                                            result.name[x], 
-                                                            form_id, 
-                                                            create_multi_body_form_content(
-                                                              result.name[x], 
-                                                              objects.multi[result.name[x]]),
-                                                            '<h4>Joints</h4><div class="jointList">{}</div>'.format(
-                                                              generate_joint_buttons(
-                                                                  result.name[x], 
-                                                                  objects.multi[result.name[x]]
-                                                            ))));
-      $('#{}.accordion'.format(id)).click(accordion_handler('.objectReference'));
+      var form_id = 'form_{}'.format(result.name[x].replace('.','__'));
+      $('#objectList').append(generate_multibody_accordion(id, result.name[x], form_id, objects.multi[result.name[x]]));
+      document.getElementById(id).onclick = accordion_handler('.objectReference', true);
     }
   });
 }
 
-function accordion_handler(filter) {
+function accordion_handler(filter, select_objects) {
   return function() {
     /* Toggle between adding and removing the active class
       to highlight the button that controls the panel */
@@ -394,75 +348,29 @@ function accordion_handler(filter) {
       var panel = this.nextElementSibling;
       if (panel.style.maxHeight) {
           panel.style.maxHeight = null;
+          var select_request = new ROSLIB.ServiceRequest({
+              object_id: ''
+            });
+            srv_select_object.callService(select_request, function(result) {
+              process_msg_feedback(result);
+            });
       } else {
           $(this).addClass('active');
           $('.panel{}'.format(filter)).css('max-height', '');
           panel.style.maxHeight = panel.scrollHeight + 'px';
-          var select_request = new ROSLIB.ServiceRequest({
-            object_id: this.id.slice(4)
-          });
-          srv_select_object.callService(select_request, function(result) {
-            process_msg_feedback(result);
-          });
+          if (select_objects) {
+            var select_request = new ROSLIB.ServiceRequest({
+              object_id: this.id.slice(4)
+            });
+            srv_select_object.callService(select_request, function(result) {
+              process_msg_feedback(result);
+            });
+          }
       }
   };
 }
 
-function create_rigid_body_form_content(body, form_id) {
-  return template_rb_form.format(
-            form_id,
-            body.extents.x,
-            body.extents.y,
-            body.extents.z,
-            body.radius,
-            body.mass,
-            body.pose.position.x,
-            body.pose.position.y,
-            body.pose.position.z,
-            body.color
-          );
-}
 
-var template_mb_form = `<label for="urdf_path">URDF Path</label>
-        <input name="urdf_path" type="text" placeholder="package://robot_pkg/robot.urdf" value="{}"><br>
-        <!-- <label for="fixed">Fixed Base</label>
-        <input type="checkbox" name="fixed" value="false" checked><br> -->
-        <h4>Position</h4>
-        <label for="position_x">X</label>
-        <input type="number" step="0.0001" name="position_x" value="{}"><br>
-        <label for="position_y">Y</label>
-        <input type="number" step="0.0001" name="position_y" value="{}"><br>
-        <label for="position_z">Z</label>
-        <input type="number" step="0.0001" name="position_z" value="{}"><br>`;
-
-var template_joint_button = `<button id="{}__{}" class="jointBtn {}" onclick="toggle_joint_sensor('{}', '{}')">
-                              <i class="fas fa-eye"></i>
-                              <span>{}</span>
-                            </button>`;
-
-function create_multi_body_form_content(bodyId, body) {
-  return template_mb_form.format(
-            body.urdf_file,
-            body.initial_pose.position.x,
-            body.initial_pose.position.y,
-            body.initial_pose.position.z,
-            generate_joint_buttons(bodyId, body));
-}
-
-function generate_joint_buttons(bodyId, body) {
-  var out = '';
-  var sorted_joints = body.joints.sort();
-  for (j in sorted_joints) {
-    out += template_joint_button.format(
-            bodyId,
-            sorted_joints[j],
-            body.sensors.indexOf(sorted_joints[j]) >= 0? 'sensor' : '',
-            bodyId,
-            sorted_joints[j],
-            sorted_joints[j]);
-  }
-  return out;
-}
 
 function rigidMsg2RigidInternal(msg) {
   var z_extent = msg.extents.z;
@@ -495,17 +403,17 @@ function process_feedback(success, msg) {
 }
 
 function process_msg_feedback(result_msg) {
-  process_feedback(result_msg.success, result_msg.error_msg); 
+  process_feedback(result_msg.success, result_msg.error_msg);
 }
 
 function refresh_simulator_state() {
-  var indicator = $('#run_indicator');
+  var indicator = document.getElementById('run_indicator');
   if (simState.running) {
-    indicator.removeClass('fa-pause');
-    indicator.addClass('fa-play');
+    indicator.classList.remove('fa-play');
+    indicator.classList.add('fa-pause');
   } else {
-    indicator.removeClass('fa-play');
-    indicator.addClass('fa-pause');
+    indicator.classList.remove('fa-pause');
+    indicator.classList.add('fa-play');
   }
 }
 
@@ -514,6 +422,7 @@ function toggle_run_mode() {
     srv_pause.callService(empty_request, function(result) {
       if (result.success) {
         simState.running = false;
+        refresh_simulator_state();
       } else {
         process_msg_feedback(result);
       }
@@ -522,12 +431,12 @@ function toggle_run_mode() {
     srv_run.callService(empty_request, function(result) {
       if (result.success) {
         simState.running = true;
+        refresh_simulator_state();
       } else {
         process_msg_feedback(result);
       }
     });
   }
-  refresh_simulator_state();
 }
 
 function set_mode_pause() {
@@ -581,7 +490,7 @@ function update_rigid_form(form_id) {
  * @return {Object}                               form data as an object literal
  */
 const formToJSON = elements => [].reduce.call(elements, (data, element) => {
-  
+
   data[element.name] = element.value;
   return data;
 
@@ -591,10 +500,10 @@ const formToJSON = elements => [].reduce.call(elements, (data, element) => {
 function handleFormSubmit(event) {
   // Stop the form from submitting since we’re handling that with AJAX.
   event.preventDefault();
-  
+
   // TODO: Call our function to get the form data.
   const data = formToJSON(this.elements);
-  
+
   console.log(data);
 }
 
@@ -605,6 +514,33 @@ function reset_object(object_id) {
   srv_reset_object.callService(obj_id_request, function(result) {
     process_feedback(result.success, result.error_msg);
   });
+}
+
+function delete_object(object_id) {
+  promptConfirm('Delete {}?'.format(object_id), function() {
+    var obj_id_request = new ROSLIB.ServiceRequest({
+      object_id: object_id
+    });
+    srv_delete_object.callService(obj_id_request, function(result) {
+      process_feedback(result.success, result.error_msg);
+      if (result.success) {
+        var btn = document.getElementById('ref_{}'.format(object_id));
+        btn.nextElementSibling.remove();
+        btn.remove();
+      }
+    });
+  }, null);
+}
+
+function promptConfirm(what, fconfirm, fcancel) {
+  $('#confirmWhat').html(what);
+  $('#btnConfirm').click(function() {fconfirm(); $('#confirmationModal').hide();})
+  if (fcancel) {
+    $('#btnCancelConfirm').click(function() {fcancel(); $('#confirmationModal').hide();})
+  } else {
+    $('#btnCancelConfirm').click(function() {$('#confirmationModal').hide();})
+  }
+  $('#confirmationModal').show();
 }
 
 function open_save_modal() {

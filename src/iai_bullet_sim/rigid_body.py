@@ -64,6 +64,14 @@ class RigidBody(object):
         """
         return self.__bulletId
 
+    def register_deletion_cb(self, cb):
+        """Registers a callback function which is called when this object is deleted.
+
+        :param cb: Callback to be called. Signature f(BasicSimulator, str, RigidBody/MultiBody)
+        :tyoe  cb: function
+        """
+        self.simulator.register_deletion_cb(self.simulator.get_body_id(self.bId()), cb)
+
     def reset(self):
         """Resets this object's pose and joints to their initial configuration."""
         pb.resetBasePositionAndOrientation(self.__bulletId, self.initial_pos, self.initial_rot, physicsClientId=self.__client_id)

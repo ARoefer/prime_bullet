@@ -11,7 +11,7 @@ from iai_bullet_sim.srv import *
 from iai_bullet_sim.utils import Frame
 
 from geometry_msgs.msg import Pose as PoseMsg
-from geometry_msgs.msg import Vector3 as Vector3Msg 
+from geometry_msgs.msg import Vector3 as Vector3Msg
 from std_msgs.msg import String as StringMsg
 
 from visualization_msgs.msg import Marker as MarkerMsg
@@ -53,21 +53,33 @@ class FullStateInteractiveNode(FullStatePublishingNode):
         super(FullStateInteractiveNode, self).init(config_dict, mode)
 
         self.marker_server = InteractiveMarkerServer(self.server_name)
-        
+
         for name, body in self.sim.bodies.items():
             if isinstance(body, MultiBody):
-                self.add_new_marker(name, body, self.process_body_marker_feedback, False, True)  
+                self.tf_publisher.add_object(name, body)
+                self.add_new_marker(name, body, self.process_body_marker_feedback, False, True)
             else:
                 if body.mass > 0.0:
+                    self.tf_publisher.add_object(name, body)
                     self.add_new_marker(name, body, self.process_body_marker_feedback, False, True)
                 else:
                     self.add_new_marker(name, body, self.process_static_body_marker_feedback, False, True, 'map', body.pose())
         self.marker_server.applyChanges()
-        self.tf_publisher = self.sim.get_plugin_of_type(TFPublisher)
+
+    def on_obj_deleted(self, simulator, Id, obj):
+        super(FullStateInteractiveNode, self).on_obj_deleted(simulator, Id, obj)
+
+        if Id in self.markers:
+            if Id == self._selected_object:
+                self.select_marker(None)
+            self.marker_server.erase(Id)
+            self.marker_server.applyChanges()
+            del self.markers[Id]
+
 
     def add_new_marker(self, name, body, callback, selected=True, delay_update=False, frame=None, pose=None):
         """Adds a new interactive marker to the node.
-        
+
         :param name: Name of the marker
         :type  name: str
         :param body: Body controlled by the marker
@@ -111,6 +123,8 @@ class FullStateInteractiveNode(FullStatePublishingNode):
         self.marker_server.insert(intMarker, callback)
         self.markers[name] = (intMarker, callback)
 
+        body.register_deletion_cb(self.on_obj_deleted)
+
         if not delay_update:
             self.marker_server.applyChanges()
 
@@ -153,6 +167,9 @@ class FullStateInteractiveNode(FullStatePublishingNode):
         if req.object_id in self.sim.bodies:
             self.select_marker(req.object_id)
             res.success = True
+        elif len(req.object_id) == 0:
+            self.select_marker(None)
+            res.success = True
         else:
             res.error_msg = 'Unknown object {}.'.format(req.object_id)
         return res
@@ -184,10 +201,10 @@ class FullStateInteractiveNode(FullStatePublishingNode):
         """Processes the feedback sent by markers corresponding to dynamic objects."""
         if feedback.event_type == InteractiveMarkerFeedbackMsg.MOUSE_DOWN and feedback.marker_name != self._selected_object:
             self.select_marker(feedback.marker_name)
-        
+
         if feedback.event_type == InteractiveMarkerFeedbackMsg.POSE_UPDATE:
             if feedback.marker_name != self._selected_object:
-                self.select_marker(feedback.marker_name)    
+                self.select_marker(feedback.marker_name)
             if self.is_running():
                 self.pause()
                 self.place_mode = True
@@ -212,10 +229,10 @@ class FullStateInteractiveNode(FullStatePublishingNode):
         """Processes feedback sent by markers corresponding to static objects."""
         if feedback.event_type == InteractiveMarkerFeedbackMsg.MOUSE_DOWN and feedback.marker_name != self._selected_object:
             self.select_marker(feedback.marker_name)
-        
+
         if feedback.event_type == InteractiveMarkerFeedbackMsg.POSE_UPDATE:
             if feedback.marker_name != self._selected_object:
-                self.select_marker(feedback.marker_name)    
+                self.select_marker(feedback.marker_name)
             if self.is_running():
                 self.pause()
                 self.place_mode = True
@@ -256,7 +273,7 @@ def rigid_body_to_markers(body):
         for a in ['x', 'y']:
             setattr(central_marker.scale, a, body.radius * 2)
         if body.type == 'capsule':
-            central_marker.scale.z = body.height - 2 * body.radius 
+            central_marker.scale.z = body.height - 2 * body.radius
             upper_sphere = MarkerMsg()
             upper_sphere.type  = MarkerMsg.SPHERE
             upper_sphere.color = central_marker.color
@@ -278,7 +295,7 @@ def rigid_body_to_markers(body):
 
 
 def make6DOFGimbal(intMarker):
-    """Creates 6DOF gimbal marker controls.""" 
+    """Creates 6DOF gimbal marker controls."""
     pitch = InteractiveMarkerControlMsg()
     pitch.orientation.x = 1
     pitch.orientation.y = 0
