@@ -1,0 +1,110 @@
+gravity: [0, 0, -9.81]
+plugins:
+- {map_frame: map, plugin_type: <class 'iai_bullet_sim.ros_plugins.TFPublisher'>}
+- {body: hsr, plugin_type: <class 'iai_bullet_sim.ros_plugins.JSPublisher'>, topic_prefix: hsr}
+- {body: hsr, plugin_type: <class 'iai_bullet_sim.ros_plugins.JointVelocityController'>,
+  topic_prefix: hsr, watchdog_timeout: 0.2}
+tick_rate: 50
+world:
+  constraints: []
+  objects:
+  - color: [0.28500000000000003, 0.95, 0.4460657701193916, 1.0]
+    extents: [0.54, 1.15, 0.84]
+    geom_type: box
+    height: 0.84
+    initial_pose:
+      position: [0.4173119366168976, 1.2499423027038574, 0.4192577302455902]
+      rotation: [-8.039528786620009e-13, 1.6782055346081792e-12, 0.417600154876709,
+        0.908630907535553]
+    mass: 100.0
+    name: table3
+    radius: 1.0
+    type: rigid_body
+  - color: [0.8326430019869472, 0.95, 0.28500000000000003, 1.0]
+    extents: [0.54, 1.15, 0.84]
+    geom_type: box
+    height: 0.8
+    initial_pose:
+      position: [2.2868404388427734, 2.9997646808624268, 0.3992587924003601]
+      rotation: [-9.790829125222444e-08, -1.729824461449425e-08, 0.4221267104148865,
+        0.9065368175506592]
+    mass: 100.0
+    name: table1
+    radius: 1.0
+    type: rigid_body
+  - color: [0.05797700034355387, 0.28500000000000003, 0.95, 1.0]
+    extents: [0.54, 1.15, 0.84]
+    geom_type: box
+    height: 0.84
+    initial_pose:
+      position: [2.3417470455169678, 0.00014753926370758563, 0.42035770416259766]
+      rotation: [1.878327715587602e-09, -1.493205670222153e-09, -0.009523745626211166,
+        0.9999546408653259]
+    mass: 100.0
+    name: table4
+    radius: 1.0
+    type: rigid_body
+  - color: [0.1, 0.1, 0.1, 1.0]
+    extents: [20.0, 20.0, 1.0]
+    geom_type: box
+    height: 1.0
+    initial_pose:
+      position: [-0.00047326087951660156, -0.0004405975341796875, -0.5007410049438477]
+      rotation: [0.0, 0.0, 0.0, 1.0]
+    mass: 0.0
+    name: floor
+    radius: 1.0
+    type: rigid_body
+  - color: [0.28500000000000003, 0.8888069465339584, 0.95, 1.0]
+    extents: [0.03, 0.03, 0.24]
+    geom_type: cylinder
+    height: 0.24
+    initial_pose:
+      position: [2.4412357807159424, 2.7149648666381836, 0.9375261068344116]
+      rotation: [6.0971829952904955e-05, 2.6190664357272908e-05, -0.011733188293874264,
+        0.9999311566352844]
+    mass: 0.5
+    name: pringle
+    radius: 0.03
+    type: rigid_body
+  - color: [0, 0.1, 0.8, 1.0]
+    extents: [0.03, 0.03, 0.12]
+    geom_type: sphere
+    height: 0.12
+    initial_pose:
+      position: [2.27156400680542, 2.756291151046753, 0.8592312335968018]
+      rotation: [1.0017895419878187e-06, -2.7337405299476814e-06, 0.9144997000694275,
+        -0.4045865833759308]
+    mass: 0.5
+    name: ball
+    radius: 0.04
+    type: rigid_body
+  - color: [0.95, 0.28500000000000003, 1.0266873868748658, 1.0]
+    extents: [0.54, 1.15, 0.84]
+    geom_type: box
+    height: 0.8
+    initial_pose:
+      position: [2.4867160320281982, -2.049234390258789, 0.39924830198287964]
+      rotation: [-3.787797441152929e-13, 3.87104194185528e-13, -0.23429036140441895,
+        0.9721666574478149]
+    mass: 100.0
+    name: table
+    radius: 1.0
+    type: rigid_body
+  - fixed_base: true
+    initial_joint_state: {bellows_joint: 0.0, elbow_flex_joint: -2.155466379029744,
+      forearm_roll_joint: -1.106404147046963, gripper_joint: 0, head_pan_joint: 0.2538912136166552,
+      head_tilt_joint: 0.4, l_gripper_finger_joint: 0.0, l_wheel_joint: -1.0,
+      r_gripper_finger_joint: 0.0, r_wheel_joint: -1.0, shoulder_lift_joint: 0.6234586818886207,
+      shoulder_pan_joint: -1.198809265503651, torso_lift_joint: 0.3860999999999983,
+      upperarm_roll_joint: -1.413329615908279, wrist_flex_joint: -1.509688682874709,
+      wrist_roll_joint: 3.636479350249048e-16}
+    initial_pose:
+      position: [0.0, 0.0, 0.0]
+      rotation: [0.0, 0.0, 0.0, 1.0]
+    joint_driver: {driver_type: <class 'iai_bullet_sim.multibody.SimpleBaseDriver'>, max_ang_vel: 1.6,
+      max_lin_vel: 1.5, x_lin_joint: base_linear_joint, z_ang_joint: base_angular_joint, y_lin_joint: base_perp_joint}
+    name: hsr
+    sensors: []
+    type: multibody
+    urdf_path: package://hsr_description/robots/hsrb4s.urdf
