@@ -109,7 +109,7 @@ function create_multi_body_form_content(bodyId, body) {
 function generate_joint_buttons(bodyId, body) {
   var out = '';
   var sorted_joints = body.joints.sort();
-  for (j in sorted_joints) {
+  for (var j in sorted_joints) {
     out += template_joint_button.format(
             bodyId,
             sorted_joints[j],

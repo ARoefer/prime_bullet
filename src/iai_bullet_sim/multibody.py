@@ -1,7 +1,7 @@
 import pybullet as pb
 from collections import namedtuple
 from iai_bullet_sim.utils import Vector3, Quaternion, Frame, AABB
-from math import atan2, cos, sin, sqrt
+from math import atan2, cos, sin
 
 class JointDriver(object):
     """Joint drivers modify given velocity and effort commands to match robot specific joint behavior.
@@ -53,19 +53,19 @@ class SimpleBaseDriver(JointDriver):
         ZERO_VEC = (0,0,0)
         ZERO_ROT = (0,0,0,1)
         if self.z_ang_joint in velocities_dict:
-            c_ang_ib, trash = pb.multiplyTransforms(inv_pos, inv_rot, ang_vel, [0,0,0,1])
+            c_ang_ib, _ = pb.multiplyTransforms(inv_pos, inv_rot, ang_vel, ZERO_ROT)
             d_ang_vel = max(min(velocities_dict[self.z_ang_joint], self.m_ang_v), -self.m_ang_v)
             ang_gain  = max(min(d_ang_vel - c_ang_ib[2], self.m_ang_gain), -self.m_ang_gain)
             del velocities_dict[self.z_ang_joint]
-            ang_vel, trash = pb.multiplyTransforms(ZERO_VEC, pose.quaternion, [0.0, 0.0, c_ang_ib[2] + ang_gain], [0.0,0.0,0.0,1.0])
+            ang_vel, _ = pb.multiplyTransforms(ZERO_VEC, pose.quaternion, [0.0, 0.0, c_ang_ib[2] + ang_gain], ZERO_ROT)
         else:
             ang_vel = (0,0,0)
 
-        fwd_dir, trash = pb.multiplyTransforms(ZERO_VEC, pose.quaternion, [1,0,0], [0,0,0,1])
+        fwd_dir, _ = pb.multiplyTransforms(ZERO_VEC, pose.quaternion, [1,0,0], ZERO_ROT)
         yaw = atan2(fwd_dir[1], fwd_dir[0])
 
         if self.x_lin_joint in velocities_dict or self.y_lin_joint in velocities_dict:
-            c_vel_ib, trash = pb.multiplyTransforms(ZERO_VEC, inv_rot, lin_vel, [0,0,0,1])
+            c_vel_ib, _ = pb.multiplyTransforms(ZERO_VEC, inv_rot, lin_vel, ZERO_ROT)
 
             d_fwd_vel = 0
             d_strafe_vel = 0
@@ -85,8 +85,7 @@ class SimpleBaseDriver(JointDriver):
             sin_sq = sin(ang_vel[2] * self.deltaT) ** 2
             n_fwd_vel    = cos_sq * (c_vel_ib[0] + fwd_vel_gain) + sin_sq * (c_vel_ib[1] + strafe_vel_gain)
             n_strafe_vel = sin_sq * (c_vel_ib[0] + fwd_vel_gain) + cos_sq * (c_vel_ib[1] + strafe_vel_gain)
-            d_lin_vel, trash = pb.multiplyTransforms(ZERO_VEC, pose.quaternion, [n_fwd_vel, n_strafe_vel, 0],
-                                                                                 [0,0,0,1])
+            d_lin_vel, _ = pb.multiplyTransforms(ZERO_VEC, pose.quaternion, [n_fwd_vel, n_strafe_vel, 0], ZERO_ROT)
             lin_vel = [d_lin_vel[0], d_lin_vel[1], lin_vel[2]]
         else:
             lin_vel = (0, 0, lin_vel[2])
@@ -256,7 +255,7 @@ class MultiBody(object):
             raise Exception('Link "{}" is not defined'.format(link))
 
         zero_vector = Vector3(0,0,0)
-        if link == None or link == self.base_link:
+        if link is None or link == self.base_link:
             frame = self.pose()
             return LinkState(frame, frame, frame, zero_vector, zero_vector)
         else:

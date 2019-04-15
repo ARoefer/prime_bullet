@@ -314,7 +314,7 @@ function refresh_objects() {
   $('.objectReference').remove();
   srv_get_rigidbodies.callService(body_request, function(result) {
     console.log(result);
-    for (x in result.name) {
+    for (var x in result.name) {
       objects.rigid[result.name[x]] = rigidMsg2RigidInternal(result.body[x]);
       var id = 'ref_{}'.format(result.name[x]);
       var form_id = 'form_{}'.format(result.name[x].replace('.','__'));
@@ -328,7 +328,7 @@ function refresh_objects() {
 
   srv_get_multibodies.callService(body_request, function(result) {
     console.log(result);
-    for (x in result.name) {
+    for (var x in result.name) {
       objects.multi[result.name[x]] = result.body[x];
       var id = 'ref_{}'.format(result.name[x]);
       var form_id = 'form_{}'.format(result.name[x].replace('.','__'));

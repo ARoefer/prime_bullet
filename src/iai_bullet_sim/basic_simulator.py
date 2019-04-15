@@ -1,11 +1,9 @@
 import pybullet as pb
 import random
-import re
 from collections import namedtuple
-from iai_bullet_sim.utils import res_pkg_path, rot3_to_quat, Vector3, Point3, Quaternion, Frame, AABB, import_class
+from iai_bullet_sim.utils import res_pkg_path, Vector3, Point3, Quaternion, Frame, import_class
 from iai_bullet_sim.multibody import MultiBody, JointDriver
 from iai_bullet_sim.rigid_body import RigidBody, GEOM_TYPES, BULLET_GEOM_TYPES
-from pprint import pprint
 
 # Constraint structure. Assigns names to bullet's info structure.
 Constraint = namedtuple('Constraint', ['bulletId', 'bodyParent', 'bodyChild', 'linkParent', 'linkChild',
@@ -399,7 +397,7 @@ class BasicSimulator(object):
                                                flags=pb.URDF_USE_SELF_COLLISION_EXCLUDE_PARENT, physicsClientId=self.__client_id), self.__gen_next_color(), pos, rot, joint_driver, urdf_path)
 
 
-        bodyId = self.register_object(new_body, name_override)
+        self.register_object(new_body, name_override)
         #print('Created new multibody with id {}'.format(bodyId))
         return new_body
 
@@ -517,7 +515,7 @@ class BasicSimulator(object):
         new_body = RigidBody(self,
                              pb.createRigidBody(GEOM_TYPES[geom_type], radius, [0.5 * x for x in extents], height, mass, pos, rot, color, physicsClientId=self.__client_id),
                              geom_type, color, pos, rot, extents, radius, height, mass)
-        bodyId = self.register_object(new_body, name_override)
+        self.register_object(new_body, name_override)
         #print('Created new rigid body with id {}'.format(bodyId))
         return new_body
 
@@ -570,23 +568,23 @@ class BasicSimulator(object):
                           parentJointPosition=[0,0,0], childJointPosition=[0,0,0],
                           parentJointOrientation=[0,0,0,1], childJointOrientation=[0,0,0,1]):
         raise (NotImplementedError)
-        if constraintId not in self.constraints:
-            parent = self.bodies[parentBody]
-            child  = self.bodies[childBody]
-            type   = self.__joint_types[jointType]
-            parentLinkId = parent.link_index_map[parentLink]
-            childLinkId  = child.link_index_map[childLink]
-            axis = vec3_to_list(jointAxis)
-            pjp = vec3_to_list(parentJointPosition)
-            cjp = vec3_to_list(childJointPosition)
-            pjo = parentJointOrientation
-            cjo = childJointOrientation
-            bulletId = pb.createConstraint(parent.bulletId, parentLinkId, child.bulletId,
-                                           childLinkId, type, axis, pjp, cjp, pjo, cjo, physicsClientId=self.__client_id)
-            self.constraints[constraintId] = Constraint(bulletId, parent, child, parentLink, childLink,
-                                                        type, axis, pjp, cjp, pjo, cjo)
-        else:
-            raise (NotImplementedError)
+        # if constraintId not in self.constraints:
+        #     parent = self.bodies[parentBody]
+        #     child  = self.bodies[childBody]
+        #     type   = self.__joint_types[jointType]
+        #     parentLinkId = parent.link_index_map[parentLink]
+        #     childLinkId  = child.link_index_map[childLink]
+        #     axis = vec3_to_list(jointAxis)
+        #     pjp = vec3_to_list(parentJointPosition)
+        #     cjp = vec3_to_list(childJointPosition)
+        #     pjo = parentJointOrientation
+        #     cjo = childJointOrientation
+        #     bulletId = pb.createConstraint(parent.bulletId, parentLinkId, child.bulletId,
+        #                                    childLinkId, type, axis, pjp, cjp, pjo, cjo, physicsClientId=self.__client_id)
+        #     self.constraints[constraintId] = Constraint(bulletId, parent, child, parentLink, childLink,
+        #                                                 type, axis, pjp, cjp, pjo, cjo)
+        # else:
+        #     raise (NotImplementedError)
 
 
 
@@ -601,7 +599,7 @@ class BasicSimulator(object):
         :rtype: list
         """
         raw_overlap = pb.getOverlappingObjects(vec3_to_list(aabb.min), vec3_to_list(aabb.max), physicsClientId=self.__client_id)
-        if raw_overlap == None:
+        if raw_overlap is None:
             return []
 
         return [self.__get_obj_link_tuple(bulletId, linkIdx) for bulletId, linkIdx in raw_overlap if self.bodies[self.__bId_IdMap[bulletId]] not in filter]

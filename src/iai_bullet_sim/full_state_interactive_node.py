@@ -5,13 +5,11 @@ from interactive_markers.interactive_marker_server import *
 
 from iai_bullet_sim.basic_simulator import BasicSimulator
 from iai_bullet_sim.full_state_node import FullStatePublishingNode
-from iai_bullet_sim.ros_plugins import TFPublisher
 from iai_bullet_sim.multibody import MultiBody
 from iai_bullet_sim.srv import *
 from iai_bullet_sim.utils import Frame
 
 from geometry_msgs.msg import Pose as PoseMsg
-from geometry_msgs.msg import Vector3 as Vector3Msg
 from std_msgs.msg import String as StringMsg
 
 from visualization_msgs.msg import Marker as MarkerMsg

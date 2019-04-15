@@ -3,8 +3,6 @@ import tf
 import pybullet as pb
 import numpy as np
 
-from collections import OrderedDict
-
 from geometry_msgs.msg import WrenchStamped as WrenchMsg
 from sensor_msgs.msg import JointState as JointStateMsg
 from sensor_msgs.msg import LaserScan as LaserScanMsg
@@ -209,7 +207,7 @@ class CommandSubscriber(SimulatorPlugin):
 
     def cmd_callback(self, cmd_msg):
         """Implements the command processing behavior."""
-        raise (NotImplemented)
+        raise (NotImplementedError)
 
     def disable(self, simulator):
         """Disables the plugin and subscriber.
@@ -257,7 +255,7 @@ class JointPositionController(WatchdoggedJointController):
         :param watchdog_timeoutTimeout: for the watchdogs
         :type  watchdog_timeoutTimeout:
         """
-        super(JointVelocityController, self).__init__('Watchdogged Joint Position Controller', multibody, '{}/commands/joint_positions'.format(topic_prefix), watchdog_timeout)
+        super(JointPositionController, self).__init__('Watchdogged Joint Position Controller', multibody, '{}/commands/joint_positions'.format(topic_prefix), watchdog_timeout)
         self.__topic_prefix = topic_prefix
 
     def cmd_callback(self, cmd_msg):
@@ -763,13 +761,14 @@ class LaserScanner(SimulatorPlugin):
         :param sensor_name: Name of the simulated sensor.
         :type  sensor_name: str
         """
+        super(LaserScanner, self).__init__('LaserScanner')
         self.body = body
         self.link = link
         self.sensor_name = sensor_name
         body_name = simulator.get_body_id(body.bId())
         simulator.register_deletion_cb(body_name, self.on_obj_deleted)
 
-        if link == None or link == '':
+        if link is None or link == '':
             self.publisher = rospy.Publisher('{}/sensors/{}'.format(body_name, sensor_name), LaserScanMsg, queue_size=1)
         else:
             self.publisher = rospy.Publisher('{}/sensors/{}/{}'.format(body_name, link, sensor_name), LaserScanMsg, queue_size=1)

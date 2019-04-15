@@ -1,13 +1,11 @@
 #!/usr/bin/env python
 import rospy
 import sys
-import yaml
 from time import time
 from rosgraph_msgs.msg import Clock as ClockMsg
-from std_msgs.msg import Empty as EmptyMsg
 
 from iai_bullet_sim.basic_simulator_node import BasicSimulatorNode
-from iai_bullet_sim.ros_plugins import JSPublisher, SensorPublisher, JointVelocityController, TrajectoryPositionController
+from iai_bullet_sim.ros_plugins import JSPublisher, SensorPublisher, TrajectoryPositionController
 
 from blessed import Terminal
 

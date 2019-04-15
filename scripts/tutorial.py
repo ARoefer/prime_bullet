@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 import sys
-import rospy
 from time import time
 from math import sin
 

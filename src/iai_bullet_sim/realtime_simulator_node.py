@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 import rospy
-from iai_bullet_sim.basic_simulator import BasicSimulator
 from iai_bullet_sim.basic_simulator_node import BasicSimulatorNode
 
 

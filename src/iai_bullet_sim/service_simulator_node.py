@@ -3,10 +3,9 @@ import traceback
 
 from multiprocessing import Lock
 
-from geometry_msgs.msg import Pose, Vector3
+from geometry_msgs.msg import Pose
 from visualization_msgs.msg import Marker as MarkerMsg
 from sensor_msgs.msg import JointState
-from std_msgs.msg import ColorRGBA
 
 from iai_bullet_sim.basic_simulator import BasicSimulator
 from iai_bullet_sim.basic_simulator_node import BasicSimulatorNode
@@ -477,9 +476,9 @@ class ServiceSimulatorNode(BasicSimulatorNode):
         with self.lock:
             res = GetSimulatorStateResponse()
             if self.is_running():
-                res = GetSimulatorStateResponse.RUNNING
+                res.state = GetSimulatorStateResponse.RUNNING
             else:
-                res = GetSimulatorStateResponse.PAUSED
+                res.state = GetSimulatorStateResponse.PAUSED
             return res
 
     def srv_get_static_geometry(self, msg):

@@ -1,7 +1,5 @@
 import rospy
-import sys
 import yaml
-from time import time
 
 from iai_bullet_sim.basic_simulator import BasicSimulator
 from iai_bullet_sim.utils           import res_pkg_path
@@ -57,7 +55,7 @@ class BasicSimulatorNode(object):
         pass
 
     def is_running(self):
-        raise (NotImplemented)
+        raise (NotImplementedError)
 
     def reset(self):
         """Implements the node's reset behavior."""

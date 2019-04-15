@@ -1,6 +1,5 @@
 import pybullet as pb
-from collections import namedtuple
-from iai_bullet_sim.utils import Vector3, Quaternion, Frame, AABB
+from iai_bullet_sim.utils import Vector3, Frame, AABB
 
 # Mapping of bullet's geometry constants to internal keywords
 BULLET_GEOM_TYPES = {pb.GEOM_SPHERE: 'sphere', pb.GEOM_BOX: 'box', pb.GEOM_CYLINDER: 'cylinder', pb.GEOM_CAPSULE: 'capsule'}
