@@ -1,4 +1,6 @@
 [![Total alerts](https://img.shields.io/lgtm/alerts/g/ARoefer/iai_bullet_sim.svg?style=flat-square&logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/ARoefer/iai_bullet_sim/alerts/)
+[![Language grade: Python](https://img.shields.io/lgtm/grade/python/g/ARoefer/iai_bullet_sim.svg?style=flat-square&logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/ARoefer/iai_bullet_sim/context:python)
+[![Language grade: JavaScript](https://img.shields.io/lgtm/grade/javascript/g/ARoefer/iai_bullet_sim.svg?style=flat-square&logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/ARoefer/iai_bullet_sim/context:javascript)
 
 The iai_bullet_sim
 ==================
