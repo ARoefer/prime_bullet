@@ -78,6 +78,7 @@ class RigidBody(object):
         :tyoe  cb: function
         """
         self.simulator.deregister_deletion_cb(self.simulator.get_body_id(self.bId()), cb)
+
     def reset(self):
         """Resets this object's pose and joints to their initial configuration."""
         pb.resetBasePositionAndOrientation(self.__bulletId, self.initial_pos, self.initial_rot, physicsClientId=self.__client_id)
@@ -88,7 +89,7 @@ class RigidBody(object):
         """Returns the bounding box of this object.
         :rtype: AABB
         """
-        res = pb.getAABB(self.__bulletId, -1)
+        res = pb.getAABB(self.__bulletId, -1, physicsClientId=self.__client_id)
         return AABB(Vector3(*res[0]), Vector3(*res[1]))
 
     def pose(self):
