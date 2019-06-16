@@ -335,6 +335,17 @@ class BasicSimulator(object):
             self.deletion_cbs[bodyId] = set()
         self.deletion_cbs[bodyId].add(cb)
 
+    def deregister_deletion_cb(self, bodyId, cb):
+        """Deregisters a callback function which is called when the specified object is deleted.
+
+        :param bodyId: Body to listen for
+        :type  bodyId: str
+        :param cb: Callback to be called. Signature f(BasicSimulator, str, RigidBody/MultiBody)
+        :tyoe  cb: function
+        """
+        if bodyId in self.deletion_cbs:
+            self.deletion_cbs[bodyId].remove(cb)
+
     def register_plugin(self, plugin):
         """Registers a plugin with the simulator.
 
