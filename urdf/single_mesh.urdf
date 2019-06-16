@@ -1,0 +1,18 @@
+<robot name="{{object_name}}">
+<link name="object">
+    <visual>
+        <geometry>
+            <mesh filename="{{mesh_path}}" scale="1 1 1"/>
+        </geometry>
+    </visual>
+    <collision>
+        <geometry>
+            {% if collision_path is defined and collision_path is not none %}
+            <mesh filename="{{collision_path}}" scale="1 1 1"/>
+            {% else %}
+            <mesh filename="{{mesh_path}}" scale="1 1 1"/>
+            {% endif %}
+        </geometry>
+    </collision>
+</link>
+</robot>

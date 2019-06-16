@@ -1,10 +1,13 @@
+import os
 import pybullet as pb
 import random
+import tempfile
 from collections import namedtuple
 from iai_bullet_sim.utils import res_pkg_path, Vector3, Point3, Quaternion, Frame, import_class
 from iai_bullet_sim.multibody import MultiBody, JointDriver
 from iai_bullet_sim.rigid_body import RigidBody, GEOM_TYPES, BULLET_GEOM_TYPES
 from iai_bullet_sim.constraint import Constraint
+from jinja2 import Template
 
 # Visual shape structure. Assigns names to bullet's info structure.
 VisualShape = namedtuple('VisualShape', ['bulletId', 'linkIndex', 'geometryType', 'dimensions', 'filename', 'localPosition', 'localOrientation', 'rgba'])
@@ -192,6 +195,10 @@ class BasicSimulator(object):
                               'planar': pb.JOINT_PLANAR,   'p2p':       pb.JOINT_POINT2POINT}
 
         self.__plugins = set()
+        f = open(res_pkg_path('package://iai_bullet_sim/urdf/single_mesh.urdf'), 'r')
+        self.__mesh_template  = Template(f.read())
+        f.close()
+        self._temp_mesh_urdfs = {}
 
     def get_n_update(self):
         """Returns the number of performed updates.
@@ -258,6 +265,8 @@ class BasicSimulator(object):
     def kill(self):
         """Kills the connection to Bullet."""
         pb.disconnect(self.__client_id)
+        for _, p in self._temp_mesh_urdfs.items():
+            os.remove(p)
 
     def pre_update(self):
         """Called before every physics step."""
@@ -379,6 +388,21 @@ class BasicSimulator(object):
             if isinstance(p, clazz):
                 return p
         return None
+
+    def load_mesh(self, dae_path, pos=[0,0,0], rot=[0,0,0,1], name_override=None, collision_path=None):
+        path = res_pkg_path(dae_path)
+
+        name = dae_path[dae_path.rfind('/'):dae_path.rfind('.')] if '/' in dae_path else dae_path[:dae_path.rfind('.')]
+        urdf_path = '{}{}.urdf'.format(tempfile.gettempdir(), name)
+        f = open(urdf_path, 'w')
+        f.write(self.__mesh_template.render(object_name=name, 
+                                            mesh_path=dae_path, 
+                                            collision_path=collision_path))
+        f.close()
+        print('Generated urdf: {}'.format(urdf_path))
+        new_mb = self.load_urdf(urdf_path, pos, rot, name_override=name_override)
+        new_mb.urdf_file = dae_path
+        return new_mb
 
     def load_urdf(self, urdf_path, pos=[0,0,0], rot=[0,0,0,1], joint_driver=JointDriver(), useFixedBase=0, name_override=None):
         """Loads an Object from a URDF and registers it with this simulator.
@@ -755,10 +779,13 @@ class BasicSimulator(object):
                     else:
                         joint_driver = JointDriver()
 
-                    new_obj = self.load_urdf(urdf_path,
-                                             i_pos,
-                                             i_rot, joint_driver=joint_driver, useFixedBase=fixed_base, name_override=name)
-                    new_obj.set_joint_positions(initial_joint_state, True)
+                    if urdf[:-5].lower() == '.urdf': 
+                        new_obj = self.load_urdf(urdf_path,
+                                                 i_pos,
+                                                 i_rot, joint_driver=joint_driver, useFixedBase=fixed_base, name_override=name)
+                        new_obj.set_joint_positions(initial_joint_state, True)
+                    else:
+                        new_obj = self.load_mesh(urdf_path, i_pos, i_rot, name_override=name)
                     for s in od['sensors']:
                         new_obj.enable_joint_sensor(s, True)
                 elif otype == 'rigid_body':
