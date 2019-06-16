@@ -137,11 +137,30 @@ class DemoPluginUsage(object):
                 last_update = time()
 
 
+class DemoMesh(object):
+    """docstring for DemoMesh"""
+    def __init__(self):
+        pass
+
+    def run(self):
+        sim = BasicSimulator()
+        sim.init(mode='gui')
+        floor    = sim.create_box(extents=[10,10,0.1], mass=0)
+        suzanne  = sim.load_mesh('package://iai_bullet_sim/meshes/suzanne.dae', pos=[0,0,2])
+
+        last_update = time()
+        while True:
+            if time() - last_update >= sim.time_step:
+                sim.update()
+                last_update = time() 
+
+
 demos = {'intro': DemoIntro,
          'joints': DemoJoints,
          'sensor': DemoSensor,
          'contacts': DemoContacts,
-         'use_plugin': DemoPluginUsage} # Contacts, closest points,
+         'use_plugin': DemoPluginUsage,
+         'load_mesh' : DemoMesh} # Contacts, closest points,
 
 if __name__ == '__main__':
     if len(sys.argv) < 2:
@@ -154,3 +173,5 @@ if __name__ == '__main__':
         else:
             d = demos[demo]()
             d.run()
+
+        
