@@ -251,6 +251,14 @@ class MultiBody(object):
         self.__last_sim_js_update = -1
         self.__last_sim_velocity_update = -1
 
+    def get_link_index(self, link):
+        if link is None:
+            return -1
+        else:
+            if link not in self.link_index_map:
+                raise Exception('Link "{}" is not defined'.format(link))
+            return self.link_index_map[link]
+
     def get_link_state(self, link=None):
         """Returns the state of the named link.
         If None is passed as link, the object's pose is returned as LinkState
