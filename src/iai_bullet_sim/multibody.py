@@ -243,6 +243,7 @@ class MultiBody(object):
         :tyoe  cb: function
         """
         self.simulator.deregister_deletion_cb(self.simulator.get_body_id(self.bId()), cb)
+
     def reset(self):
         """Resets this object's pose and joints to their initial configuration."""
         pb.resetBasePositionAndOrientation(self.__bulletId, self.initial_pos, self.initial_rot, physicsClientId=self.__client_id)
