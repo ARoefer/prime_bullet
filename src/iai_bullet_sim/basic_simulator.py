@@ -4,11 +4,7 @@ from collections import namedtuple
 from iai_bullet_sim.utils import res_pkg_path, Vector3, Point3, Quaternion, Frame, import_class
 from iai_bullet_sim.multibody import MultiBody, JointDriver
 from iai_bullet_sim.rigid_body import RigidBody, GEOM_TYPES, BULLET_GEOM_TYPES
-
-# Constraint structure. Assigns names to bullet's info structure.
-Constraint = namedtuple('Constraint', ['bulletId', 'bodyParent', 'bodyChild', 'linkParent', 'linkChild',
-                                       'jointType', 'jointAxis', 'parentJointPosition', 'childJointPosition',
-                                       'parentJointOrientation', 'childJointOrientation'])
+from iai_bullet_sim.constraint import Constraint
 
 # Visual shape structure. Assigns names to bullet's info structure.
 VisualShape = namedtuple('VisualShape', ['bulletId', 'linkIndex', 'geometryType', 'dimensions', 'filename', 'localPosition', 'localOrientation', 'rgba'])
@@ -177,19 +173,23 @@ class BasicSimulator(object):
         :type    gravity: list
         """
         self.physicsClient = None
-        self.bodies      = {}
-        self.deletion_cbs = {}
-        self.constraints = {}
+        self.bodies        = {}
+        self.deletion_cbs  = {}
+        self.constraints   = {}
+        self.constraint_deletion_cbs = {}
         self.tick_rate   = tick_rate
         self.gravity     = gravity
         self.time_step   = 1.0 / self.tick_rate
         self.__client_id = 0
         self.__n_updates = 0
         self.__bId_IdMap = {}
+        self.__cId_IdMap = {}
 
         self.__h = random.random()
         self.__nextId = 0
-        self.__joint_types = {'FIXED': pb.JOINT_FIXED, 'PRISMATIC': pb.JOINT_PRISMATIC, 'HINGE': pb.JOINT_POINT2POINT}
+        self.__joint_types = {'fixed':  pb.JOINT_FIXED,    'prismatic': pb.JOINT_PRISMATIC, 
+                              'hinge':  pb.JOINT_REVOLUTE, 'spherical': pb.JOINT_SPHERICAL,
+                              'planar': pb.JOINT_PLANAR,   'p2p':       pb.JOINT_POINT2POINT}
 
         self.__plugins = set()
 
@@ -572,31 +572,78 @@ class BasicSimulator(object):
             return True
         return False
 
+    def delete_constraint(self, constraintId):
+        if constraintId in self.constraints:
+            constraint = self.constraints[constraintId]
+            if constraintId in self.constraint_deletion_cbs:
+                for cb in self.constraint_deletion_cbs[constraintId]:
+                    cb(self, constraintId, constraint)
+                del self.constraint_deletion_cbs[constraintId]
+            pb.removeConstraint(constraint.bId(), self.__client_id)
+            del self.__cId_IdMap[constraint.bId()]
+            del self.constraints[constraintId]
+            return True
+        return False
 
-    def create_constraint(self, constraintId, parentBody, childBody,
-                          parentLink=None, childLink=None,
-                          jointType='FIXED', jointAxis=[1,0,0],
-                          parentJointPosition=[0,0,0], childJointPosition=[0,0,0],
-                          parentJointOrientation=[0,0,0,1], childJointOrientation=[0,0,0,1]):
-        raise (NotImplementedError)
-        # if constraintId not in self.constraints:
-        #     parent = self.bodies[parentBody]
-        #     child  = self.bodies[childBody]
-        #     type   = self.__joint_types[jointType]
-        #     parentLinkId = parent.link_index_map[parentLink]
-        #     childLinkId  = child.link_index_map[childLink]
-        #     axis = vec3_to_list(jointAxis)
-        #     pjp = vec3_to_list(parentJointPosition)
-        #     cjp = vec3_to_list(childJointPosition)
-        #     pjo = parentJointOrientation
-        #     cjo = childJointOrientation
-        #     bulletId = pb.createConstraint(parent.bulletId, parentLinkId, child.bulletId,
-        #                                    childLinkId, type, axis, pjp, cjp, pjo, cjo, physicsClientId=self.__client_id)
-        #     self.constraints[constraintId] = Constraint(bulletId, parent, child, parentLink, childLink,
-        #                                                 type, axis, pjp, cjp, pjo, cjo)
-        # else:
-        #     raise (NotImplementedError)
 
+    def create_constraint_global(self, parentBody, childBody, jointType='fixed',
+                                 jointPosition=[0,0,0], jointAxis=[1,0,0],
+                                 parentLink=None, childLink=None, name_override=None):
+        parent_pose = parentBody.get_link_state(parentLink) if parentLink is not None else parentBody.pose()
+        if childBody is not None:
+            child_pose = childBody.get_link_state(childLink) if childLink is not None else childBody.pose()
+        else:
+            child_pose = Frame((0, 0, 0), (0, 0, 0, 1))
+        inv_pp_pos, inv_pp_rot = pb.invertTransform(parent_pose.position, parent_pose.quaternion)
+        inv_cp_pos, inv_cp_rot = pb.invertTransform(child_pose.position,  child_pose.quaternion)
+
+        ZERO_VEC = (0,0,0)
+        ZERO_ROT = (0,0,0,1)
+        pjp, pjo = pb.multiplyTransforms(inv_pp_pos, inv_pp_rot, jointPosition, ZERO_ROT)
+        cjp, cjo = pb.multiplyTransforms(inv_cp_pos, inv_cp_rot, jointPosition, ZERO_ROT)
+        cja,   _ = pb.multiplyTransforms(  ZERO_VEC, inv_cp_rot,     jointAxis, ZERO_ROT)
+
+        return self.create_constraint_local(parentBody, childBody, jointType, parentLink, childLink,
+                                            cja, pjp, cjp, pjo, cjo, name_override)
+
+
+    def create_constraint_local(self, parentBody, childBody, jointType='fixed',
+                                parentLink=None, childLink=None, jointAxis=[1,0,0],
+                                parentJointPosition=[0,0,0], childJointPosition=[0,0,0],
+                                parentJointOrientation=[0,0,0,1], childJointOrientation=[0,0,0,1], name_override=None):
+        if name_override is None:
+            counter = 0
+            constraintName = 'constraint_{}'.format(jointType.lower())
+            constraintId   = constraintName
+            while constraintId in self.bodies:
+                constraintId = '{}.{}'.format(bodyName, counter)
+                counter += 1
+        else:
+            if name_override in self.constraints:
+                raise Exception('Constraint Id "{}" is already taken.'.format(name_override))
+
+            constraintId = name_override
+
+        parent_bid  = parentBody.bId()
+        parent_link = parentBody.get_link_index(parentLink) if parentLink is not None else -1
+        
+        child_bid  = childBody.bId() if childBody is not None else -1
+        child_link = childBody.get_link_index(childLink) if childLink is not None else -1
+
+        if jointType not in self.__joint_types:
+            raise Exception('Unknown joint type "{}". Supported types are: {}'.format(jointType, ', '.join(self.__joint_types.keys())))
+        type = self.__joint_types[jointType]
+
+        bulletId = pb.createConstraint(parent_bid, parent_link, child_bid, child_link, type, axis, 
+                                       parentJointPosition, childJointPosition, 
+                                       parentJointOrientation, childJointOrientation, physicsClientId=self.__client_id)
+        constraint = Constraint(self, bulletId, jointType, parentBody, childBody,
+                                      parentJointPosition, parentJointOrientation,
+                                      childJointPosition,  childJointOrientation,
+                                      jointAxis, parentLink, childLink)
+        self.constraints[constraintId] = constraint
+        self.__cId_IdMap[bulletId]     = constraintId
+        return constraint
 
 
     # @profile
@@ -719,7 +766,18 @@ class BasicSimulator(object):
                 else:
                     raise Exception('Unknown object type "{}"'.format(otype))
         if 'constraints' in world_dict:
-            pass
+            for cd in world_dict['constraints']:
+                if cd['parent'] not in self.bodies:
+                    raise Exception('Parent body "{}" for constraint "{}" cannot be found.'.format(cd['parent'], cd['name']))
+                if cd['child'] is not None and cd['child'] not in self.bodies:
+                    raise Exception('Child body "{}" for constraint "{}" cannot be found.'.format(cd['parent'], cd['name']))
+
+                parentBody = self.bodies[cd['parent']]
+                childBody  = self.bodies[cd['child']] if cd['child'] is not None else None
+
+                self.create_constraint_local(parentBody, childBody, cd['type'], cd['parent_link'], cd['child_link'],
+                                             cd['axis'], cd['parent_pose']['position'], cd['child_pose']['position'],
+                                             cd['parent_pose']['rotation'], cd['child_pose']['rotation'], cd['name'])
 
 
     def save_world(self, use_current_state_as_init=False):
@@ -775,9 +833,25 @@ class BasicSimulator(object):
 
 
         for cname, c in self.constraints.items():
-            pass
+            parent_name = self.__bId_IdMap[c.parent.bId()]
+            child_name  = self.__bId_IdMap[c.child.bId()] if c.child is not None else None
 
+            cd = {'name': cname,
+                  'type': c.type,
+                  'parent': parent_name,
+                  'child' : child_name,
+                  'parent_link': c.parent_link,
+                  'child_link' : c.child_link,
+                  'axis' : list(c.axis),
+                  'parent_pose': {
+                    'position': list(c.parent_pos),
+                    'rotation': list(c.parent_rot)},
+                  'child_pose': {
+                    'position': list(c.child_pos),
+                    'rotation': list(c.child_rot)}}
+            out['constraints'].append(cd)
         return out
+
 
     def load_simulator(self, config_dict):
         """Loads a simulator configuration from a dictionary.
