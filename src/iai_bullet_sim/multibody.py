@@ -27,7 +27,7 @@ class SimpleBaseDriver(JointDriver):
     """Implements and update behavior for robots with a movable base.
        The base can be translated horizontally and turned around the global z-axis.
     """
-    def __init__(self, max_linear_vel, max_angular_vel):
+    def __init__(self, max_linear_vel, max_angular_vel, x_lin_joint='base_linear_joint', y_lin_joint='base_perp_joint', z_ang_joint='base_angular_joint'):
         """Constructor.
 
         :param max_linear_vel: Upper bound for linear velocity
@@ -37,9 +37,9 @@ class SimpleBaseDriver(JointDriver):
         """
         self.m_lin_v = max_linear_vel
         self.m_ang_v = max_angular_vel
-        self.x_lin_joint = 'base_linear_joint'
-        self.y_lin_joint = 'base_perp_joint'
-        self.z_ang_joint  = 'base_angular_joint'
+        self.x_lin_joint = x_lin_joint
+        self.y_lin_joint = y_lin_joint
+        self.z_ang_joint = z_ang_joint
         self.m_vel_gain = max_linear_vel
         self.m_ang_gain = max_angular_vel
         self.deltaT = 0.02
@@ -115,7 +115,11 @@ class SimpleBaseDriver(JointDriver):
         :type  config_dict: dict
         :rtype: SimpleBaseDriver
         """
-        return SimpleBaseDriver(config_dict['max_lin_vel'], config_dict['max_ang_vel'])
+        return SimpleBaseDriver(config_dict['max_lin_vel'], 
+                                config_dict['max_ang_vel'], 
+                                config_dict['x_lin_joint'],
+                                config_dict['y_lin_joint'],
+                                config_dict['z_ang_joint'])
 
 
 

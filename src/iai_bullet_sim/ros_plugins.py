@@ -65,14 +65,24 @@ class JSPublisher(SimulatorPlugin):
             return
 
         new_js = self.body.joint_state()
+        safe_js = {}
         msg = JointStateMsg()
         msg.header.stamp = rospy.Time.now()
         for name, state in new_js.items():
+            joint = self.body.joints[name]
+            if (state.position < joint.lowerLimit or state.position > joint.upperLimit) and joint.upperLimit >= joint.lowerLimit:
+                state.position = min(max(joint.lowerLimit, state.position), joint.upperLimit)
+                safe_js[name] = state.position
             msg.name.append(name)
             msg.position.append(state.position)
             msg.velocity.append(state.velocity)
             msg.effort.append(state.effort)
         self.publisher.publish(msg)
+
+        if len(safe_js) > 0:
+            #print('Out-of bounds joints:\n  {}'.format('\n  '.join(['{}: {} {}'.format(n, self.body.joints[n].lowerLimit, self.body.joints[n].upperLimit) for n in sorted(safe_js.keys())])))
+            self.body.set_joint_positions(safe_js)
+
 
     def disable(self, simulator):
         """Disables the publisher.
