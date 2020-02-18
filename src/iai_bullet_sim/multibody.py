@@ -23,6 +23,97 @@ class JointDriver(object):
     def factory(cls, config_dict):
         return JointDriver()
 
+
+class OmniBaseDriver(JointDriver):
+    """Implements and update behavior for robots with a movable base.
+       The base can be translated horizontally and turned around the global z-axis.
+    """
+    def __init__(self, max_linear_vel, max_angular_vel, x_lin_joint='base_x_joint', y_lin_joint='base_y_joint', z_ang_joint='base_angular_joint'):
+        """Constructor.
+
+        :param max_linear_vel: Upper bound for linear velocity
+        :type  max_linear_vel: float
+        :param max_angular_vel: Upper bound for angular velocity
+        :type  max_angular_vel: float
+        """
+        self.m_lin_v = max_linear_vel
+        self.m_ang_v = max_angular_vel
+        self.x_lin_joint = x_lin_joint
+        self.y_lin_joint = y_lin_joint
+        self.z_ang_joint = z_ang_joint
+        self.m_vel_gain = max_linear_vel
+        self.m_ang_gain = max_angular_vel
+        self.deltaT = 0.02
+
+    def update_velocities(self, robot_data, velocities_dict):
+        """Updates a given velocity command."""
+        pose = robot_data.pose()
+        lin_vel = robot_data.linear_velocity()
+        ang_vel = robot_data.angular_velocity()
+        inv_pos, inv_rot = pb.invertTransform(pose.position, pose.quaternion)
+        ZERO_VEC = (0,0,0)
+        ZERO_ROT = (0,0,0,1)
+        if self.z_ang_joint in velocities_dict:
+            c_ang_ib, _ = pb.multiplyTransforms(inv_pos, inv_rot, ang_vel, ZERO_ROT)
+            d_ang_vel = max(min(velocities_dict[self.z_ang_joint], self.m_ang_v), -self.m_ang_v)
+            ang_gain  = max(min(d_ang_vel - c_ang_ib[2], self.m_ang_gain), -self.m_ang_gain)
+            del velocities_dict[self.z_ang_joint]
+            ang_vel, _ = pb.multiplyTransforms(ZERO_VEC, pose.quaternion, [0.0, 0.0, c_ang_ib[2] + ang_gain], ZERO_ROT)
+        else:
+            ang_vel = (0,0,0)
+
+        fwd_dir, _ = pb.multiplyTransforms(ZERO_VEC, pose.quaternion, [1,0,0], ZERO_ROT)
+        yaw = atan2(fwd_dir[1], fwd_dir[0])
+
+        if self.x_lin_joint in velocities_dict or self.y_lin_joint in velocities_dict:
+            d_x_vel = 0
+            d_y_vel = 0
+            if self.x_lin_joint in velocities_dict:
+                d_x_vel = max(min(velocities_dict[self.x_lin_joint], self.m_lin_v), -self.m_lin_v)
+                del velocities_dict[self.x_lin_joint]
+
+            if self.y_lin_joint in velocities_dict:
+                d_y_vel = max(min(velocities_dict[self.y_lin_joint], self.m_lin_v), -self.m_lin_v)
+                del velocities_dict[self.y_lin_joint]
+
+            x_vel_gain = max(min(d_x_vel - lin_vel[0], self.m_vel_gain), -self.m_vel_gain)
+            y_vel_gain = max(min(d_y_vel - lin_vel[1], self.m_vel_gain), -self.m_vel_gain)
+
+            lin_vel = [lin_vel[0] + x_vel_gain, lin_vel[1] + y_vel_gain, 0] # lin_vel[2]]
+        else:
+            lin_vel = (0, 0, 0) #lin_vel[2])
+
+        new_quat = pb.getQuaternionFromEuler([0,0,yaw])
+        #print(' '.join(['{}'.format(type(c)) for c in list(lin_vel) + list(ang_vel)]))
+        # print('New position: {}\nNew velocity: {}'.format((pose.position[0], pose.position[1], robot_data.initial_pos[2]), lin_vel))
+        pb.resetBasePositionAndOrientation(robot_data.bId(), (pose.position[0], pose.position[1], robot_data.initial_pos[2]), new_quat, physicsClientId=robot_data.simulator.client_id())
+        pb.resetBaseVelocity(robot_data.bId(), lin_vel, ang_vel, physicsClientId=robot_data.simulator.client_id())
+
+    def to_dict(self):
+        """Serializes the driver to a dictionary.
+
+        :rtype: dict
+        """
+        return {'max_lin_vel': self.m_lin_v,
+                'max_ang_vel': self.m_ang_v,
+                'x_lin_joint': self.x_lin_joint,
+                'y_lin_joint': self.y_lin_joint,
+                'z_ang_joint': self.z_ang_joint}
+
+    @classmethod
+    def factory(cls, config_dict):
+        """Instantiates the driver from a dictionary.
+
+        :param config_dict: Driver configuration
+        :type  config_dict: dict
+        :rtype: SimpleBaseDriver
+        """
+        return SimpleBaseDriver(config_dict['max_lin_vel'], 
+                                config_dict['max_ang_vel'], 
+                                config_dict['x_lin_joint'],
+                                config_dict['y_lin_joint'],
+                                config_dict['z_ang_joint'])
+
 class SimpleBaseDriver(JointDriver):
     """Implements and update behavior for robots with a movable base.
        The base can be translated horizontally and turned around the global z-axis.
