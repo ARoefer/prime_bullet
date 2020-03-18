@@ -114,6 +114,82 @@ class OmniBaseDriver(JointDriver):
                                 config_dict['y_lin_joint'],
                                 config_dict['z_ang_joint'])
 
+class DiffDriveBaseDriver(JointDriver):
+    """
+    """
+    def __init__(self, wheel_radius, wheel_distance, max_wheel_vel, l_wheel_joint='l_wheel_joint', r_wheel_joint='r_wheel_joint'):
+        """Constructor.
+        """
+        self.wheel_radius   = wheel_radius
+        self.wheel_distance = wheel_distance
+        self.max_wheel_vel  = max_wheel_vel
+        self.l_wheel_joint  = l_wheel_joint
+        self.r_wheel_joint  = r_wheel_joint
+
+    def update_velocities(self, robot_data, velocities_dict):
+        """Updates a given velocity command."""
+        pose = robot_data.pose()
+        lin_vel = robot_data.linear_velocity()
+        ang_vel = robot_data.angular_velocity()
+        inv_pos, inv_rot = pb.invertTransform(pose.position, pose.quaternion)
+        ZERO_VEC = (0,0,0)
+        ZERO_ROT = (0,0,0,1)    
+
+        fwd_dir, _ = pb.multiplyTransforms(ZERO_VEC, pose.quaternion, [1,0,0], ZERO_ROT)
+        yaw = atan2(fwd_dir[1], fwd_dir[0])
+
+        if self.l_wheel_joint in velocities_dict or self.r_wheel_joint in velocities_dict:
+            l_wheel_vel = 0
+            if self.l_wheel_joint in velocities_dict:
+                l_wheel_vel = velocities_dict[self.l_wheel_joint]
+                del velocities_dict[self.l_wheel_joint]
+            r_wheel_vel = 0
+            if self.r_wheel_joint in velocities_dict:
+                r_wheel_vel = velocities_dict[self.r_wheel_joint]
+                del velocities_dict[self.r_wheel_joint]
+            
+            # x_vel_gain = max(min(d_x_vel - lin_vel[0], self.m_vel_gain), -self.m_vel_gain)
+            # y_vel_gain = max(min(d_y_vel - lin_vel[1], self.m_vel_gain), -self.m_vel_gain)
+
+            ang_vel = (0, 0, r_wheel_vel * (self.wheel_radius / self.wheel_distance) + l_wheel_vel * (- self.wheel_radius / self.wheel_distance))
+            lin_vel = [r_wheel_vel * cos(yaw) * self.wheel_radius * 0.5 + l_wheel_vel * cos(yaw) * self.wheel_radius * 0.5, 
+                       r_wheel_vel * sin(yaw) * self.wheel_radius * 0.5 + l_wheel_vel * sin(yaw) * self.wheel_radius * 0.5, 0] # lin_vel[2]]
+        else:
+            ang_vel = (0, 0, 0)
+            lin_vel = (0, 0, 0) #lin_vel[2])
+
+        new_quat = pb.getQuaternionFromEuler([0,0,yaw])
+        #print(' '.join(['{}'.format(type(c)) for c in list(lin_vel) + list(ang_vel)]))
+        # print('New position: {}\nNew velocity: {}'.format((pose.position[0], pose.position[1], robot_data.initial_pos[2]), lin_vel))
+        pb.resetBasePositionAndOrientation(robot_data.bId(), (pose.position[0], pose.position[1], robot_data.initial_pos[2]), new_quat, physicsClientId=robot_data.simulator.client_id())
+        pb.resetBaseVelocity(robot_data.bId(), lin_vel, ang_vel, physicsClientId=robot_data.simulator.client_id())
+
+    def to_dict(self):
+        """Serializes the driver to a dictionary.
+
+        :rtype: dict
+        """
+        return {'wheel_radius'   : wheel_radius,
+                'wheel_distance' : wheel_distance,
+                'max_wheel_vel'  : max_wheel_vel,
+                'l_wheel_joint'  : l_wheel_joint,
+                'r_wheel_joint'  : r_wheel_joint}
+
+    @classmethod
+    def factory(cls, config_dict):
+        """Instantiates the driver from a dictionary.
+
+        :param config_dict: Driver configuration
+        :type  config_dict: dict
+        :rtype: SimpleBaseDriver
+        """
+        return cls(config_dict['wheel_radius'], 
+                   config_dict['wheel_distance'], 
+                   config_dict['max_wheel_vel'],
+                   config_dict['l_wheel_joint'],
+                   config_dict['r_wheel_joint'])
+
+
 class SimpleBaseDriver(JointDriver):
     """Implements and update behavior for robots with a movable base.
        The base can be translated horizontally and turned around the global z-axis.

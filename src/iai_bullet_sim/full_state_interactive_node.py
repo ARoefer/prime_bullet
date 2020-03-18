@@ -61,7 +61,7 @@ class FullStateInteractiveNode(FullStatePublishingNode):
                     self.tf_publisher.add_object(name, body)
                     self.add_new_marker(name, body, self.process_body_marker_feedback, False, True)
                 else:
-                    self.add_new_marker(name, body, self.process_static_body_marker_feedback, False, True, 'map', body.pose())
+                    self.add_new_marker(name, body, self.process_static_body_marker_feedback, False, True, self.tf_publisher.map_frame, body.pose())
         self.marker_server.applyChanges()
 
     def on_obj_deleted(self, simulator, Id, obj):

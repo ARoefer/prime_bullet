@@ -35,12 +35,13 @@ class FullStatePublishingNode(ServiceSimulatorNode):
         :type  mode: str
         """
         super(FullStatePublishingNode, self).init(config_dict, mode)
+        tf_world_frame = config_dict['tf_world_frame'] if config_dict is not None and 'tf_world_frame' in config_dict else 'map'
 
         for name in self.sim.bodies.keys():
             self.__start_publisher_for_object(name)
 
         if not self.sim.has_plugin_of_type(TFPublisher):
-            self.tf_publisher = TFPublisher(self.sim)
+            self.tf_publisher = TFPublisher(self.sim, map_frame=tf_world_frame)
             self.sim.register_plugin(self.tf_publisher)
         else:
             self.tf_publisher = self.sim.get_plugin_of_type(TFPublisher)
