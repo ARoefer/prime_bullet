@@ -1,6 +1,7 @@
 import pybullet as pb
 from collections import namedtuple
-from iai_bullet_sim.utils import Vector3, Quaternion, Frame, AABB
+from iai_bullet_sim.rigid_body import RigidBody
+from iai_bullet_sim.utils      import Vector3, Quaternion, Pose, AABB
 from math import atan2, cos, sin
 
 class JointDriver(object):
@@ -86,8 +87,8 @@ class OmniBaseDriver(JointDriver):
         new_quat = pb.getQuaternionFromEuler([0,0,yaw])
         #print(' '.join(['{}'.format(type(c)) for c in list(lin_vel) + list(ang_vel)]))
         # print('New position: {}\nNew velocity: {}'.format((pose.position[0], pose.position[1], robot_data.initial_pos[2]), lin_vel))
-        pb.resetBasePositionAndOrientation(robot_data.bId(), (pose.position[0], pose.position[1], robot_data.initial_pos[2]), new_quat, physicsClientId=robot_data.simulator.client_id())
-        pb.resetBaseVelocity(robot_data.bId(), lin_vel, ang_vel, physicsClientId=robot_data.simulator.client_id())
+        pb.resetBasePositionAndOrientation(robot_data.bId(), (pose.position[0], pose.position[1], robot_data.initial_pos[2]), new_quat, physicsClientId=robot_data.simulator.client_id)
+        pb.resetBaseVelocity(robot_data.bId(), lin_vel, ang_vel, physicsClientId=robot_data.simulator.client_id)
 
     def to_dict(self):
         """Serializes the driver to a dictionary.
@@ -161,8 +162,8 @@ class DiffDriveBaseDriver(JointDriver):
         new_quat = pb.getQuaternionFromEuler([0,0,yaw])
         #print(' '.join(['{}'.format(type(c)) for c in list(lin_vel) + list(ang_vel)]))
         # print('New position: {}\nNew velocity: {}'.format((pose.position[0], pose.position[1], robot_data.initial_pos[2]), lin_vel))
-        pb.resetBasePositionAndOrientation(robot_data.bId(), (pose.position[0], pose.position[1], robot_data.initial_pos[2]), new_quat, physicsClientId=robot_data.simulator.client_id())
-        pb.resetBaseVelocity(robot_data.bId(), lin_vel, ang_vel, physicsClientId=robot_data.simulator.client_id())
+        pb.resetBasePositionAndOrientation(robot_data.bId(), (pose.position[0], pose.position[1], robot_data.initial_pos[2]), new_quat, physicsClientId=robot_data.simulator.client_id)
+        pb.resetBaseVelocity(robot_data.bId(), lin_vel, ang_vel, physicsClientId=robot_data.simulator.client_id)
 
     def to_dict(self):
         """Serializes the driver to a dictionary.
@@ -259,8 +260,14 @@ class SimpleBaseDriver(JointDriver):
 
         new_quat = pb.getQuaternionFromEuler([0,0,yaw])
         #print(' '.join(['{}'.format(type(c)) for c in list(lin_vel) + list(ang_vel)]))
-        pb.resetBasePositionAndOrientation(robot_data.bId(), (pose.position[0], pose.position[1], robot_data.initial_pos[2]), new_quat, physicsClientId=robot_data.simulator.client_id())
-        pb.resetBaseVelocity(robot_data.bId(), lin_vel, ang_vel, physicsClientId=robot_data.simulator.client_id())
+        pb.resetBasePositionAndOrientation(robot_data.bId(), 
+                                           (pose.position[0], pose.position[1], robot_data.initial_pos[2]), 
+                                           new_quat, 
+                                           physicsClientId=robot_data.simulator.client_id)
+        pb.resetBaseVelocity(robot_data.bId(), 
+                             lin_vel, 
+                             ang_vel, 
+                             physicsClientId=robot_data.simulator.client_id)
 
 
     def to_dict(self):
@@ -317,7 +324,7 @@ JointInfo = namedtuple('JointInfo', ['jointIndex', 'jointName', 'jointType', 'qI
 LinkState  = namedtuple('LinkState', ['CoMFrame', 'localInertialFrame', 'worldFrame', 'linearVelocity', 'angularVelocity'])
 
 
-class MultiBody(object):
+class MultiBody(RigidBody):
     """Wrapper class giving object oriented access to PyBullet's multibodies.
     """
     def __init__(self, simulator, bulletId, color, initial_pos=[0,0,0], initial_rot=[0,0,0,1], joint_driver=JointDriver(), urdf_file=None):
@@ -339,7 +346,7 @@ class MultiBody(object):
         :type  urdf_file:    str, NoneType
         """
         self.simulator      = simulator
-        self.__client_id    = simulator.client_id()
+        self.__client_id    = simulator.client_id
         self.__bulletId     = bulletId
         self.color          = color
         self.joints         = {}
@@ -393,6 +400,7 @@ class MultiBody(object):
         """
         return len(self.dynamic_joints) > 0
 
+    @property
     def bId(self):
         """Returns the corresponding bullet Id
         :rtype: long
@@ -405,7 +413,7 @@ class MultiBody(object):
         :param cb: Callback to be called. Signature f(BasicSimulator, str, RigidBody/MultiBody)
         :tyoe  cb: function
         """
-        self.simulator.register_deletion_cb(self.simulator.get_body_id(self.bId()), cb)
+        self.simulator.register_deletion_cb(self.simulator.get_body_id(self.bId), cb)
 
     def deregister_deletion_cb(self, cb):
         """Deregisters a callback function which is called when this object is deleted.
@@ -413,7 +421,7 @@ class MultiBody(object):
         :param cb: Callback to be called. Signature f(BasicSimulator, str, RigidBody/MultiBody)
         :tyoe  cb: function
         """
-        self.simulator.deregister_deletion_cb(self.simulator.get_body_id(self.bId()), cb)
+        self.simulator.deregister_deletion_cb(self.simulator.get_body_id(self.bId), cb)
 
     def reset(self):
         """Resets this object's pose and joints to their initial configuration."""
@@ -588,7 +596,11 @@ class MultiBody(object):
 
         #print('\n'.join(['{}: {}'.format(self.__index_joint_map[cmd_indices[x]], cmd_vels[x]) for x in range(len(cmd_vels))])) # TODO: REMOVE THIS
 
-        pb.setJointMotorControlArray(self.__bulletId, cmd_indices, pb.VELOCITY_CONTROL, targetVelocities=cmd_vels, physicsClientId=self.__client_id)
+        pb.setJointMotorControlArray(self.__bulletId, 
+                                     cmd_indices, 
+                                     pb.VELOCITY_CONTROL, 
+                                     targetVelocities=cmd_vels, 
+                                     physicsClientId=self.__client_id)
 
     def apply_joint_effort_cmds(self, cmd):
         """Sets the joints' torque goals.
@@ -604,7 +616,11 @@ class MultiBody(object):
                 cmd_indices.append(self.joints[jname].jointIndex)
                 cmd_torques.append(cmd[jname])
 
-        pb.setJointMotorControlArray(self.__bulletId, cmd_indices, pb.TORQUE_CONTROL, forces=cmd_torques, physicsClientId=self.__client_id)
+        pb.setJointMotorControlArray(self.__bulletId, 
+                                     cmd_indices, 
+                                     pb.TORQUE_CONTROL, 
+                                     forces=cmd_torques, 
+                                     physicsClientId=self.__client_id)
 
     def get_contacts(self, other_body=None, own_link=None, other_link=None):
         """Gets the contacts this body had during the last physics step.

@@ -2,12 +2,27 @@ import os
 import pybullet as pb
 import random
 import tempfile
+
 from collections import namedtuple
-from iai_bullet_sim.utils import res_pkg_path, Vector3, Point3, Quaternion, Frame, import_class
-from iai_bullet_sim.multibody import MultiBody, JointDriver
-from iai_bullet_sim.rigid_body import RigidBody, GEOM_TYPES, BULLET_GEOM_TYPES
+from dataclasses import dataclass
+from jinja2      import Template
+from pathlib     import Path
+from typing      import Iterable, Union
+
+from iai_bullet_sim import IAI_BULLET_ROOT
+from iai_bullet_sim.utils      import abs_urdf_paths,  \
+                                      res_pkg_path,    \
+                                      Vector3,         \
+                                      Point3,          \
+                                      Quaternion,      \
+                                      Pose,            \
+                                      import_class
+from iai_bullet_sim.multibody  import MultiBody, JointDriver
+from iai_bullet_sim.rigid_body import BoxBody,         \
+                                      CylinderBody, MeshBody,    \
+                                      SphereBody,      \
+                                      RigidBody
 from iai_bullet_sim.constraint import Constraint
-from jinja2 import Template
 
 # Visual shape structure. Assigns names to bullet's info structure.
 VisualShape = namedtuple('VisualShape', ['bulletId', 'linkIndex', 'geometryType', 'dimensions', 'filename', 'localPosition', 'localOrientation', 'rgba'])
@@ -122,38 +137,27 @@ def transform_vector(transform, vector):
     vec, _ = pb.multiplyTransforms((0,0,0), transform.quaternion, vector, [0,0,0,1])
     return vec
 
+@dataclass
 class ContactPoint(object):
     """Wrapper for bullet's contact point structure."""
-    def __init__(self, bodyA, bodyB, linkA, linkB, posOnA, posOnB, normalOnB, dist, normalForce):
-        """
-        :param bodyA: Reference to first body
-        :type  bodyA: MultiBody, RigidBody
-        :param bodyB: Reference to second body
-        :type  bodyB: MultiBody, RigidBody
-        :param linkA: Link of first body; None in case of rigid body
-        :type  linkA: str, NoneType
-        :param linkB: Link of second body; None in case of rigid body
-        :type  linkB: str, NoneType
-        :param posOnA: Coordinates of contact on link of A
-        :type  posOnA: iterable, iai_bullet_sim.utils.Vector3
-        :param posOnB: Coordinates of contact on link of B
-        :type  posOnB: iterable, iai_bullet_sim.utils.Vector3
-        :param normalOnB: Normal direction of the contact
-        :type  normalOnB: iterable, iai_bullet_sim.utils.Vector3
-        :param dist: Penetration depth of the contact
-        :type  dist: float
-        :param normalForce: Force vector of the contact
-        :type  normalForce: iterable, iai_bullet_sim.utils.Vector3
-        """
-        self.bodyA = bodyA
-        self.bodyB = bodyB
-        self.linkA = linkA
-        self.linkB = linkB
-        self.posOnA = posOnA
-        self.posOnB = posOnB
-        self.normalOnB = normalOnB
-        self.dist = dist
-        self.normalForce = normalForce
+    # Reference to first body
+    bodyA : Union[MultiBody, RigidBody]
+    # Reference to second body
+    bodyB : Union[MultiBody, RigidBody]
+    # Link of first body; None in case of rigid body
+    linkA : str
+    # Link of second body; None in case of rigid body
+    linkB : str
+    # Coordinates of contact on link of A
+    posOnA : Union[Iterable, Vector3]
+    # Coordinates of contact on link of B
+    posOnB : Union[Iterable, Vector3]
+    # Normal direction of the contact
+    normalOnB : Union[Iterable, Vector3]
+    # Penetration depth of the contact
+    dist : float
+    # Force vector of the contact
+    normalForce : Union[Iterable, Vector3]
 
     def __leq__(self, other):
         """
@@ -195,18 +199,19 @@ class BasicSimulator(object):
                               'planar': pb.JOINT_PLANAR,   'p2p':       pb.JOINT_POINT2POINT}
 
         self.__plugins = set()
-        f = open(res_pkg_path('package://iai_bullet_sim/urdf/single_mesh.urdf'), 'r')
-        self.__mesh_template  = Template(f.read())
-        f.close()
+        with open(f'{IAI_BULLET_ROOT}/data/urdf/template_single_mesh.urdf', 'r') as f:
+            self.__mesh_template  = Template(f.read())
         self._temp_mesh_urdfs = {}
 
-    def get_n_update(self):
+    @property
+    def sim_step(self):
         """Returns the number of performed updates.
 
         :rtype: int
         """
         return self.__n_updates
 
+    @property
     def client_id(self):
         return self.__client_id
 
@@ -309,7 +314,7 @@ class BasicSimulator(object):
         """
         if name_override is None:
             if isinstance(obj, MultiBody):
-                base_link, bodyId = pb.getBodyInfo(obj.bId(), physicsClientId=self.__client_id)
+                base_link, bodyId = pb.getBodyInfo(obj.bId, physicsClientId=self.__client_id)
             elif isinstance(obj, RigidBody):
                 bodyId = obj.type
             counter = 0
@@ -319,14 +324,14 @@ class BasicSimulator(object):
                 counter += 1
 
             self.bodies[bodyId] = obj
-            self.__bId_IdMap[obj.bId()] = bodyId
+            self.__bId_IdMap[obj.bId] = bodyId
             return bodyId
         else:
             if name_override in self.bodies:
                 raise Exception('Id "{}" is already taken.'.format(name_override))
 
             self.bodies[name_override] = obj
-            self.__bId_IdMap[obj.bId()] = name_override
+            self.__bId_IdMap[obj.bId] = name_override
             return name_override
 
     def register_deletion_cb(self, bodyId, cb):
@@ -389,21 +394,6 @@ class BasicSimulator(object):
                 return p
         return None
 
-    def load_mesh(self, dae_path, pos=[0,0,0], rot=[0,0,0,1], name_override=None, collision_path=None):
-        path = res_pkg_path(dae_path)
-
-        name = dae_path[dae_path.rfind('/'):dae_path.rfind('.')] if '/' in dae_path else dae_path[:dae_path.rfind('.')]
-        urdf_path = '{}{}.urdf'.format(tempfile.gettempdir(), name)
-        f = open(urdf_path, 'w')
-        f.write(self.__mesh_template.render(object_name=name, 
-                                            mesh_path=dae_path, 
-                                            collision_path=collision_path))
-        f.close()
-        print('Generated urdf: {}'.format(urdf_path))
-        new_mb = self.load_urdf(urdf_path, pos, rot, name_override=name_override)
-        new_mb.urdf_file = dae_path
-        return new_mb
-
     def load_urdf(self, urdf_path, pos=[0,0,0], rot=[0,0,0,1], joint_driver=JointDriver(), useFixedBase=0, name_override=None):
         """Loads an Object from a URDF and registers it with this simulator.
 
@@ -421,10 +411,10 @@ class BasicSimulator(object):
         :type  name_override: str, NoneType
         :rtype: iai_bullet_sim.multibody.MultiBody
         """
-        res_urdf_path = res_pkg_path(urdf_path)
         #print('Simulator: {}'.format(res_urdf_path))
+        abs_urdf_path = abs_urdf_paths(urdf_path, tempfile.gettempdir())
 
-        new_body = MultiBody(self, pb.loadURDF(res_urdf_path,
+        new_body = MultiBody(self, pb.loadURDF(abs_urdf_path,
                                                pos,
                                                rot,
                                                0,              # MAXIMAL COORDINATES, DO NOT TOUCH!
@@ -436,124 +426,53 @@ class BasicSimulator(object):
         #print('Created new multibody with id {}'.format(bodyId))
         return new_body
 
+    def create_mesh(self, mesh_path, 
+                          scale=1,
+                          pos=[0,0,0], 
+                          rot=[0,0,0,1],
+                          mass=1,
+                          color=[1]*4,
+                          collision_mesh_path=None,
+                          name_override=None):
+        mesh_path = res_pkg_path(mesh_path)
+        collision_mesh_path = res_pkg_path(collision_mesh_path) if collision_mesh_path is not None else None
 
-    def create_sphere(self, radius=0.5, pos=[0,0,0], rot=[0,0,0,1], mass=1, color=None, name_override=None):
-        """Creates and registers a spherical rigid body.
-
-        :param radius:        Sphere's radius
-        :type  radius:		  float
-        :param pos:           Position to create the object at
-        :type  pos:	          list
-        :param rot:           Rotation to create the object with
-        :type  rot:	          list
-        :param mass:          Mass of the object
-        :type  mass:		  float
-        :param color:         Color of the object in RGBA
-        :type  color:		  list
-        :param name_override: Name for the object to be registered with.
-        :type  name_override: str, NoneType
-        :rtype: iai_bullet_sim.rigid_body.RigidBody
-        """
-        return self.create_object(BULLET_GEOM_TYPES[pb.GEOM_SPHERE], radius=radius, pos=pos, rot=rot, mass=mass, color=color, name_override=name_override)
-
-    def create_box(self, extents=[1]*3, pos=[0,0,0], rot=[0,0,0,1], mass=1, color=None, name_override=None):
-        """Creates and registers a box shaped rigid body.
-
-        :param extents:       Edge lengths of the box
-        :type  extents:		  list
-        :param pos:           Position to create the object at
-        :type  pos:           list
-        :param rot:           Rotation to create the object with
-        :type  rot:           list
-        :param mass:          Mass of the object
-        :type  mass:          float
-        :param color:         Color of the object
-        :type  color:         list
-        :param name_override: Name for the object to be registered with.
-        :type  name_override: str, NoneType
-        :rtype: iai_bullet_sim.rigid_body.RigidBody
-        """
-        return self.create_object(BULLET_GEOM_TYPES[pb.GEOM_BOX], extents=extents, pos=pos, rot=rot, mass=mass, color=color, name_override=name_override)
-
-    def create_cylinder(self, radius=0.5, height=1, pos=[0,0,0], rot=[0,0,0,1], mass=1, color=None, name_override=None):
-        """Creates and registers a cylindrical rigid body.
-
-        :param radius:        Cylinder's radius
-        :type  radius:        float
-        :param height:        Height of the cylinder
-        :type  height:        float
-        :param pos:           Position to create the object at
-        :type  pos:           list
-        :param rot:           Rotation to create the object with
-        :type  rot:           list
-        :param mass:          Mass of the object
-        :type  mass:          float
-        :param color:         Color of the object as RGBA
-        :type  color:         list
-        :param name_override: Name for the object to be registered with.
-        :type  name_override: str, NoneType
-        :rtype: iai_bullet_sim.rigid_body.RigidBody
-        """
-        return self.create_object(BULLET_GEOM_TYPES[pb.GEOM_CYLINDER], radius=radius, height=height, pos=pos, rot=rot, mass=mass, color=color, name_override=name_override)
-
-    def create_capsule(self, radius=0.5, height=1, pos=[0,0,0], rot=[0,0,0,1], mass=1, color=None, name_override=None):
-        """Creates and registers a capsule shaped rigid body.
-
-        :param radius:        Capsule's radius
-        :type  radius:        float
-        :param height:        Height of the capsule
-        :type  height:        float
-        :param pos:           Position to create the object at
-        :type  pos:           list
-        :param rot:           Rotation to create the object with
-        :type  rot:           list
-        :param mass:          Mass of the object
-        :type  mass:          float
-        :param color:         Color of the object as RGBA
-        :type  color:         list
-        :param name_override: Name for the object to be registered with.
-        :type  name_override: str, NoneType
-        :rtype: iai_bullet_sim.rigid_body.RigidBody
-        """
-        return self.create_object(BULLET_GEOM_TYPES[pb.GEOM_CAPSULE], radius=radius, height=height, pos=pos, rot=rot, mass=mass, color=color, name_override=name_override)
+        # Trim the file ending
+        body = MeshBody(self, mesh_path, collision_mesh_path, scale, pos, rot, color, mass)
+        self.register_object(body, name_override)
+        return body
 
 
-    def create_object(self, geom_type, extents=[1,1,1], radius=0.5, height=1, pos=[0,0,0], rot=[0,0,0,1], mass=1, color=None, name_override=None):
-        """Creates and registers a rigid body.
+    def create_sphere(self, radius=0.5, 
+                            pos=[0,0,0], 
+                            rot=[0,0,0,1], 
+                            mass=1, 
+                            color=[0, 0, 1, 1], 
+                            name_override=None):
+        body = SphereBody(self, radius, pos, rot, color, mass)
+        self.register_object(body, name_override)
+        return body
 
-        :param geom_type:     Type of object. box | sphere | cylinder | capsule
-        :type  geom_type:     str
-        :param extents:       Edge lengths of the box
-        :type  extents:       list
-        :param radius:        Radius for spheres, cylinders and capsules
-        :type  radius:        float
-        :param height:        Height of the cylinder and capsule
-        :type  height:        float
-        :param pos:           Position to create the object at
-        :type  pos:           list
-        :param rot:           Rotation to create the object with
-        :type  rot:           list
-        :param mass:          Mass of the object
-        :type  mass:          float
-        :param color:         Color of the object as RGBA
-        :type  color:         list, NoneType
-        :param name_override: Name for the object to be registered with.
-        :type  name_override: str, NoneType
-        :rtype: iai_bullet_sim.rigid_body.RigidBody
-        """
-        if geom_type not in GEOM_TYPES:
-            raise Exception('Unknown geometry type "{}". Options are: {}'.format(geom_type, ', '.join(GEOM_TYPES.keys())))
+    def create_box(self, extents=[1]*3, 
+                         pos=[0,0,0], 
+                         rot=[0,0,0,1], 
+                         mass=1, 
+                         color=[1, 0, 0, 1], 
+                         name_override=None):
+        body = BoxBody(self, extents, pos, rot, color, mass)
+        self.register_object(body, name_override)
+        return body
 
-        if color is None:
-            color = self.__gen_next_color()
-
-        new_body = RigidBody(self,
-                             pb.createRigidBody(GEOM_TYPES[geom_type], radius, [0.5 * x for x in extents], height, mass, pos, rot, color, physicsClientId=self.__client_id),
-                             geom_type, color, pos, rot, extents, radius, height, mass)
-        self.register_object(new_body, name_override)
-        #print('Created new rigid body with id {}'.format(bodyId))
-        return new_body
-
+    def create_cylinder(self, radius=0.5, 
+                              height=1, 
+                              pos=[0,0,0], 
+                              rot=[0,0,0,1], 
+                              mass=1, 
+                              color=[0, 1, 0, 1], 
+                              name_override=None):
+        body = CylinderBody(self, radius, height, pos, rot, color, mass)
+        self.register_object(body, name_override)
+        return body
 
     def get_body_id(self, bulletId):
         """Returns the name of the object associated with a specific Bullet Id.
@@ -590,8 +509,8 @@ class BasicSimulator(object):
                 for cb in self.deletion_cbs[bodyId]:
                     cb(self, bodyId, body)
                 del self.deletion_cbs[bodyId]
-            pb.removeBody(body.bId(), self.__client_id)
-            del self.__bId_IdMap[body.bId()]
+            pb.removeBody(body.bId, self.__client_id)
+            del self.__bId_IdMap[body.bId]
             del self.bodies[bodyId]
             return True
         return False
@@ -603,8 +522,8 @@ class BasicSimulator(object):
                 for cb in self.constraint_deletion_cbs[constraintId]:
                     cb(self, constraintId, constraint)
                 del self.constraint_deletion_cbs[constraintId]
-            pb.removeConstraint(constraint.bId(), self.__client_id)
-            del self.__cId_IdMap[constraint.bId()]
+            pb.removeConstraint(constraint.bId, self.__client_id)
+            del self.__cId_IdMap[constraint.bId]
             del self.constraints[constraintId]
             return True
         return False
@@ -648,10 +567,10 @@ class BasicSimulator(object):
 
             constraintId = name_override
 
-        parent_bid  = parentBody.bId()
+        parent_bid  = parentBody.bId
         parent_link = parentBody.get_link_index(parentLink) if parentLink is not None else -1
         
-        child_bid  = childBody.bId() if childBody is not None else -1
+        child_bid  = childBody.bId if childBody is not None else -1
         child_link = childBody.get_link_index(childLink) if childLink is not None else -1
 
         if jointType not in self.__joint_types:
@@ -700,8 +619,8 @@ class BasicSimulator(object):
         :type  linkB: str, NoneType
         :rtype: list
         """
-        bulletA = bodyA.bId() if bodyA != None else -1
-        bulletB = bodyB.bId() if bodyB != None else -1
+        bulletA = bodyA.bId if bodyA != None else -1
+        bulletB = bodyB.bId if bodyB != None else -1
         bulletLA = bodyA.link_index_map[linkA] if bodyA != None and linkA != None and isinstance(bodyA, MultiBody) else -1
         bulletLB = bodyB.link_index_map[linkB] if bodyB != None and linkB != None and isinstance(bodyB, MultiBody) else -1
         contacts = []
@@ -730,8 +649,8 @@ class BasicSimulator(object):
         :type  linkB: str, NoneType
         :rtype: list
         """
-        bulletA = bodyA.bId() if bodyA != None else -1
-        bulletB = bodyB.bId() if bodyB != None else -1
+        bulletA = bodyA.bId if bodyA != None else -1
+        bulletB = bodyB.bId if bodyB != None else -1
         bulletLA = bodyA.link_index_map[linkA] if bodyA != None and linkA != None and isinstance(bodyA, MultiBody) else -1
         bulletLB = bodyB.link_index_map[linkB] if bodyB != None and linkB != None and isinstance(bodyB, MultiBody) else -1
         contacts = []
@@ -860,8 +779,8 @@ class BasicSimulator(object):
 
 
         for cname, c in self.constraints.items():
-            parent_name = self.__bId_IdMap[c.parent.bId()]
-            child_name  = self.__bId_IdMap[c.child.bId()] if c.child is not None else None
+            parent_name = self.__bId_IdMap[c.parent.bId]
+            child_name  = self.__bId_IdMap[c.child.bId] if c.child is not None else None
 
             cd = {'name': cname,
                   'type': c.type,
