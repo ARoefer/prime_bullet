@@ -1,16 +1,21 @@
 <robot name="{{object_name}}">
 <link name="object">
+    <inertial>
+        <origin rpy="0 0 0" xyz="0 0 0"/>
+        <mass value="{{mass}}"/>
+        <inertia ixx="0" ixy="0" ixz="0" iyy="0" iyz="0" izz="0"/>
+    </inertial>
     <visual>
         <geometry>
-            <mesh filename="{{mesh_path}}" scale="1 1 1"/>
+            <mesh filename="{{mesh_path}}" scale="{{scale}} {{scale}} {{scale}}"/>
         </geometry>
     </visual>
     <collision>
         <geometry>
             {% if collision_path is defined and collision_path is not none %}
-            <mesh filename="{{collision_path}}" scale="1 1 1"/>
+            <mesh filename="{{collision_path}}" scale="{{scale}} {{scale}} {{scale}}"/>
             {% else %}
-            <mesh filename="{{mesh_path}}" scale="1 1 1"/>
+            <mesh filename="{{mesh_path}}" scale="{{scale}} {{scale}} {{scale}}"/>
             {% endif %}
         </geometry>
     </collision>

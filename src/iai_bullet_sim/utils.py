@@ -1,4 +1,8 @@
 import os
+import re
+
+from hashlib     import md5
+from pathlib     import Path
 from collections import namedtuple
 
 # Datastructure representing a vector
@@ -8,7 +12,7 @@ Point3 = namedtuple('Point3', ['x', 'y', 'z'])
 # Datastructure representing a quaternion
 Quaternion = namedtuple('Quaternion', ['x', 'y', 'z', 'w'])
 # Datastructure representing a frame as a Vector3 and a Quaternion
-Frame  = namedtuple('Frame', ['position', 'quaternion'])
+Pose  = namedtuple('Pose', ['position', 'quaternion'])
 # Axis aligned bounding box structure. Represents AABBs as a tuple of a low and high corner.
 AABB = namedtuple('AABB', ['min', 'max'])
 
@@ -57,3 +61,30 @@ def import_class(class_path):
     for comp in components[1:]:
         mod = getattr(mod, comp)
     return mod
+
+RESOLVED_FILES = {}
+
+def abs_urdf_paths(file_path, temp_dir):
+    abs_path = Path(res_pkg_path(file_path)).absolute()
+    
+    if hash(abs_path) in RESOLVED_FILES:
+        return RESOLVED_FILES[hash(abs_path)]
+
+    hex_name = md5(str(abs_path).encode('utf-8')).hexdigest()
+    temp_file_name = f'{temp_dir}/{hex_name}.urdf'
+
+    with open(file_path, 'r') as of:
+        with open(temp_file_name, 'w') as tf:
+            for l in of:
+                idx = l.find('package://', 0)
+                while idx != -1:
+                    e_idx = l.find('"', idx)
+                    pkg_path = l[idx:e_idx]
+                    r_path = res_pkg_path(pkg_path)
+                    l = l.replace(l[idx:e_idx], r_path)
+                    idx = l.find('package://', idx + len(r_path))
+                tf.write(l)
+    
+    RESOLVED_FILES[abs_path] = temp_file_name
+
+    return temp_file_name

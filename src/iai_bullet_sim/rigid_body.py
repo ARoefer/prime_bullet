@@ -1,55 +1,51 @@
+from pathlib import Path
 import pybullet as pb
-from iai_bullet_sim.utils import Vector3, Frame, AABB
+import tempfile
+
+
+from hashlib import md5
+from jinja2  import Template
+
+from iai_bullet_sim import IAI_BULLET_ROOT
+from iai_bullet_sim.utils import Vector3, Pose, AABB
 
 # Mapping of bullet's geometry constants to internal keywords
-BULLET_GEOM_TYPES = {pb.GEOM_SPHERE: 'sphere', pb.GEOM_BOX: 'box', pb.GEOM_CYLINDER: 'cylinder', pb.GEOM_CAPSULE: 'capsule'}
-# Mapping of internal keywords to bullet's geometry constants
-GEOM_TYPES = {v: k for k, v in BULLET_GEOM_TYPES.items()}
+GEOM_SPHERE   = 'sphere'
+GEOM_BOX      = 'box'
+GEOM_CYLINDER = 'cylinder'
+GEOM_CAPSULE  = 'capsule'
+GEOM_MESH     = 'mesh'
 
 
 class RigidBody(object):
     """Wrapper class giving object oriented access to PyBullet's rigid bodies.
     """
-    def __init__(self, simulator, bulletId, geom_type, color, initial_pos=[0,0,0], initial_rot=[0,0,0,1], extents=[1,1,1], radius=0.5, height=1, mass=1):
+    def __init__(self, simulator, 
+                       bulletId,
+                       type,
+                       initial_pos=[0,0,0], 
+                       initial_rot=[0,0,0,1]):
         """Constructs a rigid body.
 
         :param simulator:   The simulator managing this object
         :type  simulator:   iai_bullet_sim.basic_simulator.BasicSimulator
         :param bulletId:    The Id of the corresponding bullet object
         :type  bulletId:    long
-        :param geom_type:   Shape of this object. sphere | box | cylinder | capsule
-        :type  geom_type:   str
-        :param color:       A color override for this object as RGBA
-        :type  color:       list
         :param initial_pos: This object's initial location
         :type  initial_pos: list
         :param initial_rot: This object's initial rotation
         :type  initial_rot: list
-        :param extents:     Edge lengths for box type.
-        :type  extents:     list
-        :param radius:      Radius for sphere, cylinder and capsule
-        :type  radius:      float
-        :param height:      Total height of cylinder and capsule.
-        :type  height:      float
         :param mass:        Mass of the object. 0 = static
         :type  mass:        float
         """
-        if geom_type not in GEOM_TYPES:
-            raise Exception('Rigid body type needs to be {}'.format(' or '.join(['"{}"'.format(t) for t in GEOM_TYPES])))
-
-        self.simulator      = simulator
-        self.__client_id    = simulator.client_id()
+        self._simulator     = simulator
+        self.__client_id    = simulator.client_id
         self.__bulletId     = bulletId
-        self.type           = geom_type
-        self.color          = color
 
-        self.initial_pos    = initial_pos
-        self.initial_rot    = initial_rot
-
-        self.extents        = extents
-        self.radius         = radius
-        self.height         = height
-        self.mass           = mass
+        self._initial_pos   = initial_pos
+        self._initial_rot   = initial_rot
+        
+        self.type           = type
 
         self.__current_pose = None
         self.__last_sim_pose_update = -1
@@ -57,6 +53,7 @@ class RigidBody(object):
         self.__current_ang_velocity = None
         self.__last_sim_velocity_update = -1
 
+    @property
     def bId(self):
         """Returns the corresponding bullet Id.
         :rtype: long
@@ -85,56 +82,62 @@ class RigidBody(object):
         self.__last_sim_pose_update = -1
         self.__last_sim_velocity_update = -1
 
-    def get_AABB(self):
+    @property
+    def aabb(self):
         """Returns the bounding box of this object.
         :rtype: AABB
         """
         res = pb.getAABB(self.__bulletId, -1, physicsClientId=self.__client_id)
         return AABB(Vector3(*res[0]), Vector3(*res[1]))
 
+    @property
     def pose(self):
         """Returns the object's current pose in the form of a Frame.
         :rtype: Frame
         """
         if self.simulator.get_n_update() != self.__last_sim_pose_update:
             temp = pb.getBasePositionAndOrientation(self.__bulletId, physicsClientId=self.__client_id)
-            self.__current_pose = Frame(temp[0], temp[1])
+            self.__current_pose = Pose(temp[0], temp[1])
             self.__last_sim_pose_update = self.simulator.get_n_update()
 
         return self.__current_pose
 
+    @pose.setter
+    def pose(self, pose):
+        pb.resetBasePositionAndOrientation(self.__bulletId,
+                                           pose.position,
+                                           pose.quaternion,
+                                           physicsClientId=self.__client_id)
+        self.__last_sim_pose_update = -1
+
+    @property
     def linear_velocity(self):
         """Returns the object's current linear velocity.
         :rtype: list
         """
-        if self.simulator.get_n_update() != self.__last_sim_velocity_update:
+        if self.simulator.sim_step != self.__last_sim_velocity_update:
             self.__current_lin_velocity, self.__current_ang_velocity = pb.getBaseVelocity(self.__bulletId, physicsClientId=self.__client_id)
-            self.__last_sim_velocity_update = self.simulator.get_n_update()
+            self.__last_sim_velocity_update = self.simulator.sim_step
         return self.__current_lin_velocity
 
+    @property
     def angular_velocity(self):
         """Returns the object's current angular velocity.
         :rtype: list
         """
-        if self.simulator.get_n_update() != self.__last_sim_velocity_update:
+        if self.simulator.sim_step != self.__last_sim_velocity_update:
             self.__current_lin_velocity, self.__current_ang_velocity = pb.getBaseVelocity(self.__bulletId, physicsClientId=self.__client_id)
-            self.__last_sim_velocity_update = self.simulator.get_n_update()
+            self.__last_sim_velocity_update = self.simulator.sim_step
         return self.__current_ang_velocity
 
-    def set_pose(self, pose, override_initial=False):
-        """Sets the current pose of the object.
+    @property
+    def initial_pose(self):
+        return Pose(self.initial_pos, self.initial_rot)
 
-        :param override_initial: Additionally set the given pose as initial pose.
-        :type  override_initial: bool
-        """
-        pos  = pose.position
-        quat = pose.quaternion
-        pb.resetBasePositionAndOrientation(self.__bulletId, pos, quat, physicsClientId=self.__client_id)
-        self.__last_sim_pose_update = -1
-        if override_initial:
-            self.initial_pos = list(pos)
-            self.initial_rot = list(quat)
-
+    @initial_pose.setter
+    def initial_pose(self, pose):
+        self.initial_pos = list(pose.position)
+        self.initial_rot = list(pose.quaternion)
 
     def get_contacts(self, other_body=None, other_link=None):
         """Gets the contacts this body had during the last physics step.
@@ -161,3 +164,133 @@ class RigidBody(object):
         :rtype: list
         """
         return self.simulator.get_closest_points(self, other_body, None, other_link, dist)
+
+
+with open(f'{IAI_BULLET_ROOT}/data/urdf/template_box.urdf', 'r') as f:
+    _TEMPLATE_BOX = Template(f.read())
+
+with open(f'{IAI_BULLET_ROOT}/data/urdf/template_cylinder.urdf', 'r') as f:
+    _TEMPLATE_CYLINDER = Template(f.read())
+
+with open(f'{IAI_BULLET_ROOT}/data/urdf/template_sphere.urdf', 'r') as f:
+    _TEMPLATE_SPHERE = Template(f.read())
+
+with open(f'{IAI_BULLET_ROOT}/data/urdf/template_single_mesh.urdf', 'r') as f:
+    _TEMPLATE_MESH = Template(f.read())
+
+
+class BoxBody(RigidBody):
+    def __init__(self, simulator, 
+                       size=[1, 1, 1],
+                       initial_pos=[0, 0, 0], 
+                       initial_rot=[0, 0, 0, 1],
+                       color=[1, 0, 0, 1],
+                       mass=1):
+        self.size  = size
+        self.mass  = mass
+        self.color = color
+        
+        file_hash = md5(f'box_{size}_{mass}_{color}'.encode('utf-8')).hexdigest()
+        fpath = Path(f'{tempfile.gettempdir()}/{file_hash}.urdf')
+        if not fpath.exists():
+            with open(str(fpath), 'w') as f:
+                f.write(_TEMPLATE_BOX.render(mass=mass, size=size, color=color))
+        
+        bulletId = pb.loadURDF(str(fpath),
+                               initial_pos,
+                               initial_rot,
+                               0,
+                               0,
+                               pb.URDF_MERGE_FIXED_LINKS | pb.URDF_ENABLE_SLEEPING,
+                               physicsClientId=simulator.client_id)
+        
+        super().__init__(simulator, bulletId, 'box', initial_pos, initial_rot)
+
+class CylinderBody(RigidBody):
+    def __init__(self, simulator, 
+                       radius=0.5,
+                       length=1.0,
+                       initial_pos=[0, 0, 0], 
+                       initial_rot=[0, 0, 0, 1],
+                       color=[0, 1, 0, 1],
+                       mass=1):
+        self.radius = radius
+        self.length = length
+        self.mass   = mass
+        self.color  = color
+        
+        file_hash = md5(f'cylinder_{radius}_{length}_{mass}_{color}'.encode('utf-8')).hexdigest()
+        fpath = Path(f'{tempfile.gettempdir()}/{file_hash}.urdf')
+        if not fpath.exists():
+            with open(str(fpath), 'w') as f:
+                f.write(_TEMPLATE_CYLINDER.render(mass=mass, radius=radius, length=length, color=color))
+        
+        bulletId = pb.loadURDF(str(fpath),
+                               initial_pos,
+                               initial_rot,
+                               0,
+                               0,
+                               pb.URDF_MERGE_FIXED_LINKS | pb.URDF_ENABLE_SLEEPING,
+                               physicsClientId=simulator.client_id)
+        
+        super().__init__(simulator, bulletId, 'cylinder', initial_pos, initial_rot)
+
+class SphereBody(RigidBody):
+    def __init__(self, simulator, 
+                       radius=0.5,
+                       initial_pos=[0, 0, 0], 
+                       initial_rot=[0, 0, 0, 1],
+                       color=[0, 0, 1, 1],
+                       mass=1):
+        self.radius = radius
+        self.mass   = mass
+        self.color  = color
+        
+        file_hash = md5(f'sphere_{radius}_{mass}_{color}'.encode('utf-8')).hexdigest()
+        fpath = Path(f'{tempfile.gettempdir()}/{file_hash}.urdf')
+        if not fpath.exists():
+            with open(str(fpath), 'w') as f:
+                f.write(_TEMPLATE_SPHERE.render(mass=mass, radius=radius, color=color))
+        
+        bulletId = pb.loadURDF(str(fpath),
+                               initial_pos,
+                               initial_rot,
+                               0,
+                               0,
+                               pb.URDF_MERGE_FIXED_LINKS | pb.URDF_ENABLE_SLEEPING,
+                               physicsClientId=simulator.client_id)
+        
+        super().__init__(simulator, bulletId, 'sphere', initial_pos, initial_rot)
+
+class MeshBody(RigidBody):
+    def __init__(self, simulator, 
+                       visual_mesh,
+                       collision_mesh=None,
+                       scale=1,
+                       initial_pos=[0, 0, 0], 
+                       initial_rot=[0, 0, 0, 1],
+                       color=[0, 0, 1, 1],
+                       mass=1):
+        self.scale = scale
+        self.mass  = mass
+        self.color = color
+        
+        file_hash = md5(f'mesh_{collision_mesh}_{visual_mesh}_{scale}_{mass}_{color}'.encode('utf-8')).hexdigest()
+        fpath = Path(f'{tempfile.gettempdir()}/{file_hash}.urdf')
+        if not fpath.exists():
+            with open(str(fpath), 'w') as f:
+                f.write(_TEMPLATE_MESH.render(mass=mass,
+                                              mesh_path=visual_mesh, 
+                                              collision_path=collision_mesh, 
+                                              scale=scale, 
+                                              color=color))
+        
+        bulletId = pb.loadURDF(str(fpath),
+                               initial_pos,
+                               initial_rot,
+                               0,
+                               0,
+                               pb.URDF_MERGE_FIXED_LINKS | pb.URDF_ENABLE_SLEEPING,
+                               physicsClientId=simulator.client_id)
+        
+        super().__init__(simulator, bulletId, 'mesh', initial_pos, initial_rot)
