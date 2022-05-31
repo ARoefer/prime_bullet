@@ -419,7 +419,11 @@ class BasicSimulator(object):
                                                rot,
                                                0,              # MAXIMAL COORDINATES, DO NOT TOUCH!
                                                useFixedBase,
-                                               flags=pb.URDF_USE_SELF_COLLISION_EXCLUDE_PARENT, physicsClientId=self.__client_id), self.__gen_next_color(), pos, rot, joint_driver, urdf_path)
+                                               flags=pb.URDF_USE_SELF_COLLISION_EXCLUDE_PARENT, physicsClientId=self.__client_id), 
+                                   pos, 
+                                   rot, 
+                                   joint_driver, 
+                                   urdf_path)
 
 
         self.register_object(new_body, name_override)

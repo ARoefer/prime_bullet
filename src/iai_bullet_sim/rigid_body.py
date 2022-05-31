@@ -39,8 +39,8 @@ class RigidBody(object):
         :type  mass:        float
         """
         self._simulator     = simulator
-        self.__client_id    = simulator.client_id
-        self.__bulletId     = bulletId
+        self._client_id     = simulator.client_id
+        self._bulletId      = bulletId
 
         self._initial_pos   = initial_pos
         self._initial_rot   = initial_rot
@@ -58,7 +58,7 @@ class RigidBody(object):
         """Returns the corresponding bullet Id.
         :rtype: long
         """
-        return self.__bulletId
+        return self._bulletId
 
     def register_deletion_cb(self, cb):
         """Registers a callback function which is called when this object is deleted.
@@ -78,7 +78,7 @@ class RigidBody(object):
 
     def reset(self):
         """Resets this object's pose and joints to their initial configuration."""
-        pb.resetBasePositionAndOrientation(self.__bulletId, self.initial_pos, self.initial_rot, physicsClientId=self.__client_id)
+        pb.resetBasePositionAndOrientation(self._bulletId, self.initial_pos, self.initial_rot, physicsClientId=self._client_id)
         self.__last_sim_pose_update = -1
         self.__last_sim_velocity_update = -1
 
@@ -87,7 +87,7 @@ class RigidBody(object):
         """Returns the bounding box of this object.
         :rtype: AABB
         """
-        res = pb.getAABB(self.__bulletId, -1, physicsClientId=self.__client_id)
+        res = pb.getAABB(self._bulletId, -1, physicsClientId=self._client_id)
         return AABB(Vector3(*res[0]), Vector3(*res[1]))
 
     @property
@@ -95,19 +95,19 @@ class RigidBody(object):
         """Returns the object's current pose in the form of a Frame.
         :rtype: Frame
         """
-        if self.simulator.get_n_update() != self.__last_sim_pose_update:
-            temp = pb.getBasePositionAndOrientation(self.__bulletId, physicsClientId=self.__client_id)
+        if self.simulator.sim_step != self.__last_sim_pose_update:
+            temp = pb.getBasePositionAndOrientation(self._bulletId, physicsClientId=self._client_id)
             self.__current_pose = Pose(temp[0], temp[1])
-            self.__last_sim_pose_update = self.simulator.get_n_update()
+            self.__last_sim_pose_update = self.simulator.sim_step
 
         return self.__current_pose
 
     @pose.setter
     def pose(self, pose):
-        pb.resetBasePositionAndOrientation(self.__bulletId,
+        pb.resetBasePositionAndOrientation(self._bulletId,
                                            pose.position,
                                            pose.quaternion,
-                                           physicsClientId=self.__client_id)
+                                           physicsClientId=self._client_id)
         self.__last_sim_pose_update = -1
 
     @property
@@ -116,7 +116,7 @@ class RigidBody(object):
         :rtype: list
         """
         if self.simulator.sim_step != self.__last_sim_velocity_update:
-            self.__current_lin_velocity, self.__current_ang_velocity = pb.getBaseVelocity(self.__bulletId, physicsClientId=self.__client_id)
+            self.__current_lin_velocity, self.__current_ang_velocity = pb.getBaseVelocity(self._bulletId, physicsClientId=self._client_id)
             self.__last_sim_velocity_update = self.simulator.sim_step
         return self.__current_lin_velocity
 
@@ -126,7 +126,7 @@ class RigidBody(object):
         :rtype: list
         """
         if self.simulator.sim_step != self.__last_sim_velocity_update:
-            self.__current_lin_velocity, self.__current_ang_velocity = pb.getBaseVelocity(self.__bulletId, physicsClientId=self.__client_id)
+            self.__current_lin_velocity, self.__current_ang_velocity = pb.getBaseVelocity(self._bulletId, physicsClientId=self._client_id)
             self.__last_sim_velocity_update = self.simulator.sim_step
         return self.__current_ang_velocity
 
