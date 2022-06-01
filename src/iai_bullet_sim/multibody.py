@@ -337,8 +337,7 @@ class MultiBody(RigidBody):
     """
     def __init__(self, simulator, 
                        bulletId,
-                       initial_pos=Point3(0,0,0), 
-                       initial_rot=Quaternion(0,0,0,1), 
+                       initial_pose=Transform.identity(),
                        joint_driver=JointDriver(), 
                        urdf_file=None):
         """Constructs a multibody.
@@ -358,7 +357,7 @@ class MultiBody(RigidBody):
         :param urdf_file:    The URDF this object was loaded from. This may be a path in the ROS package syntax
         :type  urdf_file:    str, NoneType
         """
-        super().__init__(simulator, bulletId, 'multibody', initial_pos, initial_rot)
+        super().__init__(simulator, bulletId, 'multibody', initial_pose)
 
         self.joints         = {}
         self.dynamic_joints = {}
@@ -467,7 +466,7 @@ class MultiBody(RigidBody):
         :rtype: dict
         """
         # Avoid unnecessary updates and updates for objects without dynamic joints
-        if self.simulator.sim_step != self.__last_sim_js_update and len(self.__dynamic_joint_indices) > 0:
+        if self._simulator.sim_step != self.__last_sim_js_update and len(self.__dynamic_joint_indices) > 0:
             new_js = [JointState(*x) for x in pb.getJointStates(self._bulletId, self.__dynamic_joint_indices, physicsClientId=self._client_id)]
             self.__joint_state = {self.__index_joint_map[self.__dynamic_joint_indices[x]]: new_js[x] for x in range(len(new_js))}
 
@@ -580,7 +579,7 @@ class MultiBody(RigidBody):
         :type  other_link: str, NoneType
         :rtype: list
         """
-        return self.simulator.get_contacts(self, other_body, own_link, other_link)
+        return self._simulator.get_contacts(self, other_body, own_link, other_link)
 
     def get_closest_points(self, other_body=None, own_link=None, other_link=None, dist=0.2):
         """Gets the closest points of this body to its environment.
@@ -596,4 +595,4 @@ class MultiBody(RigidBody):
         :type  dist:       float
         :rtype: list
         """
-        return self.simulator.get_closest_points(self, other_body, own_link, other_link, dist)
+        return self._simulator.get_closest_points(self, other_body, own_link, other_link, dist)
