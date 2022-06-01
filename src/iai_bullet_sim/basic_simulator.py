@@ -10,6 +10,7 @@ from pathlib     import Path
 from typing      import Iterable, Union
 
 from iai_bullet_sim import IAI_BULLET_ROOT
+from iai_bullet_sim.camera import Camera
 from iai_bullet_sim.utils      import ColorRGBA, abs_urdf_paths,  \
                                       res_pkg_path,    \
                                       Vector3,         \
@@ -23,12 +24,6 @@ from iai_bullet_sim.rigid_body import BoxBody,         \
                                       SphereBody,      \
                                       RigidBody
 from iai_bullet_sim.constraint import Constraint
-
-# Visual shape structure. Assigns names to bullet's info structure.
-VisualShape = namedtuple('VisualShape', ['bulletId', 'linkIndex', 'geometryType', 'dimensions', 'filename', 'localPosition', 'localOrientation', 'rgba'])
-
-# Collision shape structure. Assigns names to bullet's info structure.
-CollisionShape = namedtuple('CollisionShape', ['bulletId', 'linkIndex', 'geometryType', 'dimensions', 'filename', 'localPosition', 'localOrientation'])
 
 
 def hsva_to_rgba(h, s, v, a):
@@ -244,24 +239,28 @@ class BasicSimulator(object):
         """
         if name_override is None:
             if isinstance(obj, MultiBody):
-                base_link, bodyId = pb.getBodyInfo(obj.bId, physicsClientId=self.__client_id)
-            elif isinstance(obj, RigidBody):
+                _, bodyId = pb.getBodyInfo(obj.bId, physicsClientId=self.__client_id)
+            elif isinstance(obj, Camera):
+                bodyId = 'camera'
+            else:
                 bodyId = obj.type
             counter = 0
             bodyName = bodyId
             while bodyId in self.bodies:
-                bodyId = '{}.{}'.format(bodyName, counter)
+                bodyId = f'{bodyName}.{counter}'
                 counter += 1
 
             self.bodies[bodyId] = obj
-            self.__bId_IdMap[obj.bId] = bodyId
+            if not isinstance(obj, Camera):
+                self.__bId_IdMap[obj.bId] = bodyId
             return bodyId
         else:
             if name_override in self.bodies:
-                raise Exception('Id "{}" is already taken.'.format(name_override))
+                raise Exception(f'Id "{name_override}" is already taken.')
 
             self.bodies[name_override] = obj
-            self.__bId_IdMap[obj.bId] = name_override
+            if not isinstance(obj, Camera):
+                self.__bId_IdMap[obj.bId] = name_override
             return name_override
 
     def register_deletion_cb(self, bodyId, cb):
@@ -324,7 +323,12 @@ class BasicSimulator(object):
                 return p
         return None
 
-    def load_urdf(self, urdf_path, pos=[0,0,0], rot=[0,0,0,1], joint_driver=JointDriver(), useFixedBase=0, name_override=None):
+    def load_urdf(self, urdf_path, 
+                        pos=Point3.zero(), 
+                        rot=Quaternion.identity(), 
+                        joint_driver=JointDriver(), 
+                        useFixedBase=0, 
+                        name_override=None):
         """Loads an Object from a URDF and registers it with this simulator.
 
         :param urdf_path:     Path of the file as local or global path, or as ROS package URI.
@@ -362,8 +366,8 @@ class BasicSimulator(object):
 
     def create_mesh(self, mesh_path, 
                           scale=1,
-                          pos=[0,0,0], 
-                          rot=[0,0,0,1],
+                          pos=Point3.zero(), 
+                          rot=Quaternion.identity(),
                           mass=1,
                           color=[1]*4,
                           collision_mesh_path=None,
@@ -378,8 +382,8 @@ class BasicSimulator(object):
 
 
     def create_sphere(self, radius=0.5, 
-                            pos=[0,0,0], 
-                            rot=[0,0,0,1], 
+                            pos=Point3.zero(), 
+                            rot=Quaternion.identity(), 
                             mass=1, 
                             color=[0, 0, 1, 1], 
                             name_override=None):
@@ -388,19 +392,19 @@ class BasicSimulator(object):
         return body
 
     def create_box(self, extents=[1]*3, 
-                         pos=[0,0,0], 
-                         rot=[0,0,0,1], 
+                         pos=Point3.zero(), 
+                         rot=Quaternion.identity(), 
                          mass=1, 
                          color=[1, 0, 0, 1], 
                          name_override=None):
-        body = BoxBody(self, extents, pos, rot, color, mass)
+        body = BoxBody(self, extents, Transform(pos, rot), color, mass)
         self.register_object(body, name_override)
         return body
 
     def create_cylinder(self, radius=0.5, 
                               height=1, 
-                              pos=[0,0,0], 
-                              rot=[0,0,0,1], 
+                              pos=Point3.zero(), 
+                              rot=Quaternion.identity(), 
                               mass=1, 
                               color=[0, 1, 0, 1], 
                               name_override=None):
@@ -422,7 +426,7 @@ class BasicSimulator(object):
         """Returns the object associated with a name.
 
         :type bodyId: str
-        :rtype: iai_bullet_sim.multibody.MultiBody, iai_bullet_sim.rigid_body.RigidBody, NoneType
+        :rtype: iai_bullet_sim.rigid_body.RigidBody, Camera, NoneType
         """
         if bodyId in self.bodies:
             return self.bodies[bodyId]
@@ -443,9 +447,11 @@ class BasicSimulator(object):
                 for cb in self.deletion_cbs[bodyId]:
                     cb(self, bodyId, body)
                 del self.deletion_cbs[bodyId]
-            pb.removeBody(body.bId, self.__client_id)
-            del self.__bId_IdMap[body.bId]
             del self.bodies[bodyId]
+            if isinstance(body, Camera):
+                return True
+            del self.__bId_IdMap[body.bId]
+            pb.removeBody(body.bId, self.__client_id)
             return True
         return False
 
@@ -470,7 +476,7 @@ class BasicSimulator(object):
         if childBody is not None:
             child_pose = childBody.get_link_state(childLink) if childLink is not None else childBody.pose()
         else:
-            child_pose = Transform(Point3(0, 0, 0), Quaternion(0, 0, 0, 1))
+            child_pose = Transform.identity()
         inv_pp_pos, inv_pp_rot = pb.invertTransform(parent_pose.position, parent_pose.quaternion)
         inv_cp_pos, inv_cp_rot = pb.invertTransform(child_pose.position,  child_pose.quaternion)
 
@@ -786,12 +792,12 @@ class BasicSimulator(object):
         """Internal. Turns a bullet contact point into a ContactPoint."""
         bodyA, linkA = self.__get_obj_link_tuple(bcp[1], bcp[3])
         bodyB, linkB = self.__get_obj_link_tuple(bcp[2], bcp[4])
-        return ContactPoint(bodyA,          # Body A
-                            bodyB,          # Body B
-                            linkA,          # Link of A
-                            linkB,          # Link of B
-                            Vector3(*bcp[5]), # Point on A
-                            Vector3(*bcp[6]), # Point on B
+        return ContactPoint(bodyA,            # Body A
+                            bodyB,            # Body B
+                            linkA,            # Link of A
+                            linkB,            # Link of B
+                            Point3(*bcp[5]),  # Point on A
+                            Point3(*bcp[6]),  # Point on B
                             Vector3(*bcp[7]), # Normal from B to A
                             bcp[8],           # Distance
                             bcp[9])           # Normal force
