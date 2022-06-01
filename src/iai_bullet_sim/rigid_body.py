@@ -1,10 +1,12 @@
-from pathlib import Path
 import pybullet as pb
 import tempfile
 
 
-from hashlib import md5
-from jinja2  import Template
+from dataclasses import dataclass
+from hashlib     import md5
+from jinja2      import Template
+from omegaconf   import OmegaConf
+from pathlib     import Path
 
 from iai_bullet_sim import IAI_BULLET_ROOT
 from iai_bullet_sim.utils import ColorRGBA,  \
@@ -12,7 +14,7 @@ from iai_bullet_sim.utils import ColorRGBA,  \
                                  Quaternion, \
                                  Vector3,    \
                                  Transform,  \
-                                 AABB
+                                 AABB, res_pkg_path
 
 # Mapping of bullet's geometry constants to internal keywords
 GEOM_SPHERE   = 'sphere'
@@ -23,13 +25,19 @@ GEOM_MESH     = 'mesh'
 
 
 class RigidBody(object):
+    @dataclass
+    class Config:
+        initial_pose : Transform
+        current_pose : Transform
+        type         : str
+
+
     """Wrapper class giving object oriented access to PyBullet's rigid bodies.
     """
     def __init__(self, simulator, 
                        bulletId,
                        type,
-                       initial_pos=Point3(0,0,0), 
-                       initial_rot=Quaternion(0,0,0,1)):
+                       initial_pose=Transform.identity()):
         """Constructs)a rigid body.
 
         :param simulator:   The simulator managing this object
@@ -47,8 +55,7 @@ class RigidBody(object):
         self._client_id     = simulator.client_id
         self._bulletId      = bulletId
 
-        self._initial_pos   = initial_pos
-        self._initial_rot   = initial_rot
+        self._initial_pose  = initial_pose
         
         self.type           = type
 
@@ -57,6 +64,7 @@ class RigidBody(object):
         self.__current_lin_velocity = None
         self.__current_ang_velocity = None
         self.__last_sim_velocity_update = -1
+        self._conf_type = RigidBody.Config
 
     @property
     def bId(self):
@@ -71,7 +79,7 @@ class RigidBody(object):
         :param cb: Callback to be called. Signature f(BasicSimulator, str, RigidBody/MultiBody)
         :tyoe  cb: function
         """
-        self.simulator.register_deletion_cb(self.simulator.get_body_id(self.bId), cb)
+        self._simulator.register_deletion_cb(self._simulator.get_body_id(self.bId), cb)
 
     def deregister_deletion_cb(self, cb):
         """Deregisters a callback function which is called when this object is deleted.
@@ -79,7 +87,7 @@ class RigidBody(object):
         :param cb: Callback to be called. Signature f(BasicSimulator, str, RigidBody/MultiBody)
         :tyoe  cb: function
         """
-        self.simulator.deregister_deletion_cb(self.simulator.get_body_id(self.bId), cb)
+        self._simulator.deregister_deletion_cb(self._simulator.get_body_id(self.bId), cb)
 
     def reset(self):
         """Resets this object's pose and joints to their initial configuration."""
@@ -120,10 +128,10 @@ class RigidBody(object):
         """Returns the object's current linear velocity.
         :rtype: list
         """
-        if self.simulator.sim_step != self.__last_sim_velocity_update:
+        if self._simulator.sim_step != self.__last_sim_velocity_update:
             temp = pb.getBaseVelocity(self._bulletId, physicsClientId=self._client_id)
             self.__current_lin_velocity, self.__current_ang_velocity = Vector3(temp[0]), Vector3(temp[1])
-            self.__last_sim_velocity_update = self.simulator.sim_step
+            self.__last_sim_velocity_update = self._simulator.sim_step
         return self.__current_lin_velocity
 
     @property
@@ -131,20 +139,26 @@ class RigidBody(object):
         """Returns the object's current angular velocity.
         :rtype: list
         """
-        if self.simulator.sim_step != self.__last_sim_velocity_update:
+        if self._simulator.sim_step != self.__last_sim_velocity_update:
             temp = pb.getBaseVelocity(self._bulletId, physicsClientId=self._client_id)
             self.__current_lin_velocity, self.__current_ang_velocity = Vector3(temp[0]), Vector3(temp[1])
-            self.__last_sim_velocity_update = self.simulator.sim_step
+            self.__last_sim_velocity_update = self._simulator.sim_step
         return self.__current_ang_velocity
 
     @property
     def initial_pose(self):
-        return Transform(self.initial_pos, self.initial_rot)
+        return self._initial_pose
 
     @initial_pose.setter
     def initial_pose(self, pose):
-        self.initial_pos = pose.position
-        self.initial_rot = pose.quaternion
+        self._initial_pose = pose
+
+    def conf(self) -> OmegaConf:
+        out = self._conf_type()
+        out.current_pose = self.pose
+        out.initial_pose = self._initial_pose
+        out.type = self.type
+        return out
 
     def get_contacts(self, other_body=None, other_link=None):
         """Gets the contacts this body had during the last physics step.
@@ -156,7 +170,7 @@ class RigidBody(object):
         :type  other_link: str, NoneType
         :rtype: list
         """
-        return self.simulator.get_contacts(self, other_body, None, other_link)
+        return self._simulator.get_contacts(self, other_body, None, other_link)
 
     def get_closest_points(self, other_body=None, other_link=None, dist=0.2):
         """Gets the closest points of this body to its environment.
@@ -170,7 +184,7 @@ class RigidBody(object):
         :type  dist:       float
         :rtype: list
         """
-        return self.simulator.get_closest_points(self, other_body, None, other_link, dist)
+        return self._simulator.get_closest_points(self, other_body, None, other_link, dist)
 
 
 with open(f'{IAI_BULLET_ROOT}/data/urdf/template_box.urdf', 'r') as f:
@@ -187,10 +201,15 @@ with open(f'{IAI_BULLET_ROOT}/data/urdf/template_single_mesh.urdf', 'r') as f:
 
 
 class BoxBody(RigidBody):
+    @dataclass
+    class Config(RigidBody.Config):
+        size : Vector3
+        mass : float
+        color: Vector3
+
     def __init__(self, simulator, 
-                       size=[1, 1, 1],
-                       initial_pos=Point3(0, 0, 0), 
-                       initial_rot=Quaternion(0, 0, 0, 1),
+                       size=Vector3(1, 1, 1),
+                       initial_pose=Transform.identity(), 
                        color=ColorRGBA(1, 0, 0, 1),
                        mass=1):
         self.size  = size
@@ -204,21 +223,36 @@ class BoxBody(RigidBody):
                 f.write(_TEMPLATE_BOX.render(mass=mass, size=size, color=color))
         
         bulletId = pb.loadURDF(str(fpath),
-                               initial_pos,
-                               initial_rot,
+                               initial_pose.position,
+                               initial_pose.quaternion,
                                0,
                                0,
                                pb.URDF_MERGE_FIXED_LINKS | pb.URDF_ENABLE_SLEEPING,
                                physicsClientId=simulator.client_id)
         
-        super().__init__(simulator, bulletId, 'box', initial_pos, initial_rot)
+        super().__init__(simulator, bulletId, 'box', initial_pose)
+        self._conf_type = BoxBody.Config
+
+    def conf(self) -> OmegaConf:
+        out = super().conf()
+        out.size  = self.size
+        out.mass  = self.mass
+        out.color = self.color
+        return out
+
 
 class CylinderBody(RigidBody):
+    @dataclass
+    class Config(RigidBody.Config):
+        radius : float
+        length : float
+        mass   : float
+        color  : Vector3
+
     def __init__(self, simulator, 
                        radius=0.5,
                        length=1.0,
-                       initial_pos=Point3(0, 0, 0), 
-                       initial_rot=Quaternion(0, 0, 0, 1),
+                       initial_pose=Transform.identity(), 
                        color=ColorRGBA(0, 1, 0, 1),
                        mass=1):
         self.radius = radius
@@ -233,20 +267,34 @@ class CylinderBody(RigidBody):
                 f.write(_TEMPLATE_CYLINDER.render(mass=mass, radius=radius, length=length, color=color))
         
         bulletId = pb.loadURDF(str(fpath),
-                               initial_pos,
-                               initial_rot,
+                               initial_pose.position,
+                               initial_pose.quaternion,
                                0,
                                0,
                                pb.URDF_MERGE_FIXED_LINKS | pb.URDF_ENABLE_SLEEPING,
                                physicsClientId=simulator.client_id)
         
-        super().__init__(simulator, bulletId, 'cylinder', initial_pos, initial_rot)
+        super().__init__(simulator, bulletId, 'cylinder', initial_pose)
+
+    def conf(self) -> OmegaConf:
+        out = super().conf()
+        out.radius = self.radius
+        out.length = self.length
+        out.mass   = self.mass
+        out.color  = self.color
+        return out
+
 
 class SphereBody(RigidBody):
+    @dataclass
+    class Config(RigidBody.Config):
+        radius : float
+        mass   : float
+        color  : Vector3
+
     def __init__(self, simulator, 
                        radius=0.5,
-                       initial_pos=Point3(0, 0, 0), 
-                       initial_rot=Quaternion(0, 0, 0, 1),
+                       initial_pose=Transform.identity(), 
                        color=ColorRGBA(0, 0, 1, 1),
                        mass=1):
         self.radius = radius
@@ -260,8 +308,8 @@ class SphereBody(RigidBody):
                 f.write(_TEMPLATE_SPHERE.render(mass=mass, radius=radius, color=color))
         
         bulletId = pb.loadURDF(str(fpath),
-                               initial_pos,
-                               initial_rot,
+                               initial_pose.position,
+                               initial_pose.quaternion,
                                0,
                                0,
                                pb.URDF_MERGE_FIXED_LINKS | pb.URDF_ENABLE_SLEEPING,
@@ -269,35 +317,61 @@ class SphereBody(RigidBody):
         
         super().__init__(simulator, bulletId, 'sphere', initial_pos, initial_rot)
 
+    def conf(self) -> OmegaConf:
+        out = super().conf()
+        out.radius = self.radius
+        out.mass   = self.mass
+        out.color  = self.color
+        return out
+
+
 class MeshBody(RigidBody):
+    @dataclass
+    class Config(RigidBody.Config):
+        scale : float
+        visual_mesh : str
+        collision_mesh : str
+        mass  : float
+        color : Vector3
+
     def __init__(self, simulator, 
                        visual_mesh,
                        collision_mesh=None,
                        scale=1,
-                       initial_pos=Point3(0, 0, 0), 
-                       initial_rot=Quaternion(0, 0, 0, 1),
+                       initial_pose=Transform.identity(), 
                        color=ColorRGBA(0, 0, 1, 1),
                        mass=1):
         self.scale = scale
         self.mass  = mass
         self.color = color
-        
+        self.visual_mesh = visual_mesh
+        self.collision_mesh = collision_mesh
+
         file_hash = md5(f'mesh_{collision_mesh}_{visual_mesh}_{scale}_{mass}_{color}'.encode('utf-8')).hexdigest()
         fpath = Path(f'{tempfile.gettempdir()}/{file_hash}.urdf')
         if not fpath.exists():
             with open(str(fpath), 'w') as f:
                 f.write(_TEMPLATE_MESH.render(mass=mass,
-                                              mesh_path=visual_mesh, 
-                                              collision_path=collision_mesh, 
+                                              mesh_path=res_pkg_path(visual_mesh), 
+                                              collision_path=res_pkg_path(collision_mesh), 
                                               scale=scale, 
                                               color=color))
         
         bulletId = pb.loadURDF(str(fpath),
-                               initial_pos,
-                               initial_rot,
+                               initial_pose.position,
+                               initial_pose.quaternion,
                                0,
                                0,
                                pb.URDF_MERGE_FIXED_LINKS | pb.URDF_ENABLE_SLEEPING,
                                physicsClientId=simulator.client_id)
         
-        super().__init__(simulator, bulletId, 'mesh', initial_pos, initial_rot)
+        super().__init__(simulator, bulletId, 'mesh', initial_pose)
+
+    def conf(self) -> OmegaConf:
+        out = super().conf()
+        out.scale = self.scale
+        out.visual_mesh = self.visual_mesh
+        out.collision_mesh = self.collision_mesh
+        out.mass  = self.mass
+        out.color = self.color
+        return out
