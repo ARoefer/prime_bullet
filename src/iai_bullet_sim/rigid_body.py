@@ -7,7 +7,12 @@ from hashlib import md5
 from jinja2  import Template
 
 from iai_bullet_sim import IAI_BULLET_ROOT
-from iai_bullet_sim.utils import Vector3, Pose, AABB
+from iai_bullet_sim.utils import ColorRGBA,  \
+                                 Point3,     \
+                                 Quaternion, \
+                                 Vector3,    \
+                                 Transform,  \
+                                 AABB
 
 # Mapping of bullet's geometry constants to internal keywords
 GEOM_SPHERE   = 'sphere'
@@ -23,9 +28,9 @@ class RigidBody(object):
     def __init__(self, simulator, 
                        bulletId,
                        type,
-                       initial_pos=[0,0,0], 
-                       initial_rot=[0,0,0,1]):
-        """Constructs a rigid body.
+                       initial_pos=Point3(0,0,0), 
+                       initial_rot=Quaternion(0,0,0,1)):
+        """Constructs)a rigid body.
 
         :param simulator:   The simulator managing this object
         :type  simulator:   iai_bullet_sim.basic_simulator.BasicSimulator
@@ -66,7 +71,7 @@ class RigidBody(object):
         :param cb: Callback to be called. Signature f(BasicSimulator, str, RigidBody/MultiBody)
         :tyoe  cb: function
         """
-        self.simulator.register_deletion_cb(self.simulator.get_body_id(self.bId()), cb)
+        self.simulator.register_deletion_cb(self.simulator.get_body_id(self.bId), cb)
 
     def deregister_deletion_cb(self, cb):
         """Deregisters a callback function which is called when this object is deleted.
@@ -74,7 +79,7 @@ class RigidBody(object):
         :param cb: Callback to be called. Signature f(BasicSimulator, str, RigidBody/MultiBody)
         :tyoe  cb: function
         """
-        self.simulator.deregister_deletion_cb(self.simulator.get_body_id(self.bId()), cb)
+        self.simulator.deregister_deletion_cb(self.simulator.get_body_id(self.bId), cb)
 
     def reset(self):
         """Resets this object's pose and joints to their initial configuration."""
@@ -88,17 +93,17 @@ class RigidBody(object):
         :rtype: AABB
         """
         res = pb.getAABB(self._bulletId, -1, physicsClientId=self._client_id)
-        return AABB(Vector3(*res[0]), Vector3(*res[1]))
+        return AABB(Point3(*res[0]), Point3(*res[1]))
 
     @property
     def pose(self):
         """Returns the object's current pose in the form of a Frame.
         :rtype: Frame
         """
-        if self.simulator.sim_step != self.__last_sim_pose_update:
+        if self._simulator.sim_step != self.__last_sim_pose_update:
             temp = pb.getBasePositionAndOrientation(self._bulletId, physicsClientId=self._client_id)
-            self.__current_pose = Pose(temp[0], temp[1])
-            self.__last_sim_pose_update = self.simulator.sim_step
+            self.__current_pose = Transform(Point3(*temp[0]), Quaternion(*temp[1]))
+            self.__last_sim_pose_update = self._simulator.sim_step
 
         return self.__current_pose
 
@@ -116,7 +121,8 @@ class RigidBody(object):
         :rtype: list
         """
         if self.simulator.sim_step != self.__last_sim_velocity_update:
-            self.__current_lin_velocity, self.__current_ang_velocity = pb.getBaseVelocity(self._bulletId, physicsClientId=self._client_id)
+            temp = pb.getBaseVelocity(self._bulletId, physicsClientId=self._client_id)
+            self.__current_lin_velocity, self.__current_ang_velocity = Vector3(temp[0]), Vector3(temp[1])
             self.__last_sim_velocity_update = self.simulator.sim_step
         return self.__current_lin_velocity
 
@@ -126,18 +132,19 @@ class RigidBody(object):
         :rtype: list
         """
         if self.simulator.sim_step != self.__last_sim_velocity_update:
-            self.__current_lin_velocity, self.__current_ang_velocity = pb.getBaseVelocity(self._bulletId, physicsClientId=self._client_id)
+            temp = pb.getBaseVelocity(self._bulletId, physicsClientId=self._client_id)
+            self.__current_lin_velocity, self.__current_ang_velocity = Vector3(temp[0]), Vector3(temp[1])
             self.__last_sim_velocity_update = self.simulator.sim_step
         return self.__current_ang_velocity
 
     @property
     def initial_pose(self):
-        return Pose(self.initial_pos, self.initial_rot)
+        return Transform(self.initial_pos, self.initial_rot)
 
     @initial_pose.setter
     def initial_pose(self, pose):
-        self.initial_pos = list(pose.position)
-        self.initial_rot = list(pose.quaternion)
+        self.initial_pos = pose.position
+        self.initial_rot = pose.quaternion
 
     def get_contacts(self, other_body=None, other_link=None):
         """Gets the contacts this body had during the last physics step.
@@ -182,9 +189,9 @@ with open(f'{IAI_BULLET_ROOT}/data/urdf/template_single_mesh.urdf', 'r') as f:
 class BoxBody(RigidBody):
     def __init__(self, simulator, 
                        size=[1, 1, 1],
-                       initial_pos=[0, 0, 0], 
-                       initial_rot=[0, 0, 0, 1],
-                       color=[1, 0, 0, 1],
+                       initial_pos=Point3(0, 0, 0), 
+                       initial_rot=Quaternion(0, 0, 0, 1),
+                       color=ColorRGBA(1, 0, 0, 1),
                        mass=1):
         self.size  = size
         self.mass  = mass
@@ -210,9 +217,9 @@ class CylinderBody(RigidBody):
     def __init__(self, simulator, 
                        radius=0.5,
                        length=1.0,
-                       initial_pos=[0, 0, 0], 
-                       initial_rot=[0, 0, 0, 1],
-                       color=[0, 1, 0, 1],
+                       initial_pos=Point3(0, 0, 0), 
+                       initial_rot=Quaternion(0, 0, 0, 1),
+                       color=ColorRGBA(0, 1, 0, 1),
                        mass=1):
         self.radius = radius
         self.length = length
@@ -238,9 +245,9 @@ class CylinderBody(RigidBody):
 class SphereBody(RigidBody):
     def __init__(self, simulator, 
                        radius=0.5,
-                       initial_pos=[0, 0, 0], 
-                       initial_rot=[0, 0, 0, 1],
-                       color=[0, 0, 1, 1],
+                       initial_pos=Point3(0, 0, 0), 
+                       initial_rot=Quaternion(0, 0, 0, 1),
+                       color=ColorRGBA(0, 0, 1, 1),
                        mass=1):
         self.radius = radius
         self.mass   = mass
@@ -267,9 +274,9 @@ class MeshBody(RigidBody):
                        visual_mesh,
                        collision_mesh=None,
                        scale=1,
-                       initial_pos=[0, 0, 0], 
-                       initial_rot=[0, 0, 0, 1],
-                       color=[0, 0, 1, 1],
+                       initial_pos=Point3(0, 0, 0), 
+                       initial_rot=Quaternion(0, 0, 0, 1),
+                       color=ColorRGBA(0, 0, 1, 1),
                        mass=1):
         self.scale = scale
         self.mass  = mass

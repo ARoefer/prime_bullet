@@ -1,7 +1,8 @@
+from dataclasses import dataclass
 import pybullet as pb
 from collections import namedtuple
 from iai_bullet_sim.rigid_body import RigidBody
-from iai_bullet_sim.utils      import Vector3, Quaternion, Pose, AABB
+from iai_bullet_sim.utils      import Point3, Transform, Vector3, Quaternion, AABB
 from math import atan2, cos, sin
 
 class JointDriver(object):
@@ -320,8 +321,15 @@ JointInfo = namedtuple('JointInfo', ['jointIndex', 'jointName', 'jointType', 'qI
                                      'upperLimit', 'maxEffort', 'maxVelocity', 'linkName',
                                      'axis', 'parentFramePos', 'parentFrameOrn', 'parentIndex'])
 
+
 # Link state structure. Assigns names to bullet's info structure.
-LinkState  = namedtuple('LinkState', ['CoMFrame', 'localInertialFrame', 'worldFrame', 'linearVelocity', 'angularVelocity'])
+@dataclass
+class LinkState:
+    com_pose            : Transform
+    local_inertial_pose : Transform
+    world_pose          : Transform
+    linear_velocity     : Vector3
+    angular_velocity    : Vector3
 
 
 class MultiBody(RigidBody):
@@ -329,8 +337,8 @@ class MultiBody(RigidBody):
     """
     def __init__(self, simulator, 
                        bulletId,
-                       initial_pos=[0,0,0], 
-                       initial_rot=[0,0,0,1], 
+                       initial_pos=Point3(0,0,0), 
+                       initial_rot=Quaternion(0,0,0,1), 
                        joint_driver=JointDriver(), 
                        urdf_file=None):
         """Constructs a multibody.
@@ -438,9 +446,9 @@ class MultiBody(RigidBody):
             return LinkState(frame, frame, frame, zero_vector, zero_vector)
         else:
             ls = pb.getLinkState(self._bulletId, self.link_index_map[link], 0, physicsClientId=self._client_id)
-            return LinkState(Frame(Vector3(*ls[0]), Quaternion(*ls[1])),
-                             Frame(Vector3(*ls[2]), Quaternion(*ls[3])),
-                             Frame(Vector3(*ls[4]), Quaternion(*ls[5])),
+            return LinkState(Transform(Point3(*ls[0]), Quaternion(*ls[1])),
+                             Transform(Point3(*ls[2]), Quaternion(*ls[3])),
+                             Transform(Point3(*ls[4]), Quaternion(*ls[5])),
                              zero_vector,
                              zero_vector)
 
@@ -451,7 +459,7 @@ class MultiBody(RigidBody):
         :rtype: AABB
         """
         res = pb.getAABB(self._bulletId, self.link_index_map[linkId], physicsClientId=self._client_id)
-        return AABB(Vector3(*res[0]), Vector3(*res[1]))
+        return AABB(Point3(*res[0]), Point3(*res[1]))
 
     @property
     def joint_state(self):

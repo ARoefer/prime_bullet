@@ -10,12 +10,12 @@ from pathlib     import Path
 from typing      import Iterable, Union
 
 from iai_bullet_sim import IAI_BULLET_ROOT
-from iai_bullet_sim.utils      import abs_urdf_paths,  \
+from iai_bullet_sim.utils      import ColorRGBA, abs_urdf_paths,  \
                                       res_pkg_path,    \
                                       Vector3,         \
                                       Point3,          \
                                       Quaternion,      \
-                                      Pose,            \
+                                      Transform,       \
                                       import_class
 from iai_bullet_sim.multibody  import MultiBody, JointDriver
 from iai_bullet_sim.rigid_body import BoxBody,         \
@@ -52,90 +52,20 @@ def hsva_to_rgba(h, s, v, a):
     q = v * (1 - f*s)
     t = v * (1 - (1 - f) * s)
     if h_i==0:
-        return [v, t, p, a]
+        return ColorRGBA(v, t, p, a)
     elif h_i==1:
-        return [q, v, p, a]
+        return ColorRGBA(q, v, p, a)
     elif h_i==2:
-        return [p, v, t, a]
+        return ColorRGBA(p, v, t, a)
     elif h_i==3:
-        return [p, q, v, a]
+        return ColorRGBA(p, q, v, a)
     elif h_i==4:
-        return [t, p, v, a]
+        return ColorRGBA(t, p, v, a)
     elif h_i==5:
-        return [v, p, q, a]
-    print('h_i is {}'.format(h_i))
-    return [1,1,1,a]
+        return ColorRGBA(v, p, q, a)
+    print(f'h_i is {h_i}')
+    return ColorRGBA(1,1,1,a)
 
-def vec3_to_list(vec):
-    """
-    Converts an indexable structure with len >= 3 to a list containing the first three elements.
-
-    :type vec: iterable
-    :rtype: list
-    """
-    return [vec[0], vec[1], vec[2]]
-
-def vec_add(a, b):
-    """
-    Performs per element addition on two indexable structures with len >= 3 and returns the result as Vector3.
-
-    :type a: iterable
-    :type b: iterable
-    :rtype: iai_bullet_sim.utils.Vector3
-    """
-    return Vector3(a[0] + b[0], a[1] + b[1], a[2] + b[2])
-
-def vec_sub(a, b):
-    """
-    Performs per element subtraction on two indexable structures with len >= 3 and returns the result as Vector3.
-
-    :type a: iterable
-    :type b: iterable
-    :rtype: iai_bullet_sim.utils.Vector3
-    """
-    return Vector3(a[0] - b[0], a[1] - b[1], a[2] - b[2])
-
-def vec_scale(a, x):
-    """
-    Performs per element multiplication on an indexable structure with len >= 3 and returns the result as Vector3.
-
-    :type a: iterable
-    :type x: iterable
-    :rtype: iai_bullet_sim.utils.Vector3
-    """
-    return Vector3(a.x * x, a.y * x, a.z * x)
-
-def invert_transform(frame_tuple):
-    """
-    Inverts the transformation represented by the Frame datatype and returns it as new frame.
-
-    :type frame_tuple:  iai_bullet_sim.utils.Frame
-    :rtype: iai_bullet_sim.utils.Frame
-    """
-    temp = pb.invertTransform(list(frame_tuple.position), list(frame_tuple.quaternion))
-    return Frame(Point3(*temp[0]), Quaternion(*temp[1]))
-
-def transform_point(transform, point):
-    """
-    Transforms a given point by the given transform.
-
-    :type transform: iai_bullet_sim.utils.Frame
-    :type point: iterable
-    :rtype: tuple
-    """
-    point, _ = pb.multiplyTransforms(transform.position, transform.quaternion, point, [0,0,0,1])
-    return point
-
-def transform_vector(transform, vector):
-    """
-    Transforms a given point by the given transform.
-
-    :type transform: iai_bullet_sim.utils.Frame
-    :type point: iterable
-    :rtype: tuple
-    """
-    vec, _ = pb.multiplyTransforms((0,0,0), transform.quaternion, vector, [0,0,0,1])
-    return vec
 
 @dataclass
 class ContactPoint(object):
@@ -540,7 +470,7 @@ class BasicSimulator(object):
         if childBody is not None:
             child_pose = childBody.get_link_state(childLink) if childLink is not None else childBody.pose()
         else:
-            child_pose = Frame((0, 0, 0), (0, 0, 0, 1))
+            child_pose = Transform(Point3(0, 0, 0), Quaternion(0, 0, 0, 1))
         inv_pp_pos, inv_pp_rot = pb.invertTransform(parent_pose.position, parent_pose.quaternion)
         inv_cp_pos, inv_cp_rot = pb.invertTransform(child_pose.position,  child_pose.quaternion)
 

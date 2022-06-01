@@ -1,20 +1,154 @@
 import os
 import re
+import numpy    as np
+import pybullet as pb
 
+from dataclasses import dataclass
 from hashlib     import md5
 from pathlib     import Path
 from collections import namedtuple
 
-# Datastructure representing a vector
-Vector3 = namedtuple('Vector3', ['x', 'y', 'z'])
+
 # Datastructure representing a point
-Point3 = namedtuple('Point3', ['x', 'y', 'z'])
+class Point3(tuple):
+    def __new__(cls, x, y, z):
+        return super(Point3, cls).__new__(cls, (x, y, z))
+
+    def __add__(self, other):
+        return Point3(*(np.asarray(self) + other))
+    
+    def __sub__(self, other):
+        if type(other) == Vector3:
+            return Point3(*(np.asarray(self) - other))
+        return Vector3(*(np.asarray(self) - other))
+
+
+# Datastructure representing a vector
+class Vector3(tuple):
+    def __new__(cls, x, y, z):
+        return super(Vector3, cls).__new__(cls, (x, y, z))
+
+    def __add__(self, other):
+        return Vector3(*(np.asarray(self) + other))
+    
+    def __sub__(self, other):
+        return Vector3(*(np.asarray(self) - other))
+    
+    def __mul__(self, other):
+        return Vector3(*(np.asarray(self) * other))
+
+    def __div__(self, other):
+        return Vector3(*(np.asarray(self) / other))
+
+    def __neg__(self):
+        return Vector3(*(-np.asarray(self)))
+
+    def dot(self, other):
+        return (np.asarray(self) * other).sum()
+
+# Datastructure representing a color
+class ColorRGBA(tuple):
+    def __new__(cls, r, g, b, a):
+        return super(ColorRGBA, cls).__new__(cls, (r, g, b, a))
+
+    def __add__(self, other):
+        return ColorRGBA(*(np.asarray(self) + other))
+    
+    def __sub__(self, other):
+        return ColorRGBA(*(np.asarray(self) - other))
+    
+    def __mul__(self, other):
+        return ColorRGBA(*(np.asarray(self) * other))
+
+    def __div__(self, other):
+        return ColorRGBA(*(np.asarray(self) / other))
+
+    def __neg__(self):
+        return ColorRGBA(*(-np.asarray(self)))
+
 # Datastructure representing a quaternion
-Quaternion = namedtuple('Quaternion', ['x', 'y', 'z', 'w'])
+class Quaternion(tuple):
+    def __new__(cls, x, y, z, w):
+        return super(Quaternion, cls).__new__(cls, (x, y, z, w))
+
+    def dot(self, other):
+        if type(other) == Quaternion:
+            return Quaternion(*pb.multiplyTransforms((0, 0, 0), self,
+                                                     (0, 0, 0), other)[1])
+        elif type(other) == Vector3:
+            return Vector3(*pb.multiplyTransforms((0, 0, 0), self,
+                                                  other, (0, 0, 0, 1))[0])
+        raise Exception(f'Cannot rotate type {type(other)}')
+
+    def inv(self):
+        return Quaternion(*pb.invertTransform((0, 0, 0), self)[1])
+
+    def matrix(self):
+        return np.asarray(pb.getMatrixFromQuaternion(self)).reshape((3, 3))
+
+    @staticmethod
+    def from_euler(r, p, y):
+        return Quaternion(*pb.getQuaternionFromEuler((r, p, y)))
+
+    def euler(self):
+        return pb.getEulerFromQuaternion(self)
+
 # Datastructure representing a frame as a Vector3 and a Quaternion
-Pose  = namedtuple('Pose', ['position', 'quaternion'])
+@dataclass
+class Transform:
+    position   : Point3
+    quaternion : Quaternion
+
+    def dot(self, other):
+        if type(other) == Transform:
+            new_pose = pb.multiplyTransforms(self.position, self.quaternion,
+                                             other.position, other.quaternion)
+            return Transform(Point3(*new_pose[0]), Quaternion(*new_pose[1]))
+        elif type(other) == Vector3:
+            return Vector3(*pb.multiplyTransforms((0, 0, 0), self.quaternion,
+                                                  other, (0, 0, 0, 1))[0])
+        elif type(other) == Point3:
+            return Point3(*pb.multiplyTransforms(self.position, self.quaternion,
+                                                 other, (0, 0, 0, 1))[0])
+        elif type(other) == Quaternion:
+            return Quaternion(*pb.multiplyTransforms((0, 0, 0), self.quaternion,
+                                                     (0, 0, 0), other)[1])
+        raise Exception(f'Cannot transform type {type(other)}')
+    
+    def inv(self):
+        temp = pb.invertTransform(self.position, self.quaternion)
+        return Transform(Point3(*temp[0]), Quaternion(*temp[1]))
+
+    def matrix(self):
+        out = np.eye(4)
+        out[:3, 3]  = self.position
+        out[:3, :3] = self.quaternion.matrix()
+        return out
+
+    @staticmethod
+    def from_xyz_rpy(x, y, z, rr, rp, ry):
+        return Transform(Point3(x, y, z), Quaternion.from_euler(rr, rp, ry))
+
 # Axis aligned bounding box structure. Represents AABBs as a tuple of a low and high corner.
-AABB = namedtuple('AABB', ['min', 'max'])
+@dataclass
+class AABB:
+    min : Point3
+    max : Point3
+
+    def __add__(self, other):
+        if type(other) != Vector3:
+            raise Exception(f'Cannot add object of type {type(other)} to AABB')
+        return AABB(self.min + other, self.max + other)
+
+    def __sub__(self, other):
+        if type(other) != Vector3:
+            raise Exception(f'Cannot subtract object of type {type(other)} to AABB')
+        return AABB(self.min - other, self.max - other)
+
+    @property
+    def center(self):
+        return self.min + (self.max - self.min) * 0.5
+
 
 def rot3_to_quat(rot3):
     """Extracts a quaternion from a >= 3x3 matrix."""
