@@ -22,6 +22,9 @@ class Point3(tuple):
             return Point3(*(np.asarray(self) - other))
         return Vector3(*(np.asarray(self) - other))
 
+    @staticmethod
+    def zero():
+        return Point3(0, 0, 0)
 
 # Datastructure representing a vector
 class Vector3(tuple):
@@ -45,6 +48,10 @@ class Vector3(tuple):
 
     def dot(self, other):
         return (np.asarray(self) * other).sum()
+
+    @staticmethod
+    def zero():
+        return Vector3(0, 0, 0)
 
 # Datastructure representing a color
 class ColorRGBA(tuple):
@@ -86,12 +93,16 @@ class Quaternion(tuple):
     def matrix(self):
         return np.asarray(pb.getMatrixFromQuaternion(self)).reshape((3, 3))
 
+    def euler(self):
+        return pb.getEulerFromQuaternion(self)
+    
     @staticmethod
     def from_euler(r, p, y):
         return Quaternion(*pb.getQuaternionFromEuler((r, p, y)))
 
-    def euler(self):
-        return pb.getEulerFromQuaternion(self)
+    @staticmethod
+    def identity():
+        return Quaternion(0, 0, 0, 1)
 
 # Datastructure representing a frame as a Vector3 and a Quaternion
 @dataclass
@@ -128,6 +139,10 @@ class Transform:
     @staticmethod
     def from_xyz_rpy(x, y, z, rr, rp, ry):
         return Transform(Point3(x, y, z), Quaternion.from_euler(rr, rp, ry))
+
+    @staticmethod
+    def identity():
+        return Transform(Point3(0, 0, 0), Quaternion.identity())
 
 # Axis aligned bounding box structure. Represents AABBs as a tuple of a low and high corner.
 @dataclass
