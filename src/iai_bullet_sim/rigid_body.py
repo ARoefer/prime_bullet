@@ -9,12 +9,14 @@ from omegaconf   import OmegaConf
 from pathlib     import Path
 
 from iai_bullet_sim import IAI_BULLET_ROOT
-from iai_bullet_sim.utils import ColorRGBA,  \
-                                 Point3,     \
-                                 Quaternion, \
-                                 Vector3,    \
-                                 Transform,  \
-                                 AABB, res_pkg_path
+from iai_bullet_sim.frame    import Frame
+from iai_bullet_sim.geometry import Point3,     \
+                                    Quaternion, \
+                                    Vector3,    \
+                                    Transform,  \
+                                    AABB
+from iai_bullet_sim.utils    import ColorRGBA,  \
+                                    res_pkg_path
 
 # Mapping of bullet's geometry constants to internal keywords
 GEOM_SPHERE   = 'sphere'
@@ -24,7 +26,7 @@ GEOM_CAPSULE  = 'capsule'
 GEOM_MESH     = 'mesh'
 
 
-class RigidBody(object):
+class RigidBody(Frame):
     @dataclass
     class Config:
         initial_pose : Transform
@@ -51,6 +53,8 @@ class RigidBody(object):
         :param mass:        Mass of the object. 0 = static
         :type  mass:        float
         """
+        super(RigidBody, self).__init__(None)
+
         self._simulator     = simulator
         self._client_id     = simulator.client_id
         self._bulletId      = bulletId
@@ -104,10 +108,7 @@ class RigidBody(object):
         return AABB(Point3(*res[0]), Point3(*res[1]))
 
     @property
-    def pose(self):
-        """Returns the object's current pose in the form of a Frame.
-        :rtype: Frame
-        """
+    def local_pose(self) -> Transform:
         if self._simulator.sim_step != self.__last_sim_pose_update:
             temp = pb.getBasePositionAndOrientation(self._bulletId, physicsClientId=self._client_id)
             self.__current_pose = Transform(Point3(*temp[0]), Quaternion(*temp[1]))
@@ -115,13 +116,21 @@ class RigidBody(object):
 
         return self.__current_pose
 
-    @pose.setter
-    def pose(self, pose):
+    @local_pose.setter
+    def local_pose(self, pose):
         pb.resetBasePositionAndOrientation(self._bulletId,
                                            pose.position,
                                            pose.quaternion,
                                            physicsClientId=self._client_id)
         self.__last_sim_pose_update = -1
+    
+    @property
+    def pose(self):
+        return super().pose
+
+    @pose.setter
+    def pose(self, pose):
+        self.local_pose(pose)
 
     @property
     def linear_velocity(self):
@@ -152,6 +161,38 @@ class RigidBody(object):
     @initial_pose.setter
     def initial_pose(self, pose):
         self._initial_pose = pose
+
+    def apply_force(self, force : Vector3, point : Point3):
+        pb.applyExternalForce(self._bulletId, \
+                              -1, \
+                              force, \
+                              point, \
+                              pb.WORLD_FRAME, \
+                              self._client_id)
+
+    def apply_local_force(self, force : Vector3, point : Point3):
+        pb.applyExternalForce(self._bulletId, \
+                              -1, \
+                              force, \
+                              point, \
+                              pb.LINK_FRAME, \
+                              self._client_id)
+
+    def apply_torque(self, torque : Vector3):
+        pb.applyExternalTorque(self._bulletId, \
+                               -1, \
+                               torque, \
+                               Point3.zero(), \
+                               pb.WORLD_FRAME, \
+                               self._client_id)
+
+    def apply_local_torque(self, torque : Vector3):
+        pb.applyExternalTorque(self._bulletId, \
+                               -1, \
+                               torque, \
+                               Point3.zero(), \
+                               pb.LINK_FRAME, \
+                               self._client_id)
 
     def conf(self) -> OmegaConf:
         out = self._conf_type()
@@ -315,7 +356,7 @@ class SphereBody(RigidBody):
                                pb.URDF_MERGE_FIXED_LINKS | pb.URDF_ENABLE_SLEEPING,
                                physicsClientId=simulator.client_id)
         
-        super().__init__(simulator, bulletId, 'sphere', initial_pos, initial_rot)
+        super().__init__(simulator, bulletId, 'sphere', initial_pose)
 
     def conf(self) -> OmegaConf:
         out = super().conf()
@@ -353,17 +394,20 @@ class MeshBody(RigidBody):
             with open(str(fpath), 'w') as f:
                 f.write(_TEMPLATE_MESH.render(mass=mass,
                                               mesh_path=res_pkg_path(visual_mesh), 
-                                              collision_path=res_pkg_path(collision_mesh), 
+                                              collision_path=res_pkg_path(collision_mesh) if collision_mesh is not None else res_pkg_path(visual_mesh), 
                                               scale=scale, 
                                               color=color))
         
-        bulletId = pb.loadURDF(str(fpath),
-                               initial_pose.position,
-                               initial_pose.quaternion,
-                               0,
-                               0,
-                               pb.URDF_MERGE_FIXED_LINKS | pb.URDF_ENABLE_SLEEPING,
-                               physicsClientId=simulator.client_id)
+        try:
+            bulletId = pb.loadURDF(str(fpath),
+                                   initial_pose.position,
+                                   initial_pose.quaternion,
+                                   0,
+                                   0,
+                                   pb.URDF_MERGE_FIXED_LINKS | pb.URDF_ENABLE_SLEEPING,
+                                   physicsClientId=simulator.client_id)
+        except pb.error as e:
+            raise Exception(f'Exception raised during load of generated urdf "{fpath}": {e}')
         
         super().__init__(simulator, bulletId, 'mesh', initial_pose)
 

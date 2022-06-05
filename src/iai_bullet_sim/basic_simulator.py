@@ -3,24 +3,21 @@ import pybullet as pb
 import random
 import tempfile
 
-from collections import namedtuple
 from dataclasses import dataclass
 from jinja2      import Template
-from pathlib     import Path
 from typing      import Iterable, Union
 
 from iai_bullet_sim import IAI_BULLET_ROOT
 from iai_bullet_sim.camera import Camera
-from iai_bullet_sim.utils      import ColorRGBA, abs_urdf_paths,  \
-                                      res_pkg_path,    \
-                                      Vector3,         \
+from iai_bullet_sim.utils      import ColorRGBA, abs_sdf_paths, abs_urdf_paths, \
+                                      res_pkg_path, import_class, res_sdf_model_path
+from iai_bullet_sim.geometry   import Vector3,         \
                                       Point3,          \
                                       Quaternion,      \
-                                      Transform,       \
-                                      import_class
+                                      Transform
 from iai_bullet_sim.multibody  import MultiBody, JointDriver
 from iai_bullet_sim.rigid_body import BoxBody,         \
-                                      CylinderBody, MeshBody,    \
+                                      CylinderBody, MeshBody, SDFBody, SDFWorldBody,    \
                                       SphereBody,      \
                                       RigidBody
 from iai_bullet_sim.constraint import Constraint
@@ -324,8 +321,7 @@ class BasicSimulator(object):
         return None
 
     def load_urdf(self, urdf_path, 
-                        pos=Point3.zero(), 
-                        rot=Quaternion.identity(), 
+                        pose=Transform.identity(), 
                         joint_driver=JointDriver(), 
                         useFixedBase=0, 
                         name_override=None):
@@ -349,13 +345,12 @@ class BasicSimulator(object):
         abs_urdf_path = abs_urdf_paths(urdf_path, tempfile.gettempdir())
 
         new_body = MultiBody(self, pb.loadURDF(abs_urdf_path,
-                                               pos,
-                                               rot,
+                                               pose.position,
+                                               pose.quaternion,
                                                0,              # MAXIMAL COORDINATES, DO NOT TOUCH!
                                                useFixedBase,
                                                flags=pb.URDF_USE_SELF_COLLISION_EXCLUDE_PARENT, physicsClientId=self.__client_id), 
-                                   pos, 
-                                   rot, 
+                                   pose, 
                                    joint_driver, 
                                    urdf_path)
 
@@ -366,49 +361,42 @@ class BasicSimulator(object):
 
     def create_mesh(self, mesh_path, 
                           scale=1,
-                          pos=Point3.zero(), 
-                          rot=Quaternion.identity(),
+                          pose=Transform.identity(),
                           mass=1,
                           color=[1]*4,
                           collision_mesh_path=None,
                           name_override=None):
-        mesh_path = res_pkg_path(mesh_path)
-        collision_mesh_path = res_pkg_path(collision_mesh_path) if collision_mesh_path is not None else None
-
         # Trim the file ending
-        body = MeshBody(self, mesh_path, collision_mesh_path, scale, pos, rot, color, mass)
+        body = MeshBody(self, mesh_path, collision_mesh_path, scale, pose, color, mass)
         self.register_object(body, name_override)
         return body
 
 
     def create_sphere(self, radius=0.5, 
-                            pos=Point3.zero(), 
-                            rot=Quaternion.identity(), 
+                            pose=Transform.identity(), 
                             mass=1, 
                             color=[0, 0, 1, 1], 
                             name_override=None):
-        body = SphereBody(self, radius, pos, rot, color, mass)
+        body = SphereBody(self, radius, pose, color, mass)
         self.register_object(body, name_override)
         return body
 
     def create_box(self, extents=[1]*3, 
-                         pos=Point3.zero(), 
-                         rot=Quaternion.identity(), 
+                         pose=Transform.identity(), 
                          mass=1, 
                          color=[1, 0, 0, 1], 
                          name_override=None):
-        body = BoxBody(self, extents, Transform(pos, rot), color, mass)
+        body = BoxBody(self, extents, pose, color, mass)
         self.register_object(body, name_override)
         return body
 
     def create_cylinder(self, radius=0.5, 
                               height=1, 
-                              pos=Point3.zero(), 
-                              rot=Quaternion.identity(), 
+                              pose=Transform.identity(), 
                               mass=1, 
                               color=[0, 1, 0, 1], 
                               name_override=None):
-        body = CylinderBody(self, radius, height, pos, rot, color, mass)
+        body = CylinderBody(self, radius, height, pose, color, mass)
         self.register_object(body, name_override)
         return body
 

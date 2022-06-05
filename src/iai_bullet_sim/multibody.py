@@ -1,8 +1,17 @@
-from dataclasses import dataclass
 import pybullet as pb
+import numpy    as np
+
+from dataclasses import dataclass
 from collections import namedtuple
+from typing      import Union
+
+from iai_bullet_sim.frame      import Frame
 from iai_bullet_sim.rigid_body import RigidBody
-from iai_bullet_sim.utils      import Point3, Transform, Vector3, Quaternion, AABB
+from iai_bullet_sim.geometry   import Point3, \
+                                      Transform, \
+                                      Vector3, \
+                                      Quaternion, \
+                                      AABB
 from math import atan2, cos, sin
 
 class JointDriver(object):
@@ -389,13 +398,8 @@ class MultiBody(RigidBody):
         self.links.add(self.base_link)
         self.link_index_map = {info.linkName: info.jointIndex for info in self.joints.values()}
         self.link_index_map[self.base_link] = -1
+        self.links = {n: Link(self._simulator, self, i) for n, i in self.link_index_map.items()}
         self.index_link_map = {i: l for l, i in self.link_index_map.items()}
-
-        self.__current_pose = None
-        self.__last_sim_pose_update = -1
-        self.__current_lin_velocity = None
-        self.__current_ang_velocity = None
-        self.__last_sim_velocity_update = -1
 
         # Initialize empty JS for objects without dynamic joints
         self.__joint_state = None if len(self.__dynamic_joint_indices) > 0 else {}
@@ -420,6 +424,8 @@ class MultiBody(RigidBody):
         super().reset()
         self.set_joint_positions(self.initial_joint_state)
         self.__last_sim_js_update = -1
+        for l in self.links.values():
+            l.reset()
 
     def get_link_index(self, link):
         if link is None:
@@ -429,36 +435,8 @@ class MultiBody(RigidBody):
                 raise Exception('Link "{}" is not defined'.format(link))
             return self.link_index_map[link]
 
-    def get_link_state(self, link=None):
-        """Returns the state of the named link.
-        If None is passed as link, the object's pose is returned as LinkState
-
-        :type link: str, NoneType
-        :rtype: LinkState
-        """
-        if link is not None and link not in self.link_index_map:
-            raise Exception('Link "{}" is not defined'.format(link))
-
-        zero_vector = Vector3(0,0,0)
-        if link is None or link == self.base_link:
-            frame = self.pose()
-            return LinkState(frame, frame, frame, zero_vector, zero_vector)
-        else:
-            ls = pb.getLinkState(self._bulletId, self.link_index_map[link], 0, physicsClientId=self._client_id)
-            return LinkState(Transform(Point3(*ls[0]), Quaternion(*ls[1])),
-                             Transform(Point3(*ls[2]), Quaternion(*ls[3])),
-                             Transform(Point3(*ls[4]), Quaternion(*ls[5])),
-                             zero_vector,
-                             zero_vector)
-
-    def link_aabb(self, linkId=None):
-        """Returns the bounding box of a named link.
-
-        :type linkId: str, NoneType
-        :rtype: AABB
-        """
-        res = pb.getAABB(self._bulletId, self.link_index_map[linkId], physicsClientId=self._client_id)
-        return AABB(Point3(*res[0]), Point3(*res[1]))
+    def get_link(self, link):
+        return self.links[link]
 
     @property
     def joint_state(self):
@@ -522,7 +500,11 @@ class MultiBody(RigidBody):
                 cmd_indices.append(self.joints[jname].jointIndex)
                 cmd_pos.append(cmd[jname])
 
-        pb.setJointMotorControlArray(self._bulletId, cmd_indices, pb.POSITION_CONTROL, targetPositions=cmd_pos, physicsClientId=self._client_id)
+        pb.setJointMotorControlArray(self._bulletId, 
+                                     cmd_indices, 
+                                     pb.POSITION_CONTROL, 
+                                     targetPositions=cmd_pos, 
+                                     physicsClientId=self._client_id)
 
 
     def apply_joint_vel_cmds(self, cmd):
@@ -547,7 +529,7 @@ class MultiBody(RigidBody):
                                      targetVelocities=cmd_vels, 
                                      physicsClientId=self._client_id)
 
-    def apply_joint_effort_cmds(self, cmd):
+    def apply_joint_torque_cmds(self, cmd):
         """Sets the joints' torque goals.
 
         :param cmd: Joint effort goals to set.
@@ -596,3 +578,104 @@ class MultiBody(RigidBody):
         :rtype: list
         """
         return self._simulator.get_closest_points(self, other_body, own_link, other_link, dist)
+
+
+class Link(Frame):
+    def __init__(self, simulator, multibody : MultiBody, idx : int):
+        super().__init__(None)
+
+        self._simulator = simulator
+        self._client_id = simulator.client_id
+        self._multibody = multibody
+        self._idx       = idx
+
+        self.__current_state = None
+        self.__last_sim_pose_update = -1
+        self.__current_aabb = None
+        self.__last_aabb_update = -1
+
+    @property
+    def local_pose(self) -> Transform:
+        return self.state.world_pose
+    
+    @property
+    def state(self):
+        if self._simulator.sim_step != self.__last_sim_pose_update:
+            ls = pb.getLinkState(self._multibody.bId, 
+                                 self._idx, 0, physicsClientId=self._client_id)
+            self.__current_state = LinkState(Transform(Point3(*ls[0]), Quaternion(*ls[1])),
+                                             Transform(Point3(*ls[2]), Quaternion(*ls[3])),
+                                             Transform(Point3(*ls[4]), Quaternion(*ls[5])),
+                                             Vector3.zero(),
+                                             Vector3.zero())
+        return self.__current_state
+
+    @property
+    def aabb(self):
+        if self._simulator.sim_step != self.__last_aabb_update:
+            res = pb.getAABB(self._multibody.bId, self._idx, physicsClientId=self._client_id)
+            self.__current_aabb = AABB(Point3(*res[0]), Point3(*res[1]))
+        return self.__current_aabb
+
+    def reset(self):
+        self.__current_aabb  = None
+        self.__current_state = None
+        self.__last_sim_pose_update = -1
+        self.__last_aabb_update     = -1
+
+    def apply_force(self, force : Vector3, point : Point3):
+        pb.applyExternalForce(self._bulletId, \
+                              self._idx, \
+                              force, \
+                              point, \
+                              pb.WORLD_FRAME, \
+                              self._client_id)
+
+    def apply_local_force(self, force : Vector3, point : Point3):
+        pb.applyExternalForce(self._bulletId, \
+                              self._idx, \
+                              force, \
+                              point, \
+                              pb.LINK_FRAME, \
+                              self._client_id)
+
+    def apply_torque(self, torque : Vector3):
+        pb.applyExternalTorque(self._bulletId, \
+                               self._idx, \
+                               torque, \
+                               Point3.zero(), \
+                               pb.WORLD_FRAME, \
+                               self._client_id)
+
+    def apply_local_torque(self, torque : Vector3):
+        pb.applyExternalTorque(self._bulletId, \
+                               self._idx, \
+                               torque, \
+                               Point3.zero(), \
+                               pb.LINK_FRAME, \
+                               self._client_id)
+    
+    def jacobian(self, q, q_dot, q_ddot, point=Point3.zero()):
+        j_pos, j_rot = pb.calculateJacobian(self._multibody.bId,
+                                            self._idx,
+                                            point,
+                                            q,
+                                            q_dot,
+                                            q_ddot,
+                                            self._client_id)
+        return np.vstack((j_pos, j_rot))
+
+    def ik(self, world_pose : Union[Point3, Transform]):
+        if type(world_pose) == Point3:
+            return np.asarray(pb.calculateInverseKinematics(self._multibody.bId,
+                                                            self._idx,
+                                                            world_pose,
+                                                            physicsClientId=self._client_id
+                                                            ))
+        return np.asarray(pb.calculateInverseKinematics(self._multibody.bId,
+                                                            self._idx,
+                                                            world_pose.position,
+                                                            world_pose.quaternion,
+                                                            physicsClientId=self._client_id
+                                                            ))
+

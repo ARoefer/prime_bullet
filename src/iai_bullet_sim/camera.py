@@ -1,26 +1,23 @@
 import pybullet as pb
 import numpy    as np
 
-from iai_bullet_sim.utils import Transform
+from iai_bullet_sim.frame    import Frame
+from iai_bullet_sim.geometry import Transform
 
 
-class Camera(object):
+class Camera(Frame):
     def __init__(self, simulator, 
                        resolution, 
                        projection_matrix, 
                        near,
                        far,
                        initial_pose : Transform,
-                       parent=None, 
-                       parent_link=None) -> None:
+                       parent : Frame = None) -> None:
+        super(Camera, self).__init__(parent)
         self._simulator   = simulator
-        self._parent_to_c_pos = None
-        self._parent_to_c_rot = None
-        self.pose = initial_pose
+        self.local_pose   = initial_pose
         self._p_matrix    = projection_matrix.flatten()
         self._resolution  = resolution
-        self._parent      = parent
-        self._parent_link = parent_link
         self._near        = near
         self._far         = far
 
@@ -42,26 +39,27 @@ class Camera(object):
         self.pose = self.initial_pose
 
     @property
-    def pose(self):
+    def local_pose(self):
         return self._pose
+
+    @local_pose.setter
+    def local_pose(self, pose : Transform):
+        self._pose = pose
+
+    @property
+    def pose(self):
+        return super().pose
 
     @pose.setter
     def pose(self, pose : Transform):
-        self._pose = pose
-        self._parent_to_c = self._pose.inv()
+        w_to_p = self.parent.pose.inv() if self.parent is not None else Transform.identity()
+        self.local_pose = w_to_p.dot(pose)
 
     def render(self):
         if self.__last_image_update >= self._simulator.sim_step:
             return
 
-        w_to_c = self._parent_to_c
-        if self._parent is not None:
-            if self._parent_link is not None:
-                link_pose = self._parent.get_link_state(self._parent_link).world_pose
-                w_to_c = w_to_c.dot(link_pose.inv())
-            else:
-                w_to_c = w_to_c.dot(self._parent.pose.inv())
-
+        w_to_c = self.pose.inv()
         vm = self.__view_map.dot(w_to_c.matrix())
 
         iw, ih, rgba, d, seg = pb.getCameraImage(*self._resolution,
@@ -99,8 +97,7 @@ class PerspectiveCamera(Camera):
                        near,
                        far,
                        initial_pose : Transform,
-                       parent=None, 
-                       parent_link=None):
+                       parent=None):
         super(PerspectiveCamera, self).__init__(simulator, 
                                                 resolution,
                                                 np.reshape(pb.computeProjectionMatrixFOV(fov, 
@@ -111,7 +108,6 @@ class PerspectiveCamera(Camera):
                                                 near,
                                                 far,
                                                 initial_pose,
-                                                parent,
-                                                parent_link)
+                                                parent)
         self._fov = fov
 
