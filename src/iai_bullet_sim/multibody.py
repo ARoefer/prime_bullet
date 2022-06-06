@@ -595,6 +595,10 @@ class Link(Frame):
         self.__last_aabb_update = -1
 
     @property
+    def idx(self):
+        return self._idx
+
+    @property
     def local_pose(self) -> Transform:
         return self.state.world_pose
     
