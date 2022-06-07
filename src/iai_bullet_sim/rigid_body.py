@@ -419,3 +419,30 @@ class MeshBody(RigidBody):
         out.mass  = self.mass
         out.color = self.color
         return out
+
+
+class SDFBody(RigidBody):
+    @dataclass
+    class Config(RigidBody.Config):
+        sdf_path : str
+
+    def __init__(self, simulator, bulletId, sdf_path):
+        self.sdf_path = sdf_path
+
+        super().__init__(simulator, bulletId, 'sdf_mesh', None)
+        self.initial_pose = self.pose
+
+    def conf(self) -> OmegaConf:
+        out = super().conf()
+        out.sdf_path = self.sdf_path
+        return out
+
+
+class SDFWorldBody(RigidBody):
+    def __init__(self, simulator, bulletId):        
+        super().__init__(simulator, bulletId, 'mesh', None)
+        self.initial_pose = self.pose
+
+    def conf(self) -> OmegaConf:
+        return None
+

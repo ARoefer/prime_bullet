@@ -113,6 +113,7 @@ class BasicSimulator(object):
         self.__n_updates = 0
         self.__bId_IdMap = {}
         self.__cId_IdMap = {}
+        self.__sdf_worlds = set()
 
         self.__h = random.random()
         self.__nextId = 0
@@ -358,6 +359,46 @@ class BasicSimulator(object):
         self.register_object(new_body, name_override)
         #print('Created new multibody with id {}'.format(bodyId))
         return new_body
+
+    def load_sdf(self, sdf_path):
+        """Loads an Object from a URDF and registers it with this simulator.
+
+        :param urdf_path:     Path of the file as local or global path, or as ROS package URI.
+        :type  urdf_path:     str
+        :param pos:           Position to create the object at.
+        :type  pos:           list
+        :param rot:           Rotation to create the object with.
+        :type  rot:           list
+        :param joint_driver:  Custom joint driver for custom joint behavior.
+        :type  joint_driver:  iai_bullet_sim.multibody.JointDriver
+        :param useFixedBase:  Should the base of the object be fixed in space?
+        :type  useFixedBase:  int, bool
+        :param name_override: Custom name to assign to this object during registration.
+        :type  name_override: str, NoneType
+        :rtype: iai_bullet_sim.multibody.MultiBody
+        """
+        #print('Simulator: {}'.format(res_urdf_path))
+        abs_sdf_path = abs_sdf_paths(res_sdf_model_path(sdf_path), tempfile.gettempdir())
+
+        try:
+            ids = pb.loadSDF(abs_sdf_path, physicsClientId=self.client_id)
+        except pb.error as e:
+            raise Exception(f'Exception raised during parsing of SDF file "{abs_sdf_path}". Error: "{e}"')
+        
+        objects = []
+        for Id in ids:
+            if pb.getNumJoints(Id) == 0:
+                out = SDFWorldBody(self, Id) if len(ids) > 1 else SDFBody(self, Id, sdf_path)
+            else:
+                out = MultiBody(self, Id, urdf_file=sdf_path if len(ids) == 1 else None)
+            self.register_object(out, None)
+            objects.append(out)
+        
+        if len(objects) > 1:
+            self.__sdf_worlds.add(sdf_path)
+
+        #print('Created new multibody with id {}'.format(bodyId))
+        return objects
 
     def create_mesh(self, mesh_path, 
                           scale=1,
