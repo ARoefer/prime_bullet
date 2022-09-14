@@ -1,8 +1,9 @@
 import pybullet as pb
 import numpy    as np
 
-from dataclasses import dataclass
 from collections import namedtuple
+from dataclasses import dataclass
+from functools   import lru_cache
 from typing      import Union
 
 from iai_bullet_sim.frame      import Frame
@@ -379,14 +380,14 @@ class MultiBody(RigidBody):
 
         base_link, multibodyName = pb.getBodyInfo(self._bulletId, physicsClientId=self._client_id)
         #print('PyBullet says:\n  Name: {}\n  Base: {}\n'.format(multibodyName, base_link))
-        self.base_link = base_link
+        self.base_link = str(base_link)
 
         for x in range(pb.getNumJoints(self._bulletId, physicsClientId=self._client_id)):
             joint = JointInfo(*pb.getJointInfo(self._bulletId, x, physicsClientId=self._client_id))
-            self.joints[joint.jointName] = joint
+            self.joints[str(joint.jointName)] = joint
             if joint.jointType != pb.JOINT_FIXED:
-                self.dynamic_joints[joint.jointName] = joint
-                self._initial_joint_state[joint.jointName] = min(max(joint.lowerLimit, 0.0), joint.upperLimit)
+                self.dynamic_joints[str(joint.jointName)] = joint
+                self._initial_joint_state[str(joint.jointName)] = min(max(joint.lowerLimit, 0.0), joint.upperLimit)
 
 
         self.__index_joint_map       = {info.jointIndex: joint for joint, info in self.joints.items()}
@@ -394,9 +395,9 @@ class MultiBody(RigidBody):
         #print('dynamic joints:\n  {}'.format('\n  '.join([info.jointName for info in self.joints.values() if info.jointType != pb.JOINT_FIXED])))
 
 
-        self.links = {info.linkName for info in self.joints.values()}
+        self.links = {str(info.linkName) for info in self.joints.values()}
         self.links.add(self.base_link)
-        self.link_index_map = {info.linkName: info.jointIndex for info in self.joints.values()}
+        self.link_index_map = {str(info.linkName): info.jointIndex for info in self.joints.values()}
         self.link_index_map[self.base_link] = -1
         self.links = {n: Link(self._simulator, self, i) for n, i in self.link_index_map.items()}
         self.index_link_map = {i: l for l, i in self.link_index_map.items()}
@@ -439,6 +440,11 @@ class MultiBody(RigidBody):
         return self.links[link]
 
     @property
+    @lru_cache(1)
+    def joint_names(self):
+        return [n for _, n in sorted(self.__dynamic_joint_indices.items())]
+
+    @property
     def joint_state(self):
         """Returns the object's current joint state.
         :rtype: dict
@@ -470,6 +476,7 @@ class MultiBody(RigidBody):
 
         return {sensor: self.__joint_state[sensor].reactionForce for sensor in self.joint_sensors}
 
+
     def set_joint_positions(self, state, override_initial=False):
         """Sets the current joint positions of the object.
 
@@ -478,12 +485,18 @@ class MultiBody(RigidBody):
         :param override_initial: Additionally set the given positions as initial positions.
         :type  override_initial: bool
         """
-        for j, p in state.items():
-            if j in self.joints:
-                pb.resetJointState(self._bulletId, self.joints[j].jointIndex, p, physicsClientId=self._client_id)
+        if type(state) == dict:
+            for j, p in state.items():
+                if j in self.joints:
+                    pb.resetJointState(self._bulletId, self.joints[j].jointIndex, p, physicsClientId=self._client_id)
+            if override_initial:
+                self.initial_joint_state.update(state)
+        else:
+            for p, x in enumerate(state):
+                pb.resetJointState(self._bulletId, i, p, physicsClientId=self._client_id)
+            if override_initial:
+                self.initial_joint_state.update({self.joint_idx_name_map[i]: x for i, x in enumerate(state)})
         self.__last_sim_js_update = -1
-        if override_initial:
-            self.initial_joint_state.update(state)
 
 
     def apply_joint_pos_cmds(self, cmd):
