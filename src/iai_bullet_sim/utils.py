@@ -106,7 +106,7 @@ def abs_urdf_paths(file_path, temp_dir):
     hex_name = md5(str(abs_path).encode('utf-8')).hexdigest()
     temp_file_name = f'{temp_dir}/{hex_name}.urdf'
 
-    with open(file_path, 'r') as of:
+    with open(abs_path, 'r') as of:
         with open(temp_file_name, 'w') as tf:
             for l in of:
                 idx = l.find('package://', 0)
