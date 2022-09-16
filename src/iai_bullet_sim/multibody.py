@@ -372,7 +372,7 @@ class MultiBody(RigidBody):
         self.joints         = {}
         self.dynamic_joints = {}
         self.joint_idx_name_map = {}
-        self.joint_sensors  = set()
+        self.joint_sensors  = {}
         self.joint_driver   = joint_driver
         self.urdf_file      = urdf_file
 
@@ -380,14 +380,14 @@ class MultiBody(RigidBody):
 
         base_link, multibodyName = pb.getBodyInfo(self._bulletId, physicsClientId=self._client_id)
         #print('PyBullet says:\n  Name: {}\n  Base: {}\n'.format(multibodyName, base_link))
-        self.base_link = str(base_link)
+        self.base_link = base_link.decode('utf-8')
 
         for x in range(pb.getNumJoints(self._bulletId, physicsClientId=self._client_id)):
             joint = JointInfo(*pb.getJointInfo(self._bulletId, x, physicsClientId=self._client_id))
-            self.joints[str(joint.jointName)] = joint
+            self.joints[joint.jointName.decode('utf-8')] = joint
             if joint.jointType != pb.JOINT_FIXED:
-                self.dynamic_joints[str(joint.jointName)] = joint
-                self._initial_joint_state[str(joint.jointName)] = min(max(joint.lowerLimit, 0.0), joint.upperLimit)
+                self.dynamic_joints[joint.jointName.decode('utf-8')] = joint
+                self._initial_joint_state[joint.jointName.decode('utf-8')] = min(max(joint.lowerLimit, 0.0), joint.upperLimit)
 
 
         self.__index_joint_map       = {info.jointIndex: joint for joint, info in self.joints.items()}
@@ -395,9 +395,9 @@ class MultiBody(RigidBody):
         #print('dynamic joints:\n  {}'.format('\n  '.join([info.jointName for info in self.joints.values() if info.jointType != pb.JOINT_FIXED])))
 
 
-        self.links = {str(info.linkName) for info in self.joints.values()}
+        self.links = {info.linkName.decode('utf-8') for info in self.joints.values()}
         self.links.add(self.base_link)
-        self.link_index_map = {str(info.linkName): info.jointIndex for info in self.joints.values()}
+        self.link_index_map = {info.linkName.decode('utf-8'): info.jointIndex for info in self.joints.values()}
         self.link_index_map[self.base_link] = -1
         self.links = {n: Link(self._simulator, self, i) for n, i in self.link_index_map.items()}
         self.index_link_map = {i: l for l, i in self.link_index_map.items()}
@@ -456,17 +456,17 @@ class MultiBody(RigidBody):
 
         return self.__joint_state
 
-    def enable_joint_sensor(self, joint_name, enable=True):
-        """Activates or deactivates the force-torque sensor for a given joint.
+    def get_ft_sensor(self, joint_name):
+        if joint_name not in self.joint_sensors:
+            if joint_name not in self.joints:
+                raise Exception(f'Cannot get FT sensor for non-existent joint "{joint_name}"')
 
-        :type joint_name: str
-        :type enable: bool
-        """
-        pb.enableJointForceTorqueSensor(self._bulletId, self.joints[joint_name].jointIndex, enable, physicsClientId=self._client_id)
-        if enable:
-            self.joint_sensors.add(joint_name)
-        else:
-            self.joint_sensors.remove(joint_name)
+            pb.enableJointForceTorqueSensor(self._bulletId, 
+                                            self.joints[joint_name].jointIndex, 
+                                            True, 
+                                            physicsClientId=self._client_id)
+            self.joint_sensors[joint_name] = FTSensor(self, joint_name)
+        return self.joint_sensors[joint_name]
 
     def get_sensor_states(self):
         """Returns a dict of all sensors and their current readout.
@@ -490,16 +490,16 @@ class MultiBody(RigidBody):
                 if j in self.joints:
                     pb.resetJointState(self._bulletId, self.joints[j].jointIndex, p, physicsClientId=self._client_id)
             if override_initial:
-                self.initial_joint_state.update(state)
+                self._initial_joint_state.update(state)
         else:
-            for p, x in enumerate(state):
+            for i, p in enumerate(state):
                 pb.resetJointState(self._bulletId, i, p, physicsClientId=self._client_id)
             if override_initial:
-                self.initial_joint_state.update({self.joint_idx_name_map[i]: x for i, x in enumerate(state)})
+                self._initial_joint_state.update({self.__index_joint_map[i]: x for i, x in enumerate(state)})
         self.__last_sim_js_update = -1
 
 
-    def apply_joint_pos_cmds(self, cmd):
+    def apply_joint_pos_cmds(self, cmd, max_force=None):
         """Sets the joints' position goals.
 
         :param cmd: Joint position goals to set.
@@ -516,11 +516,12 @@ class MultiBody(RigidBody):
         pb.setJointMotorControlArray(self._bulletId, 
                                      cmd_indices, 
                                      pb.POSITION_CONTROL, 
-                                     targetPositions=cmd_pos, 
+                                     targetPositions=cmd_pos,
+                                     forces=max_force,
                                      physicsClientId=self._client_id)
 
 
-    def apply_joint_vel_cmds(self, cmd):
+    def apply_joint_vel_cmds(self, cmd, max_force=None):
         """Sets the joints' velocity goals.
 
         :param cmd: Joint velocity goals to set.
@@ -539,7 +540,8 @@ class MultiBody(RigidBody):
         pb.setJointMotorControlArray(self._bulletId, 
                                      cmd_indices, 
                                      pb.VELOCITY_CONTROL, 
-                                     targetVelocities=cmd_vels, 
+                                     targetVelocities=cmd_vels,
+                                     forces=max_force,
                                      physicsClientId=self._client_id)
 
     def apply_joint_torque_cmds(self, cmd):
@@ -695,4 +697,14 @@ class Link(Frame):
                                                             world_pose.quaternion,
                                                             physicsClientId=self._client_id
                                                             ))
+
+@dataclass
+class FTSensor():
+    body  : MultiBody
+    joint : str
+
+    def get(self):
+        self.body.joint_state()
+
+        return self.body.__joint_state[self.joint].reactionForce
 
