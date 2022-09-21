@@ -95,7 +95,10 @@ class RigidBody(Frame):
 
     def reset(self):
         """Resets this object's pose and joints to their initial configuration."""
-        pb.resetBasePositionAndOrientation(self._bulletId, self.initial_pos, self.initial_rot, physicsClientId=self._client_id)
+        pb.resetBasePositionAndOrientation(self._bulletId, 
+                                           self._initial_pose.position, 
+                                           self._initial_pose.quaternion, 
+                                           physicsClientId=self._client_id)
         self.__last_sim_pose_update = -1
         self.__last_sim_velocity_update = -1
 

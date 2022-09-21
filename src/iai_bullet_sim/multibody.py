@@ -423,7 +423,7 @@ class MultiBody(RigidBody):
     def reset(self):
         """Resets this object's pose and joints to their initial configuration."""
         super().reset()
-        self.set_joint_positions(self.initial_joint_state)
+        self.set_joint_positions(self._initial_joint_state)
         self.__last_sim_js_update = -1
         for l in self.links.values():
             l.reset()
@@ -442,7 +442,7 @@ class MultiBody(RigidBody):
     @property
     @lru_cache(1)
     def joint_names(self):
-        return [n for _, n in sorted(self.__dynamic_joint_indices.items())]
+        return self.__dynamic_joint_indices.copy()
 
     @property
     def joint_state(self):
