@@ -16,6 +16,9 @@ class Point3(tuple):
             return Point3(*(np.asarray(self) - other))
         return Vector3(*(np.asarray(self) - other))
 
+    def norm(self):
+        return np.sqrt((np.asarray(self) ** 2).sum())
+
     @staticmethod
     def zero():
         return Point3(0, 0, 0)
@@ -39,6 +42,9 @@ class Vector3(tuple):
 
     def __neg__(self):
         return Vector3(*(-np.asarray(self)))
+
+    def norm(self):
+        return np.sqrt((np.asarray(self) ** 2).sum())
 
     def dot(self, other):
         return (np.asarray(self) * other).sum()
