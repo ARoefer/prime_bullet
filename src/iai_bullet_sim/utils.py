@@ -46,7 +46,7 @@ def res_pkg_path(rpath):
     """
     if rpath[:10] == 'package://':
         rpath = rpath[10:]
-        pkg = rpath[:rpath.find('/')]
+        pkg = rpath[:rpath.find('/')] if rpath.find('/') != -1 else rpath
 
         for rpp in _SEARCH_PATHS:
             if rpp[rpp.rfind('/') + 1:] == pkg:
