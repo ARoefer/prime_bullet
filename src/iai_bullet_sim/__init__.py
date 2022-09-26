@@ -1,6 +1,17 @@
 from pathlib import Path
 
-IAI_BULLET_ROOT = Path(__file__).parent
+from .utils         import ColorRGBA, \
+                           add_search_path, \
+                           res_pkg_path
+
+try:
+    import rospy
+    
+    IAI_BULLET_ROOT = res_pkg_path('package://iai_bullet_sim/src/iai_bullet_sim')
+
+except ImportError:
+    IAI_BULLET_ROOT = Path(__file__).parent
+
 
 from .geometry      import Point3, \
                            Vector3, \
@@ -22,9 +33,6 @@ from .rigid_body    import RigidBody, \
 from .multibody     import MultiBody, Link
 from .constraint    import Constraint
 
-from .utils         import ColorRGBA, \
-                           add_search_path, \
-                           res_pkg_path
 
 from .basic_simulator import BasicSimulator, \
                              ContactPoint, \
