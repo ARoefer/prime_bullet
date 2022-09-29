@@ -402,10 +402,13 @@ class MultiBody(RigidBody):
         self.links = {n: Link(self._simulator, self, i) for n, i in self.link_index_map.items()}
         self.index_link_map = {i: l for l, i in self.link_index_map.items()}
 
-        self._q      = None
-        self._q_dot  = None
-        self._q_f    = None
-        self.q_f_max = np.array([self.joints[j].maxEffort for j in self.__joint_names if j in self.dynamic_joints])
+        self._q        = None
+        self._q_dot    = None
+        self._q_f      = None
+        self.q_min     = np.array([self.joints[j].lowerLimit  for j in self.__joint_names if j in self.dynamic_joints])
+        self.q_max     = np.array([self.joints[j].upperLimit  for j in self.__joint_names if j in self.dynamic_joints])
+        self.q_dot_max = np.array([self.joints[j].maxVelocity for j in self.__joint_names if j in self.dynamic_joints])
+        self.q_f_max   = np.array([self.joints[j].maxEffort   for j in self.__joint_names if j in self.dynamic_joints])
 
         # Initialize empty JS for objects without dynamic joints
         self.__joint_state = None if len(self.__dynamic_joint_indices) > 0 else {}
@@ -524,7 +527,7 @@ class MultiBody(RigidBody):
             if override_initial:
                 self._initial_joint_state.update(state)
         else:
-            for i, p in enumerate(state):
+            for i, p in zip(self.__dynamic_joint_indices, state):
                 pb.resetJointState(self._bulletId, i, p, physicsClientId=self._client_id)
             if override_initial:
                 self._initial_joint_state.update(dict(zip(self.__joint_names, state)))
@@ -541,7 +544,7 @@ class MultiBody(RigidBody):
             cmd_indices, cmd_pos = zip(*[(self.joints[j].jointIndex, c) for j, c in cmd.items() 
                                                                         if j in self.joints])
         else:
-            cmd_indices = range(len(self.dynamic_joints))
+            cmd_indices = self.__dynamic_joint_indices
             cmd_pos = cmd
 
         # self.joint_driver.update_positions(self, cmd)
@@ -550,6 +553,7 @@ class MultiBody(RigidBody):
                                      cmd_indices, 
                                      pb.POSITION_CONTROL, 
                                      targetPositions=cmd_pos,
+                                     targetVelocities=np.zeros_like(cmd_pos),
                                      forces=max_force,
                                      physicsClientId=self._client_id)
 
@@ -717,17 +721,21 @@ class Link(Frame):
                                             self._client_id)
         return np.vstack((j_pos, j_rot))
 
-    def ik(self, world_pose : Union[Point3, Transform]):
+    def ik(self, world_pose : Union[Point3, Transform], max_iterations=50):
         if type(world_pose) == Point3:
             return np.asarray(pb.calculateInverseKinematics(self._multibody.bId,
                                                             self._idx,
                                                             world_pose,
+                                                            maxNumIterations=max_iterations,
+                                                            residualThreshold=1e-5,
                                                             physicsClientId=self._client_id
                                                             ))
         return np.asarray(pb.calculateInverseKinematics(self._multibody.bId,
                                                             self._idx,
                                                             world_pose.position,
                                                             world_pose.quaternion,
+                                                            maxNumIterations=max_iterations,
+                                                            residualThreshold=1e-5,
                                                             physicsClientId=self._client_id
                                                             ))
 
@@ -737,7 +745,7 @@ class FTSensor():
     joint : str
 
     def get(self):
-        self.body.joint_state()
+        self.body.joint_state
 
         return self.body.__joint_state[self.joint].reactionForce
 
