@@ -350,7 +350,8 @@ class BasicSimulator(object):
                                                pose.quaternion,
                                                0,              # MAXIMAL COORDINATES, DO NOT TOUCH!
                                                useFixedBase,
-                                               flags=pb.URDF_USE_SELF_COLLISION_EXCLUDE_PARENT, physicsClientId=self.__client_id), 
+                                               flags=pb.URDF_USE_SELF_COLLISION | pb.URDF_USE_SELF_COLLISION_EXCLUDE_PARENT, 
+                                               physicsClientId=self.__client_id), 
                                    pose, 
                                    joint_driver, 
                                    urdf_path)
