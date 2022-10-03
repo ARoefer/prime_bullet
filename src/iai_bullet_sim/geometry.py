@@ -76,9 +76,48 @@ class Quaternion(tuple):
     def euler(self):
         return pb.getEulerFromQuaternion(self)
     
+    def axis_angle(self, epsilon=1e-4):
+        angle = self.angle()
+        if angle <= epsilon:
+            return Vector3(1, 0, 0), 0.0
+
+        axis  = Vector3(self[:3])
+        axis /= axis.norm()
+        return axis, angle
+
+    def angle(self, other=None):
+        if other is None:
+            return 2 * np.arccos(self[3])
+
+        qd = self.inv().dot(other)
+        return 2 * np.arccos(qd[3])
+
+    def lerp(self, other, fac, epsilon=1e-4):
+        fac = np.clamp(fac, 0.0, 1.0)
+        qd  = self.inv().dot(other)
+        ang = 2 * np.arccos(qd[3])
+        
+        if ang <= epsilon:
+            return self
+
+        axis  = Vector3(qd[:3])
+        
+        qi = Quaternion.from_axis_angle(axis, ang * fac)
+        return self.dot(qi)
+
+
     @staticmethod
     def from_euler(r, p, y):
         return Quaternion(*pb.getQuaternionFromEuler((r, p, y)))
+
+    @staticmethod
+    def from_axis_angle(axis : Vector3, angle : float):
+        if axis.norm() <= 1e-4:
+            return Quaternion.identity()
+
+        axis /= axis.norm()
+        axis *= np.sin(angle * 0.5)
+        return Quaternion(*axis, np.cos(angle * 0.5))
 
     @staticmethod
     def from_matrix(mat):
@@ -125,6 +164,21 @@ class Transform:
         out[:3, 3]  = self.position
         out[:3, :3] = self.quaternion.matrix()
         return out
+
+    def relative(self, other):
+        return self.inv().dot(other)
+
+    def lerp(self, other, fac, epsilon=1e-4):
+        td = self.relative(other)
+
+        axis, angle = td.quaternion.axis_angle(epsilon)
+        if td.position.norm() <= epsilon or angle <= epsilon:
+            return self
+
+        # Interpolate
+        fac = np.clamp(fac, 0.0, 1.0)
+        ti  = Transform(td.position * fac, Quaternion.from_axis_angle(axis, angle * fac))
+        return self.dot(ti)
 
     @staticmethod
     def from_xyz_rpy(x, y, z, rr, rp, ry):
