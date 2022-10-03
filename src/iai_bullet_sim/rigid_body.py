@@ -133,7 +133,7 @@ class RigidBody(Frame):
 
     @pose.setter
     def pose(self, pose):
-        self.local_pose(pose)
+        self.local_pose = pose
 
     @property
     def linear_velocity(self):

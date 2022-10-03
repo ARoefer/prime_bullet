@@ -393,7 +393,7 @@ class MultiBody(RigidBody):
         self.__joint_names           = [j for _, j in sorted([(info.jointIndex, joint) for joint, info in self.joints.items()])]
         self.__dynamic_joint_indices = [info.jointIndex for info in self.dynamic_joints.values()]
         #print('dynamic joints:\n  {}'.format('\n  '.join([info.jointName for info in self.joints.values() if info.jointType != pb.JOINT_FIXED])))
-
+        self.__monitored_joint_indices = self.__dynamic_joint_indices.copy()
 
         self.links = {info.linkName.decode('utf-8') for info in self.joints.values()}
         self.links.add(self.base_link)
@@ -411,7 +411,7 @@ class MultiBody(RigidBody):
         self.q_f_max   = np.array([self.joints[j].maxEffort   for j in self.__joint_names if j in self.dynamic_joints])
 
         # Initialize empty JS for objects without dynamic joints
-        self.__joint_state = None if len(self.__dynamic_joint_indices) > 0 else {}
+        self._joint_state = None if len(self.__dynamic_joint_indices) > 0 else {}
         self.__last_sim_js_update = -1
 
 
@@ -461,12 +461,12 @@ class MultiBody(RigidBody):
     def __refresh_joint_state(self):
         if self._simulator.sim_step != self.__last_sim_js_update and len(self.__dynamic_joint_indices) > 0:
             new_js = [JointState(*x) for x in pb.getJointStates(self._bulletId, 
-                                                                self.__dynamic_joint_indices, 
+                                                                self.__monitored_joint_indices, 
                                                                 physicsClientId=self._client_id)]
             self._q     = np.array([j.position for j in new_js])
             self._q_dot = np.array([j.velocity for j in new_js])
             self._q_f   = np.array([j.effort   for j in new_js])
-            self.__joint_state = {self.__joint_names[self.__dynamic_joint_indices[x]]: new_js[x] for x in range(len(new_js))}        
+            self._joint_state = {self.__joint_names[x]: js for x, js in zip(self.__monitored_joint_indices, new_js)}        
 
     @property
     def q(self):
@@ -489,7 +489,7 @@ class MultiBody(RigidBody):
         :rtype: dict
         """
         self.__refresh_joint_state()
-        return self.__joint_state
+        return self._joint_state
 
     def get_ft_sensor(self, joint_name):
         if joint_name not in self.joint_sensors:
@@ -501,6 +501,7 @@ class MultiBody(RigidBody):
                                             True, 
                                             physicsClientId=self._client_id)
             self.joint_sensors[joint_name] = FTSensor(self, joint_name)
+            self.__monitored_joint_indices.append(self.joints[joint_name].jointIndex)
         return self.joint_sensors[joint_name]
 
     def get_sensor_states(self):
@@ -509,7 +510,7 @@ class MultiBody(RigidBody):
         """
         self.joint_state()
 
-        return {sensor: self.__joint_state[sensor].reactionForce for sensor in self.joint_sensors}
+        return {sensor: self._joint_state[sensor].reactionForce for sensor in self.joint_sensors}
 
 
     def set_joint_positions(self, state, override_initial=False):
@@ -530,7 +531,7 @@ class MultiBody(RigidBody):
             for i, p in zip(self.__dynamic_joint_indices, state):
                 pb.resetJointState(self._bulletId, i, p, physicsClientId=self._client_id)
             if override_initial:
-                self._initial_joint_state.update(dict(zip(self.__joint_names, state)))
+                self._initial_joint_state.update({self.__joint_names[i]: p for i, p in zip(self.__dynamic_joint_indices, state)})
         self.__last_sim_js_update = -1
 
 
@@ -747,5 +748,5 @@ class FTSensor():
     def get(self):
         self.body.joint_state
 
-        return self.body.__joint_state[self.joint].reactionForce
+        return self.body._joint_state[self.joint].reactionForce
 

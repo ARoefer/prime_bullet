@@ -38,6 +38,8 @@ from .basic_simulator import BasicSimulator, \
                              ContactPoint, \
                              SimulatorPlugin
 
-from .controllers     import CartesianRelativeVirtualPointController, \
-                             CartesianRelativePointController,        \
-                             CartesianRelativeController
+from .controllers     import CartesianRelativeVirtualPointController,       \
+                             CartesianRelativePointController,              \
+                             CartesianRelativeController,                   \
+                             CartesianRelativePointCOrientationController,  \
+                             CartesianRelativeVPointCOrientationController

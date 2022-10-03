@@ -50,6 +50,27 @@ class CartesianRelativePointController(object):
         return self._point
 
 
+class CartesianRelativePointCOrientationController(object):
+    def __init__(self, robot : MultiBody, link : Link):
+        self._robot = robot
+        self._link  = link
+        self.reset()
+
+    def act(self, delta : Union[np.ndarray, Vector3]):
+        self._transform.position = self._link.pose.position + delta
+
+        ik_solution = self._link.ik(self._transform)
+        self._robot.apply_joint_pos_cmds(ik_solution, 
+                                         self._robot.q_f_max)
+    
+    def reset(self):
+        self._transform = self._link.pose
+
+    @property
+    def goal(self):
+        return self._transform
+
+
 class CartesianRelativeVirtualPointController(object):
     def __init__(self, robot : MultiBody, link : Link):
         self._robot = robot
@@ -69,3 +90,25 @@ class CartesianRelativeVirtualPointController(object):
     @property
     def goal(self):
         return self._point
+
+
+class CartesianRelativeVPointCOrientationController(object):
+    def __init__(self, robot : MultiBody, link : Link):
+        self._robot = robot
+        self._link  = link
+        self.reset()
+    
+    def act(self, delta : Union[np.ndarray, Vector3]):
+        self._transform.position += delta
+
+        ik_solution = self._link.ik(self._transform)
+        self._robot.apply_joint_pos_cmds(ik_solution, 
+                                         self._robot.q_f_max)
+    
+    def reset(self):
+        self._transform = self._link.pose
+
+    @property
+    def goal(self):
+        return self._transform
+

@@ -10,7 +10,7 @@ from iai_bullet_sim.basic_simulator import BasicSimulator
 if __name__ == '__main__':
     
     if len(sys.argv) < 2:
-            print('Name of urdf to load required. ROS package URIs are supported.')
+        print('Name of urdf to load required. ROS package URIs are supported.')
     else:
         
         sim = BasicSimulator()
