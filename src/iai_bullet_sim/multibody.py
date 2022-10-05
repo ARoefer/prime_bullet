@@ -332,6 +332,34 @@ JointInfo = namedtuple('JointInfo', ['jointIndex', 'jointName', 'jointType', 'qI
                                      'axis', 'parentFramePos', 'parentFrameOrn', 'parentIndex'])
 
 
+class Joint(object):
+    def __init__(self, body, jointIndex, jointName, jointType, qIndex, uIndex,
+                             flags, jointDamping, jointFriction, lowerLimit,
+                             upperLimit, maxEffort, maxVelocity, linkName,
+                             axis, parentFramePos, parentFrameOrn, parentIndex):
+        self.body  = body
+        self.index = jointIndex
+        self.name  = jointName.decode('utf-8')
+        self.type  = jointType
+        self.q_idx = qIndex
+        self.u_idx = uIndex
+        self.damping  = jointDamping
+        self.friction = jointFriction
+        self.q_min    = lowerLimit
+        self.q_max    = upperLimit
+        self.limits   = np.array([lowerLimit, upperLimit])
+        self.f_max    = maxEffort
+        self.qd_max   = maxVelocity
+        self.link     = body.links[linkName.decode('utf-8')]
+        self.axis     = Vector3(*axis)
+        self.local_pose = Transform(Point3(*parentFramePos), Quaternion(*parentFrameOrn))
+        self.parent     = body.get_link_by_index(parentIndex)
+
+    @property
+    def is_dynamic(self):
+        return self.type != pb.JOINT_FIXED
+
+
 # Link state structure. Assigns names to bullet's info structure.
 @dataclass
 class LinkState:
@@ -382,33 +410,30 @@ class MultiBody(RigidBody):
         #print('PyBullet says:\n  Name: {}\n  Base: {}\n'.format(multibodyName, base_link))
         self.base_link = base_link.decode('utf-8')
 
-        for x in range(pb.getNumJoints(self._bulletId, physicsClientId=self._client_id)):
-            joint = JointInfo(*pb.getJointInfo(self._bulletId, x, physicsClientId=self._client_id))
-            self.joints[joint.jointName.decode('utf-8')] = joint
-            if joint.jointType != pb.JOINT_FIXED:
-                self.dynamic_joints[joint.jointName.decode('utf-8')] = joint
-                self._initial_joint_state[joint.jointName.decode('utf-8')] = min(max(joint.lowerLimit, 0.0), joint.upperLimit)
+        joint_info = [JointInfo(*pb.getJointInfo(self._bulletId, x, physicsClientId=self._client_id)) for x in range(pb.getNumJoints(self._bulletId, physicsClientId=self._client_id))]
 
+        self.i_links     = {info.jointIndex: info.linkName.decode('utf-8') for info in joint_info}
+        self.i_links[-1] = self.base_link
+        self.i_links     = {i: Link(self._simulator, self, i, n) for i, n in self.i_links.items()}
+        self.links       = {link.name: link for link in self.i_links.values()}
 
-        self.__joint_names           = [j for _, j in sorted([(info.jointIndex, joint) for joint, info in self.joints.items()])]
-        self.__dynamic_joint_indices = [info.jointIndex for info in self.dynamic_joints.values()]
+        self.i_joints = [Joint(self, *info) for info in joint_info]
+        self.joints   = {j.name: j for j in self.i_joints}
+        self.dynamic_joints       = {n: j for n, j in self.joints.items() if j.is_dynamic}
+        self._initial_joint_state = {n: min(max(j.q_min, 0.0), j.q_max) for n, j in self.dynamic_joints.items()}
+
+        self.__joint_names           = [j.name for j in self.i_joints]
+        self.__dynamic_joint_indices = [info.index for info in self.dynamic_joints.values()]
         #print('dynamic joints:\n  {}'.format('\n  '.join([info.jointName for info in self.joints.values() if info.jointType != pb.JOINT_FIXED])))
         self.__monitored_joint_indices = self.__dynamic_joint_indices.copy()
-
-        self.links = {info.linkName.decode('utf-8') for info in self.joints.values()}
-        self.links.add(self.base_link)
-        self.link_index_map = {info.linkName.decode('utf-8'): info.jointIndex for info in self.joints.values()}
-        self.link_index_map[self.base_link] = -1
-        self.links = {n: Link(self._simulator, self, i) for n, i in self.link_index_map.items()}
-        self.index_link_map = {i: l for l, i in self.link_index_map.items()}
 
         self._q        = None
         self._q_dot    = None
         self._q_f      = None
-        self.q_min     = np.array([self.joints[j].lowerLimit  for j in self.__joint_names if j in self.dynamic_joints])
-        self.q_max     = np.array([self.joints[j].upperLimit  for j in self.__joint_names if j in self.dynamic_joints])
-        self.q_dot_max = np.array([self.joints[j].maxVelocity for j in self.__joint_names if j in self.dynamic_joints])
-        self.q_f_max   = np.array([self.joints[j].maxEffort   for j in self.__joint_names if j in self.dynamic_joints])
+        self.q_min     = np.array([j.q_min  for j in self.i_joints if j.is_dynamic])
+        self.q_max     = np.array([j.q_max  for j in self.i_joints if j.is_dynamic])
+        self.q_dot_max = np.array([j.qd_max for j in self.i_joints if j.is_dynamic])
+        self.q_f_max   = np.array([j.f_max  for j in self.i_joints if j.is_dynamic])
 
         # Initialize empty JS for objects without dynamic joints
         self._joint_state = None if len(self.__dynamic_joint_indices) > 0 else {}
@@ -443,6 +468,9 @@ class MultiBody(RigidBody):
             if link not in self.link_index_map:
                 raise Exception('Link "{}" is not defined'.format(link))
             return self.link_index_map[link]
+
+    def get_link_by_index(self, index):
+        return self.i_links[index]
 
     def get_link(self, link):
         return self.links[link]
@@ -497,11 +525,11 @@ class MultiBody(RigidBody):
                 raise Exception(f'Cannot get FT sensor for non-existent joint "{joint_name}"')
 
             pb.enableJointForceTorqueSensor(self._bulletId, 
-                                            self.joints[joint_name].jointIndex, 
+                                            self.joints[joint_name].index, 
                                             True, 
                                             physicsClientId=self._client_id)
             self.joint_sensors[joint_name] = FTSensor(self, joint_name)
-            self.__monitored_joint_indices.append(self.joints[joint_name].jointIndex)
+            self.__monitored_joint_indices.append(self.joints[joint_name].index)
         return self.joint_sensors[joint_name]
 
     def get_sensor_states(self):
@@ -524,7 +552,7 @@ class MultiBody(RigidBody):
         if type(state) == dict:
             for j, p in state.items():
                 if j in self.joints:
-                    pb.resetJointState(self._bulletId, self.joints[j].jointIndex, p, physicsClientId=self._client_id)
+                    pb.resetJointState(self._bulletId, self.joints[j].index, p, physicsClientId=self._client_id)
             if override_initial:
                 self._initial_joint_state.update(state)
         else:
@@ -542,8 +570,8 @@ class MultiBody(RigidBody):
         :type  cmd: dict
         """
         if type(cmd) == dict:
-            cmd_indices, cmd_pos = zip(*[(self.joints[j].jointIndex, c) for j, c in cmd.items() 
-                                                                        if j in self.joints])
+            cmd_indices, cmd_pos = zip(*[(self.joints[j].index, c) for j, c in cmd.items() 
+                                                                   if j in self.joints])
         else:
             cmd_indices = self.__dynamic_joint_indices
             cmd_pos = cmd
@@ -570,7 +598,7 @@ class MultiBody(RigidBody):
         self.joint_driver.update_velocities(self, cmd)
         for jname in cmd.keys():
             if jname in self.joints:
-                cmd_indices.append(self.joints[jname].jointIndex)
+                cmd_indices.append(self.joints[jname].index)
                 cmd_vels.append(cmd[jname])
 
         #print('\n'.join(['{}: {}'.format(self.__joint_names[cmd_indices[x]], cmd_vels[x]) for x in range(len(cmd_vels))])) # TODO: REMOVE THIS
@@ -593,7 +621,7 @@ class MultiBody(RigidBody):
         self.joint_driver.update_effort(self, cmd)
         for jname in cmd.keys():
             if jname in self.joints:
-                cmd_indices.append(self.joints[jname].jointIndex)
+                cmd_indices.append(self.joints[jname].index)
                 cmd_torques.append(cmd[jname])
 
         pb.setJointMotorControlArray(self._bulletId, 
@@ -634,18 +662,23 @@ class MultiBody(RigidBody):
 
 
 class Link(Frame):
-    def __init__(self, simulator, multibody : MultiBody, idx : int):
+    def __init__(self, simulator, multibody : MultiBody, idx : int, name : str):
         super().__init__(None)
 
         self._simulator = simulator
         self._client_id = simulator.client_id
         self._multibody = multibody
         self._idx       = idx
+        self._name      = name
 
         self.__current_state = None
         self.__last_sim_pose_update = -1
         self.__current_aabb = None
         self.__last_aabb_update = -1
+
+    @property
+    def name(self):
+        return self._name
 
     @property
     def idx(self):
