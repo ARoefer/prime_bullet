@@ -3,45 +3,61 @@ import pybullet as pb
 
 from dataclasses import dataclass
 
-# Datastructure representing a point
-class Point3(tuple):
-    def __new__(cls, x, y, z):
-        return super(Point3, cls).__new__(cls, (x, y, z))
-
-    def __add__(self, other):
-        return Point3(*(np.asarray(self) + other))
-    
-    def __sub__(self, other):
-        if type(other) == Vector3:
-            return Point3(*(np.asarray(self) - other))
-        return Vector3(*(np.asarray(self) - other))
-
-    def norm(self):
-        return np.sqrt((np.asarray(self) ** 2).sum())
-
-    @staticmethod
-    def zero():
-        return Point3(0, 0, 0)
-
 # Datastructure representing a vector
 class Vector3(tuple):
     def __new__(cls, x, y, z):
         return super(Vector3, cls).__new__(cls, (x, y, z))
 
     def __add__(self, other):
-        return Vector3(*(np.asarray(self) + other))
+        return type(self)(*(np.asarray(self) + other))
     
     def __sub__(self, other):
-        return Vector3(*(np.asarray(self) - other))
+        return type(self)(*(np.asarray(self) - other))
     
     def __mul__(self, other):
-        return Vector3(*(np.asarray(self) * other))
+        return type(self)(*(np.asarray(self) * other))
 
-    def __div__(self, other):
-        return Vector3(*(np.asarray(self) / other))
+    def __truediv__(self, other):
+        return type(self)(*(np.asarray(self) / other))
 
     def __neg__(self):
-        return Vector3(*(-np.asarray(self)))
+        return type(self)(*(-np.asarray(self)))
+
+    def __le__(self, other):
+        return np.asarray(self) <= other
+    
+    def __lt__(self, other):
+        return np.asarray(self) <  other
+    
+    def __ge__(self, other):
+        return np.asarray(self) >= other
+    
+    def __gt__(self, other):
+        return np.asarray(self) >  other
+
+    def __eq__(self, other):
+        return np.asarray(self) == other
+
+    def __and__(self, other):
+        return np.asarray(other) & other
+    
+    def __or__(self, other):
+        return np.asarray(other) | other
+    
+    def __xor__(self, other):
+        return np.asarray(other) ^ other
+
+    @property
+    def x(self):
+        return self[0]
+
+    @property
+    def y(self):
+        return self[1]
+    
+    @property
+    def z(self):
+        return self[2]
 
     def norm(self):
         return np.sqrt((np.asarray(self) ** 2).sum())
@@ -53,10 +69,37 @@ class Vector3(tuple):
     def zero():
         return Vector3(0, 0, 0)
 
+# Datastructure representing a point
+class Point3(Vector3):
+    def __new__(cls, x, y, z):
+        return super(Point3, cls).__new__(cls, x, y, z)
+    
+    def __sub__(self, other):
+        if type(other) == Vector3:
+            return Point3(*(np.asarray(self) - other))
+        return Vector3(*(np.asarray(self) - other))
+
+
 # Datastructure representing a quaternion
 class Quaternion(tuple):
     def __new__(cls, x, y, z, w):
         return super(Quaternion, cls).__new__(cls, (x, y, z, w))
+
+    @property
+    def x(self):
+        return self[0]
+
+    @property
+    def y(self):
+        return self[1]
+    
+    @property
+    def z(self):
+        return self[2]
+
+    @property
+    def w(self):
+        return self[2]
 
     def dot(self, other):
         if type(other) == Quaternion:
@@ -212,3 +255,5 @@ class AABB:
     def center(self):
         return self.min + (self.max - self.min) * 0.5
 
+    def inside(self, point : Point3):
+        return ((self.min <= point) & (self.max >= point)).min()
