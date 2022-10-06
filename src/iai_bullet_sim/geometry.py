@@ -65,6 +65,9 @@ class Vector3(tuple):
     def dot(self, other):
         return (np.asarray(self) * other).sum()
 
+    def numpy(self):
+        return np.asarray(self)
+
     @staticmethod
     def zero():
         return Vector3(0, 0, 0)
@@ -148,6 +151,8 @@ class Quaternion(tuple):
         qi = Quaternion.from_axis_angle(axis, ang * fac)
         return self.dot(qi)
 
+    def numpy(self):
+        return np.asarray(self)
 
     @staticmethod
     def from_euler(r, p, y):
@@ -257,3 +262,6 @@ class AABB:
 
     def inside(self, point : Point3):
         return ((self.min <= point) & (self.max >= point)).min()
+
+    def numpy(self):
+        return np.vstack((self.min, self.max))
