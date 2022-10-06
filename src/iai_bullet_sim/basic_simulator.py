@@ -2,6 +2,9 @@ import os
 import pybullet as pb
 import random
 import tempfile
+import pkgutil
+
+EGL = pkgutil.get_loader('eglRenderer')
 
 from dataclasses import dataclass
 from jinja2      import Template
@@ -94,7 +97,7 @@ class ContactPoint(object):
 
 class BasicSimulator(object):
     """Class wrapping the PyBullet interface in an object oriented manner."""
-    def __init__(self, tick_rate=50, gravity=[0,0,-9.81]):
+    def __init__(self, tick_rate=50, gravity=[0,0,-9.81], use_egl=False):
         """Constructs a simulator.
 
         :param tick_rate: Ticks ideally performed per second.
@@ -127,6 +130,14 @@ class BasicSimulator(object):
         with open(f'{IAI_BULLET_ROOT}/data/urdf/template_single_mesh.urdf', 'r') as f:
             self.__mesh_template  = Template(f.read())
         self._temp_mesh_urdfs = {}
+
+        if use_egl:
+            self.__egl_plugin = pb.loadPlugin(EGL.get_filename(), "_eglRendererPlugin", physicsClientId=self.__client_id)
+        else:
+            self.__egl_plugin = None
+
+    def __del__(self):
+        pb.unloadPlugin(self.__egl_plugin, physicsClientId=self.__client_id)
 
     @property
     def sim_step(self):
