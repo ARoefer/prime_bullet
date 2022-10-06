@@ -115,6 +115,7 @@ class BasicSimulator(object):
         self.__bId_IdMap = {}
         self.__cId_IdMap = {}
         self.__sdf_worlds = set()
+        self.__visualizer = None
 
         self.__h = random.random()
         self.__nextId = 0
@@ -134,6 +135,10 @@ class BasicSimulator(object):
         :rtype: int
         """
         return self.__n_updates
+
+    @property
+    def visualizer(self) -> Union[DebugVisualizer, None]:
+        return self.__visualizer
 
     @property
     def client_id(self):
@@ -164,6 +169,9 @@ class BasicSimulator(object):
         self.physicsClient = pb.connect({'gui': pb.GUI, 'direct': pb.DIRECT}[mode], self.__client_id)#or p.DIRECT for non-graphical version
         pb.setGravity(*self.gravity, physicsClientId=self.__client_id)
         pb.setTimeStep(self.time_step, physicsClientId=self.__client_id)
+
+        if mode == 'gui':
+            self.__visualizer = DebugVisualizer(self.__client_id)
 
 
     def set_tick_rate(self, tick_rate):
