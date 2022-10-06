@@ -7,20 +7,21 @@ from dataclasses import dataclass
 from jinja2      import Template
 from typing      import Iterable, Union
 
-from iai_bullet_sim import IAI_BULLET_ROOT
-from iai_bullet_sim.camera import Camera
-from iai_bullet_sim.utils      import ColorRGBA, abs_sdf_paths, abs_urdf_paths, \
-                                      res_pkg_path, import_class, res_sdf_model_path
-from iai_bullet_sim.geometry   import Vector3,         \
-                                      Point3,          \
-                                      Quaternion,      \
-                                      Transform
-from iai_bullet_sim.multibody  import MultiBody, JointDriver
-from iai_bullet_sim.rigid_body import BoxBody,         \
-                                      CylinderBody, MeshBody, SDFBody, SDFWorldBody,    \
-                                      SphereBody,      \
-                                      RigidBody
-from iai_bullet_sim.constraint import Constraint
+from . import IAI_BULLET_ROOT
+from .camera import Camera
+from .utils      import ColorRGBA, abs_sdf_paths, abs_urdf_paths, \
+                        res_pkg_path, import_class, res_sdf_model_path
+from .geometry   import Vector3,         \
+                        Point3,          \
+                        Quaternion,      \
+                        Transform
+from .multibody  import MultiBody, JointDriver
+from .rigid_body import BoxBody,         \
+                        CylinderBody, MeshBody, SDFBody, SDFWorldBody,    \
+                        SphereBody,      \
+                        RigidBody
+from .constraint import Constraint
+from .debug_visualizer import DebugVisualizer
 
 
 def hsva_to_rgba(h, s, v, a):
