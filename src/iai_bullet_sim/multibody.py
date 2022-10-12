@@ -677,6 +677,10 @@ class Link(Frame):
         self.__last_aabb_update = -1
 
     @property
+    def bId(self):
+        return self._multibody.bId
+
+    @property
     def name(self):
         return self._name
 

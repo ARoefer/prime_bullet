@@ -35,6 +35,42 @@ class ColorRGBA(tuple):
     def __neg__(self):
         return ColorRGBA(*(-np.asarray(self)))
 
+    @staticmethod
+    def black():
+        return ColorRGBA(0.0, 0.0, 0.0, 1.0)
+    
+    @staticmethod
+    def white():
+        return ColorRGBA(1.0, 1.0, 1.0, 1.0)
+
+    @staticmethod
+    def red():
+        return ColorRGBA(1.0, 0.0, 0.0, 1.0)
+
+    @staticmethod
+    def green():
+        return ColorRGBA(0.0, 1.0, 0.0, 1.0)
+
+    @staticmethod
+    def blue():
+        return ColorRGBA(0.0, 0.0, 1.0, 1.0)
+
+    @staticmethod
+    def yellow():
+        return ColorRGBA(1.0, 1.0, 0.0, 1.0)
+    
+    @staticmethod
+    def pink():
+        return ColorRGBA(1.0, 0.0, 1.0, 1.0)
+
+    @staticmethod
+    def cyan():
+        return ColorRGBA(0.0, 1.0, 1.0, 1.0)
+    
+    @staticmethod
+    def orange():
+        return ColorRGBA(1.0, 0.7, 0.0, 1.0)
+
 
 def res_pkg_path(rpath):
     """Resolves a ROS package relative path to a global path.
