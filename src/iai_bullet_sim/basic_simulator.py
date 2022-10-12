@@ -137,6 +137,7 @@ class BasicSimulator(object):
             self.__egl_plugin = None
 
     def __del__(self):
+        if self.__egl_plugin is not None:
         pb.unloadPlugin(self.__egl_plugin, physicsClientId=self.__client_id)
 
     @property
