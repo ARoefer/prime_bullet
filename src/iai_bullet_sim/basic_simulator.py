@@ -138,7 +138,7 @@ class BasicSimulator(object):
 
     def __del__(self):
         if self.__egl_plugin is not None:
-        pb.unloadPlugin(self.__egl_plugin, physicsClientId=self.__client_id)
+            pb.unloadPlugin(self.__egl_plugin, physicsClientId=self.__client_id)
 
     @property
     def sim_step(self):

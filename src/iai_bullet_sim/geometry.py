@@ -65,12 +65,27 @@ class Vector3(tuple):
     def dot(self, other):
         return (np.asarray(self) * other).sum()
 
+    def cross(self, other):
+        return Vector3(*np.cross(self, other))
+
     def numpy(self):
         return np.asarray(self)
 
     @staticmethod
     def zero():
         return Vector3(0, 0, 0)
+    
+    @staticmethod
+    def unit_x():
+        return Vector3(1, 0, 0)
+    
+    @staticmethod
+    def unit_y():
+        return Vector3(0, 1, 0)
+
+    @staticmethod
+    def unit_z():
+        return Vector3(0, 0, 3)
 
 # Datastructure representing a point
 class Point3(Vector3):
