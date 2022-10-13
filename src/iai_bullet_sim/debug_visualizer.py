@@ -34,6 +34,8 @@ class DebugVisItemBatch():
 
 
 class DebugVisualizer(object):
+    _const_camera_rot = Transform(Point3.zero(), Quaternion.from_euler(np.deg2rad(-90), 0, np.deg2rad(90)))
+
     def __init__(self, client_id, flags= pb.COV_ENABLE_SHADOWS
                                        | pb.COV_ENABLE_RENDERING,
                                   background_color=Vector3(0.7, 0.9, 1.0)):
@@ -76,9 +78,10 @@ class DebugVisualizer(object):
         width, height, view, proj, up, fwd, hor, vert, yaw, pitch, dist, target = pb.getDebugVisualizerCamera(physicsClientId=self._client_id)
         rotation = Quaternion.from_euler(np.deg2rad(0), 
                                          np.deg2rad(pitch), 
-                                         np.deg2rad(yaw))
-        print(rotation.matrix())
-        return Transform.from_xyz(*target).dot(Transform(Point3.zero(), rotation).dot(Transform.from_xyz(0, 0, -dist)))
+                                         np.deg2rad(yaw - 90))
+        tf_orbit = Transform(Point3.zero(), rotation).dot(Transform.from_xyz(dist, 0, 0).dot(self._const_camera_rot))
+        # print(f'Pitch: {pitch} Yaw: {yaw}\n{tf_orbit.quaternion.matrix()}\nPoint: {tf_orbit.position}')
+        return Transform.from_xyz(*target).dot(tf_orbit)
 
     def draw_line(self, start, end, color=ColorRGBA.blue(), width=0.1, time=0.0, frame=None):
         if type(frame) in {RigidBody, MultiBody}:
