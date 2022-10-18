@@ -491,9 +491,9 @@ class MultiBody(RigidBody):
             new_js = [JointState(*x) for x in pb.getJointStates(self._bulletId, 
                                                                 self.__monitored_joint_indices, 
                                                                 physicsClientId=self._client_id)]
-            self._q     = np.array([j.position for j in new_js])
-            self._q_dot = np.array([j.velocity for j in new_js])
-            self._q_f   = np.array([j.effort   for j in new_js])
+            self._q     = np.array([j.position for j in new_js[:len(self.dynamic_joints)]])
+            self._q_dot = np.array([j.velocity for j in new_js[:len(self.dynamic_joints)]])
+            self._q_f   = np.array([j.effort   for j in new_js[:len(self.dynamic_joints)]])
             self._joint_state = {self.__joint_names[x]: js for x, js in zip(self.__monitored_joint_indices, new_js)}        
 
     @property

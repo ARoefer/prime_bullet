@@ -8,6 +8,56 @@ from iai_bullet_sim.geometry  import Vector3,  \
 from iai_bullet_sim.multibody import MultiBody, Link
 
 
+class JointPositionController(object):
+    def __init__(self, robot : MultiBody):
+        self._robot = robot
+        self._q_goal = None
+        self.reset()
+
+    def act(self, position : Union[np.ndarray, Transform]):
+        self._q_goal = position
+        self._robot.apply_joint_pos_cmds(self._q_goal, 
+                                         self._robot.q_f_max)
+
+    def reset(self):
+        self._q_goal = self._robot.q
+
+    @property
+    def delta(self):
+        return self._q_goal - self._robot.q
+
+    @property
+    def goal(self):
+        return self._q_goal
+
+
+class CartesianController(object):
+    def __init__(self, robot : MultiBody, link : Link):
+        self._robot = robot
+        self._link  = link
+        self.reset()
+
+    def act(self, goal : Transform):
+        self._transform = goal
+
+        ik_solution = self._link.ik(self._transform)
+        self._robot.apply_joint_pos_cmds(ik_solution, 
+                                         self._robot.q_f_max)
+
+    def reset(self):
+        self._transform = self._link.pose
+
+    @property
+    def delta(self):
+        ee_pose = self._link.pose
+        return np.array([(self._transform.position - ee_pose.position).norm(), 
+                          self._transform.quaternion.angle(ee_pose.quaternion)])
+
+    @property
+    def goal(self):
+        return self._transform
+
+
 class CartesianRelativeController(object):
     def __init__(self, robot : MultiBody, link : Link):
         self._robot = robot
@@ -15,18 +65,24 @@ class CartesianRelativeController(object):
         self.reset()
 
     def act(self, delta : Union[np.ndarray, Transform]):
-        self._pose = self._link.pose.dot(delta)
+        self._transform = self._link.pose.dot(delta)
 
-        ik_solution = self._link.ik(self._pose)
+        ik_solution = self._link.ik(self._transform)
         self._robot.apply_joint_pos_cmds(ik_solution, 
                                          self._robot.q_f_max)
 
     def reset(self):
-        self._pose = self._link.pose
+        self._transform = self._link.pose
+
+    @property
+    def delta(self):
+        ee_pose = self._link.pose
+        return np.array([(self._transform.position - ee_pose.position).norm(), 
+                          self._transform.quaternion.angle(ee_pose.quaternion)])
 
     @property
     def goal(self):
-        return self._pose
+        return self._transform
 
 
 class CartesianRelativePointController(object):
@@ -44,6 +100,10 @@ class CartesianRelativePointController(object):
     
     def reset(self):
         self._point = self._link.pose.position
+
+    @property
+    def delta(self):
+        return (self._point - self._link.pose.position).norm()
 
     @property
     def goal(self):
@@ -67,6 +127,12 @@ class CartesianRelativePointCOrientationController(object):
         self._transform = self._link.pose
 
     @property
+    def delta(self):
+        ee_pose = self._link.pose
+        return np.array([(self._transform.position - ee_pose.position).norm(), 
+                          self._transform.quaternion.angle(ee_pose.quaternion)])
+
+    @property
     def goal(self):
         return self._transform
 
@@ -88,6 +154,10 @@ class CartesianRelativeVirtualPointController(object):
         self._point = self._link.pose.position
 
     @property
+    def delta(self):
+        return (self._position - self._link.pose.position).norm()
+    
+    @property
     def goal(self):
         return self._point
 
@@ -107,6 +177,12 @@ class CartesianRelativeVPointCOrientationController(object):
     
     def reset(self):
         self._transform = self._link.pose
+
+    @property
+    def delta(self):
+        ee_pose = self._link.pose
+        return np.array([(self._transform.position - ee_pose.position).norm(), 
+                          self._transform.quaternion.angle(ee_pose.quaternion)])
 
     @property
     def goal(self):

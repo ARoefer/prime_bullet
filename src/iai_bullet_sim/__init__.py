@@ -38,7 +38,9 @@ from .basic_simulator import BasicSimulator, \
                              ContactPoint, \
                              SimulatorPlugin
 
-from .controllers     import CartesianRelativeVirtualPointController,       \
+from .controllers     import JointPositionController, \
+                             CartesianController, \
+                             CartesianRelativeVirtualPointController,       \
                              CartesianRelativePointController,              \
                              CartesianRelativeController,                   \
                              CartesianRelativePointCOrientationController,  \
