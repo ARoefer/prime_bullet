@@ -319,11 +319,16 @@ class JointState(object):
         """
         self.position = pos
         self.velocity = vel
-        self.reactionForce = ReactionForces(rForce[:3], rForce[3:])
+        self.reactionForce = ReactionForces(Vector3(*rForce[:3]), Vector3(*rForce[3:]))
         self.effort = appliedTorque
 
-# Reaction force structure. Assigns names to bullet's info structure.
-ReactionForces  = namedtuple('ReactionForces', ['f', 'm'])
+@dataclass
+class ReactionForces:
+    linear  : Vector3
+    angular : Vector3
+
+    def numpy(self):
+        return np.hstack([self.linear, self.angular])
 
 # Joint info structure. Assigns names to bullet's info structure.
 JointInfo = namedtuple('JointInfo', ['jointIndex', 'jointName', 'jointType', 'qIndex', 'uIndex',
