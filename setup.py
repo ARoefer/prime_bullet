@@ -31,6 +31,7 @@ except ModuleNotFoundError:
       install_requires=[
          "pybullet",
          "numpy",
+         "MarkupSafe==2.0.1",  # Jinja installs the wrong markup version.
          "jinja2",
       ],
    )
