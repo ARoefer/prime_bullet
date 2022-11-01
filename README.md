@@ -380,6 +380,59 @@ There are three more things in this library to mention:
 ### Plugins
 TODO. But generally, they allow users to attach additional functionality to the `update()` of the simulator. Check the `SimulatorPlugin` class for details.
 
+## Usage with `gym.Env`
+
+Briefly, let us remark on the usage of prime bullet with the OpenAI `gym` API. Since the `BasicSimulator` class seems to have a functional overlap with a `gym.Env`, it might be tempting to create a custom environment by deriving a class from both `BasicSimulator` and `gym.Env`. We advise against this, as it will create a messy architecture in which different semantic goals and timesteps collide. Instead, we propose the following as a rough skeleton for using prime bullet with gym environments:
+
+```python
+import gym
+import iai_bullet_sim as ibs
+
+class MyEnv(gym.Env):
+    def __init__(self, hz_action, substeps=1, **more_params_that_I_need):
+        # Create simulation with higher resolution than actual agent frequency
+        self.sim = ibs.BasicSimulator(hz_action * substeps)
+        self.sim.init('direct')
+        self._substeps = substeps
+
+        # Create all your objects
+
+    def reset(self):
+        # Do whatever else you need to do
+        self.sim.reset()
+
+        # Custom reset behavior such as priming PID-gains
+        return self.observation()
+
+    def step(self, action):
+        # Post-process your action
+        # Send to simulator
+        
+        # Actual physics. Higher resolution than agent
+        for _ in range(self._substeps):
+            self.sim.update()
+
+        # Calculate your rewards and done flag
+        return self.observation(), reward, done, some_info_dictionary
+    
+    def observation(self):
+        # Do stuff
+        return some_observation_that_you_constructed_from_the_sim
+
+    def close(self):
+        self.sim.kill()
+
+    @property
+    def observation_space(self):
+        return some_specification_of_an_observation_space
+
+    @property
+    def action_space(self):
+        return some_specification_of_an_action_space
+```
+
+As you can see in the code example, we suggest that you perform multiple simulation steps per agent step. While this is dependent on your agent's action frquency, we have found that a 30Hz simulation frequency easily leads to oscillations in the simulation. 
+
 ## Conclusion
 
 We hope this is enough of an overview to get you started. 
