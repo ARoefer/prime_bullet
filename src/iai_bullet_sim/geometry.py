@@ -85,7 +85,7 @@ class Vector3(tuple):
 
     @staticmethod
     def unit_z():
-        return Vector3(0, 0, 3)
+        return Vector3(0, 0, 1)
 
 # Datastructure representing a point
 class Point3(Vector3):
@@ -142,7 +142,7 @@ class Quaternion(tuple):
         if angle <= epsilon:
             return Vector3(1, 0, 0), 0.0
 
-        axis  = Vector3(self[:3])
+        axis  = Vector3(*self[:3])
         axis /= axis.norm()
         return axis, angle
 
@@ -161,7 +161,7 @@ class Quaternion(tuple):
         if ang <= epsilon:
             return self
 
-        axis  = Vector3(qd[:3])
+        axis  = Vector3(*qd[:3])
         
         qi = Quaternion.from_axis_angle(axis, ang * fac)
         return self.dot(qi)
