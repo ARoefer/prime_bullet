@@ -98,13 +98,15 @@ class ContactPoint(object):
 
 class BasicSimulator(object):
     """Class wrapping the PyBullet interface in an object oriented manner."""
-    def __init__(self, step_frequency=20, gravity=[0,0,-9.81], use_egl=False):
+    def __init__(self, step_frequency=20, gravity=[0,0,-9.81], real_time=False,  use_egl=False):
         """Constructs a simulator.
 
-        :param step_frequency: The frequency at which we will step forward. The internal simulation runs at 240 Hz, which needs to be a multiple of step_frequency 
+        :param step_frequency: step_frequency must be a divisor of 240, as this is the internal simulation frequency of bullet 
         :type  step_frequency: int
-        :param   gravity: Gravity force for the simulation.
-        :type    gravity: list
+        :param gravity: Gravity force for the simulation.
+        :type  gravity: list
+        :param real_time: if True, the simulation sleeps after each step to match real time. If False, it will run as fast as your hardware permits
+        :type  real_time: bool 
         """
         self.physicsClient = None
         self.bodies        = {}
@@ -113,6 +115,7 @@ class BasicSimulator(object):
         self.gravity       = gravity
         self.constraint_deletion_cbs = {}
         self.set_step_frequency(step_frequency)
+        self._real_time = real_time
         self.__client_id = 0
         self.__n_updates = 0
         self.__bId_IdMap = {}
@@ -180,7 +183,6 @@ class BasicSimulator(object):
 
         self.physicsClient = pb.connect({'gui': pb.GUI, 'direct': pb.DIRECT}[mode], self.__client_id)#or p.DIRECT for non-graphical version
         pb.setGravity(*self.gravity, physicsClientId=self.__client_id)
-        self.mode = mode
 
         if mode == 'gui':
             self.__visualizer = DebugVisualizer(self.__client_id)
@@ -210,9 +212,9 @@ class BasicSimulator(object):
             pb.setGravity(*gravity, physicsClientId=self.__client_id)
 
     def loop_sleep(self, start_time):
-        if self.mode != 'gui':
+        if not self._real_time:
             return
-        dt = 0.004166666666666667  # 240 Hz
+        dt = 1.0 / 240.0  # 240 Hz
         sleep_time = dt - (time.time() - start_time)
         if sleep_time > 0.0:
             time.sleep(sleep_time)
