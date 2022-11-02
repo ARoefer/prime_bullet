@@ -71,21 +71,21 @@ class Vector3(tuple):
     def numpy(self):
         return np.asarray(self)
 
-    @staticmethod
-    def zero():
-        return Vector3(0, 0, 0)
+    @classmethod
+    def zero(cls):
+        return cls(0, 0, 0)
     
-    @staticmethod
-    def unit_x():
-        return Vector3(1, 0, 0)
+    @classmethod
+    def unit_x(cls):
+        return cls(1, 0, 0)
     
-    @staticmethod
-    def unit_y():
-        return Vector3(0, 1, 0)
+    @classmethod
+    def unit_y(cls):
+        return cls(0, 1, 0)
 
-    @staticmethod
-    def unit_z():
-        return Vector3(0, 0, 1)
+    @classmethod
+    def unit_z(cls):
+        return cls(0, 0, 1)
 
 # Datastructure representing a point
 class Point3(Vector3):
