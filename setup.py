@@ -33,5 +33,6 @@ except ModuleNotFoundError:
          "numpy",
          "MarkupSafe==2.0.1",  # Jinja installs the wrong markup version.
          "jinja2",
+         "omegaconf"
       ],
    )
