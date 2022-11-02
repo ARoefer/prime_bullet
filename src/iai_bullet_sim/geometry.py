@@ -47,6 +47,12 @@ class Vector3(tuple):
     def __xor__(self, other):
         return np.asarray(other) ^ other
 
+    def __str__(self):
+        return self.__repr__()
+    
+    def __repr__(self):
+        return f'Vector3{super().__repr__()}'
+
     @property
     def x(self):
         return self[0]
@@ -97,11 +103,22 @@ class Point3(Vector3):
             return Point3(*(np.asarray(self) - other))
         return Vector3(*(np.asarray(self) - other))
 
+    def __str__(self):
+        return self.__repr__()
+    
+    def __repr__(self):
+        return f'Point3{tuple.__repr__(self)}'
 
 # Datastructure representing a quaternion
 class Quaternion(tuple):
     def __new__(cls, x, y, z, w):
         return super(Quaternion, cls).__new__(cls, (x, y, z, w))
+
+    def __str__(self):
+        return self.__repr__()
+    
+    def __repr__(self):
+        return f'Quaternion{super().__repr__()}'
 
     @property
     def x(self):
@@ -201,6 +218,12 @@ class Quaternion(tuple):
 class Transform:
     position   : Point3
     quaternion : Quaternion
+
+    def __str__(self):
+        return self.__repr__()
+    
+    def __repr__(self):
+        return f'Transform({self.position}, {self.quaternion})'
 
     def dot(self, other):
         if type(other) == Transform:
