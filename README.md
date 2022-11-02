@@ -34,13 +34,13 @@ Prime Bullet uses a simulator instance as interface to bullet. In case you are f
 import iai_bullet_sim as ibs
 
 # Simulator with 50Hz rate, standard gravity, and no EGL rendering
-sim = BasicSimulator()
+sim = ibs.BasicSimulator()
 
 # Establishes connection with Bullet in 'gui' mode. There is also headless, aka 'direct' mode
 sim.init('gui')
 
 # Second simulator with 100Hz rate.
-sim2 = BasicSimulator(100)
+sim2 = ibs.BasicSimulator(100)
 # New connection to bullet. This simulator is completely separate from the first
 sim2.init('direct')
 ```
@@ -50,7 +50,7 @@ The typical life-cycle for the simulator looks like this:
 ```python
 import iai_bullet_sim as ibs
 
-sim = BasicSimulator()
+sim = ibs.BasicSimulator()
 sim.init('gui')
 
 # Create a couple objects
@@ -79,7 +79,7 @@ Creation of objects is handled through the simulator, as objects are always asso
 ```python
 import iai_bullet_sim as ibs
 
-sim = BasicSimulator()
+sim = ibs.BasicSimulator()
 sim.init('gui')
 
 # Create a couple objects
@@ -114,7 +114,7 @@ Rigid bodies have a number of convenience functions, but primarily it is importa
 ```python
 import iai_bullet_sim as ibs
 
-sim = BasicSimulator()
+sim = ibs.BasicSimulator()
 sim.init('gui')
 
 box = sim.create_box([0.2] * 3, ibs.Transform.from_xyz(0, 1, 0.2))
@@ -148,7 +148,7 @@ Articulated objects, such as robots, are more complicated, as they contain joint
 ```python
 import iai_bullet_sim as ibs
 
-sim = BasicSimulator()
+sim = ibs.BasicSimulator()
 sim.init('gui')
 
 mill = sim.load_urdf('package://iai_bullet_sim/src/iai_bullet_sim/data/urdf/windmill.urdf', ibs.Transform.from_xyz(0, 5, 0))
@@ -301,7 +301,7 @@ import iai_bullet_sim as ibs
 link = some_body.links['link']
 
 # TODO: What's the uint of FOV?
-cam  = PerspectiveCamera(sim, (200, 200), 70, 0.1, 10.0, ibs.Transform.from_xyz(0.1, 0, 0), parent=link)
+cam  = ibs.PerspectiveCamera(sim, (200, 200), 70, 0.1, 10.0, ibs.Transform.from_xyz(0.1, 0, 0), parent=link)
 
 # Behind the scenes, the current camera pose is determined before an image is generated.
 # Thus the camera is now rigidly attached to 'link'
@@ -316,7 +316,7 @@ We don't have the time to go into details, but we would like to point out that p
 import iai_bullet_sim as ibs
 
 # Camera rendering 200x200 pixel images at 70deg FOV in a volume from 10cm-10m
-cam  = PerspectiveCamera(sim, (200, 200), 70, 0.1, 10.0)
+cam  = ibs.PerspectiveCamera(sim, (200, 200), 70, 0.1, 10.0)
 rgb        = cam.rgb()   # RGB image
 depth      = cam.depth() # Single channel depth image
 rgb, depth = cam.rgbd()  # Both modalities at once
