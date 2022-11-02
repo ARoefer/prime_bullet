@@ -3,6 +3,7 @@ import pybullet as pb
 import random
 import tempfile
 import pkgutil
+import time
 
 EGL = pkgutil.get_loader('eglRenderer')
 
@@ -97,11 +98,11 @@ class ContactPoint(object):
 
 class BasicSimulator(object):
     """Class wrapping the PyBullet interface in an object oriented manner."""
-    def __init__(self, tick_rate=50, gravity=[0,0,-9.81], use_egl=False):
+    def __init__(self, step_frequency=20, gravity=[0,0,-9.81], use_egl=False):
         """Constructs a simulator.
 
-        :param tick_rate: Ticks ideally performed per second.
-        :type  tick_rate: float
+        :param step_frequency: The frequency at which we will step forward. The internal simulation runs at 240 Hz, which needs to be a multiple of step_frequency 
+        :type  step_frequency: int
         :param   gravity: Gravity force for the simulation.
         :type    gravity: list
         """
@@ -109,10 +110,9 @@ class BasicSimulator(object):
         self.bodies        = {}
         self.deletion_cbs  = {}
         self.constraints   = {}
+        self.gravity       = gravity
         self.constraint_deletion_cbs = {}
-        self.tick_rate   = tick_rate
-        self.gravity     = gravity
-        self.time_step   = 1.0 / self.tick_rate
+        self.set_step_frequency(step_frequency)
         self.__client_id = 0
         self.__n_updates = 0
         self.__bId_IdMap = {}
@@ -180,21 +180,24 @@ class BasicSimulator(object):
 
         self.physicsClient = pb.connect({'gui': pb.GUI, 'direct': pb.DIRECT}[mode], self.__client_id)#or p.DIRECT for non-graphical version
         pb.setGravity(*self.gravity, physicsClientId=self.__client_id)
-        pb.setTimeStep(self.time_step, physicsClientId=self.__client_id)
+        self.mode = mode
 
         if mode == 'gui':
             self.__visualizer = DebugVisualizer(self.__client_id)
 
 
-    def set_tick_rate(self, tick_rate):
+    def set_step_frequency(self, step_frequency):
         """Updates the tick rate of the simulation.
 
-        :type tick_rate: int
+        :type step_frequency: int
         """
-        self.tick_rate = tick_rate
-        self.time_step = 1.0 / self.tick_rate
-        if self.physicsClient is not None:
-            pb.setTimeStep(self.time_step, physicsClientId=self.__client_id)
+        self.step_frequency = step_frequency
+        self.time_step = 1.0 / self.step_frequency
+        self._sim_substeps = 240 // self.step_frequency
+        if 240 % self.step_frequency != 0:
+            raise Exception("step_frequency needs to be chosen so that the base sim frequency (240 Hz) is a multiple. Good choices are 10, 20, 24, 30, 48.")
+        if self.step_frequency > 240:
+            raise Exception("step_frequency can be at most 240 Hz")
 
 
     def set_gravity(self, gravity):
@@ -205,6 +208,15 @@ class BasicSimulator(object):
         self.gravity = gravity
         if self.physicsClient is not None:
             pb.setGravity(*gravity, physicsClientId=self.__client_id)
+
+    def loop_sleep(self, start_time):
+        if self.mode != 'gui':
+            return
+        dt = 0.004166666666666667  # 240 Hz
+        sleep_time = dt - (time.time() - start_time)
+        if sleep_time > 0.0:
+            time.sleep(sleep_time)
+        return
 
     def stop(self):
         """Stops the simulation. Calls disable() on all plugins."""
@@ -235,9 +247,11 @@ class BasicSimulator(object):
     def update(self):
         """Performs one complete update, consisting of pre-, physics- and post update."""
         self.pre_update()
-        self.physics_update()
+        for _ in range(self._sim_substeps):
+            start_time = time.time()
+            self.physics_update()
+            self.loop_sleep(start_time)
         self.post_update()
-
 
     def reset(self):
         """Resets all bodies in the simulation to their initial state."""
@@ -796,8 +810,8 @@ class BasicSimulator(object):
         :param config_dict:     Simulator configuration.
         :type  config_dict:     dict
         """
-        if 'tick_rate' in config_dict:
-            self.set_tick_rate(config_dict['tick_rate'])
+        if 'step_frequency' in config_dict:
+            self.set_step_frequency(config_dict['step_frequency'])
 
         if 'gravity' in config_dict:
             self.set_gravity(config_dict['gravity'])
@@ -826,7 +840,7 @@ class BasicSimulator(object):
         :type  use_current_state_as_init: bool
         :rtype: dict
         """
-        out = {'tick_rate': self.tick_rate,
+        out = {'step_frequency': self.step_frequency,
                'gravity': self.gravity,
                'world': self.save_world(use_current_state_as_init),
                'plugins': []}
