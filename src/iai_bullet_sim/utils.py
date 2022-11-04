@@ -1,6 +1,7 @@
 import os
 import numpy    as np
 import pybullet as pb
+import xml.etree.ElementTree as ET
 
 from hashlib     import md5
 from pathlib     import Path
@@ -143,16 +144,20 @@ def abs_urdf_paths(file_path, temp_dir):
     temp_file_name = f'{temp_dir}/{hex_name}.urdf'
 
     with open(abs_path, 'r') as of:
-        with open(temp_file_name, 'w') as tf:
-            for l in of:
-                idx = l.find('package://', 0)
-                while idx != -1:
-                    e_idx = l.find('"', idx)
-                    pkg_path = l[idx:e_idx]
-                    r_path = res_pkg_path(pkg_path)
-                    l = l.replace(l[idx:e_idx], r_path)
-                    idx = l.find('package://', idx + len(r_path))
-                tf.write(l)
+        tree = ET.parse(of)
+
+    for link in tree.iterfind('link'):
+        inertial = link.find('inertial')
+        if inertial is None:
+            inertial = ET.SubElement(link, 'inertial')
+            ET.SubElement(inertial, 'inertia', {k: str(0) for k in ['ixx', 'ixy', 'ixz', 'iyy', 'iyz', 'izz']})
+            ET.SubElement(inertial, 'mass', {'value': str(0)})
+
+    for mesh in tree.iterfind('.//mesh'):
+        mesh.attrib['filename'] = res_pkg_path(mesh.attrib['filename'])
+
+    with open(temp_file_name, 'bw') as tf:
+        tree.write(tf, 'utf-8')
     
     _RESOLVED_FILES[abs_path] = temp_file_name
 
