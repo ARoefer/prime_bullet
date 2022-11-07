@@ -138,13 +138,18 @@ class CartesianRelativePointCOrientationController(object):
 
 
 class CartesianRelativeVirtualPointController(object):
-    def __init__(self, robot : MultiBody, link : Link):
+    def __init__(self, robot : MultiBody, link : Link, max_delta=1.0):
         self._robot = robot
         self._link  = link
+        self._max_vp_delta = max_delta
         self.reset()
     
     def act(self, delta : Union[np.ndarray, Vector3]):
         self._point += delta
+
+        # Clip goal point back to max distance from link
+        if ee_vp_delta.norm() > self._max_vp_delta:
+            self._transform.position = self._link.pose.position + ee_vp_delta.normalized() * self._max_vp_delta
 
         ik_solution = self._link.ik(self._point)
         self._robot.apply_joint_pos_cmds(ik_solution, 
@@ -163,13 +168,20 @@ class CartesianRelativeVirtualPointController(object):
 
 
 class CartesianRelativeVPointCOrientationController(object):
-    def __init__(self, robot : MultiBody, link : Link):
+    def __init__(self, robot : MultiBody, link : Link, max_delta=1.0):
         self._robot = robot
         self._link  = link
+        self._max_vp_delta = max_delta
         self.reset()
     
     def act(self, delta : Union[np.ndarray, Vector3]):
         self._transform.position += delta
+
+        ee_vp_delta = self._transform.position - self._link.pose.position
+
+        # Clip goal point back to max distance from link
+        if ee_vp_delta.norm() > self._max_vp_delta:
+            self._transform.position = self._link.pose.position + ee_vp_delta.normalized() * self._max_vp_delta
 
         ik_solution = self._link.ik(self._transform)
         self._robot.apply_joint_pos_cmds(ik_solution, 

@@ -65,6 +65,9 @@ class Vector3(tuple):
     def z(self):
         return self[2]
 
+    def normalized(self):
+        return type(self)(*(self / self.norm()))
+
     def norm(self):
         return np.sqrt((np.asarray(self) ** 2).sum())
 
