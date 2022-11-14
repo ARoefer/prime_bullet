@@ -700,13 +700,21 @@ class Link(Frame):
     @property
     def state(self):
         if self._simulator.sim_step != self.__last_sim_pose_update:
-            ls = pb.getLinkState(self._multibody.bId, 
-                                 self._idx, 0, physicsClientId=self._client_id)
-            self.__current_state = LinkState(Transform(Point3(*ls[0]), Quaternion(*ls[1])),
-                                             Transform(Point3(*ls[2]), Quaternion(*ls[3])),
-                                             Transform(Point3(*ls[4]), Quaternion(*ls[5])),
-                                             Vector3.zero(),
-                                             Vector3.zero())
+            if self._idx == -1:  # Bullet does not handle base joints the same
+                world_pose = self._multibody.pose
+                self.__current_state = LinkState(world_pose, 
+                                                 Transform.identity(), 
+                                                 world_pose,
+                                                 self._multibody.linear_velocity,
+                                                 self._multibody.angular_velocity)
+            else:
+                ls = pb.getLinkState(self._multibody.bId, 
+                                     self._idx, 0, physicsClientId=self._client_id)
+                self.__current_state = LinkState(Transform(Point3(*ls[0]), Quaternion(*ls[1])),
+                                                Transform(Point3(*ls[2]), Quaternion(*ls[3])),
+                                                Transform(Point3(*ls[4]), Quaternion(*ls[5])),
+                                                Vector3.zero(),
+                                                Vector3.zero())
         return self.__current_state
 
     @property

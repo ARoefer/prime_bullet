@@ -142,7 +142,7 @@ class RigidBody(Frame):
         """
         if self._simulator.sim_step != self.__last_sim_velocity_update:
             temp = pb.getBaseVelocity(self._bulletId, physicsClientId=self._client_id)
-            self.__current_lin_velocity, self.__current_ang_velocity = Vector3(temp[0]), Vector3(temp[1])
+            self.__current_lin_velocity, self.__current_ang_velocity = Vector3(*temp[0]), Vector3(*temp[1])
             self.__last_sim_velocity_update = self._simulator.sim_step
         return self.__current_lin_velocity
 
