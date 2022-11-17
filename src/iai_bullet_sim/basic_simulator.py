@@ -115,6 +115,7 @@ class BasicSimulator(object):
         self.gravity       = gravity
         self.constraint_deletion_cbs = {}
         self.set_step_frequency(step_frequency)
+        self._use_egl = use_egl
         self._real_time = real_time
         self.__client_id = 0
         self.__n_updates = 0
@@ -134,10 +135,7 @@ class BasicSimulator(object):
             self.__mesh_template  = Template(f.read())
         self._temp_mesh_urdfs = {}
 
-        if use_egl:
-            self.__egl_plugin = pb.loadPlugin(EGL.get_filename(), "_eglRendererPlugin", physicsClientId=self.__client_id)
-        else:
-            self.__egl_plugin = None
+        self.__egl_plugin = None
 
     def __del__(self):
         if self.__egl_plugin is not None:
@@ -183,6 +181,9 @@ class BasicSimulator(object):
 
         self.physicsClient = pb.connect({'gui': pb.GUI, 'direct': pb.DIRECT}[mode], self.__client_id)#or p.DIRECT for non-graphical version
         pb.setGravity(*self.gravity, physicsClientId=self.__client_id)
+
+        if self._use_egl:
+            self.__egl_plugin = pb.loadPlugin(EGL.get_filename(), "_eglRendererPlugin", physicsClientId=self.__client_id)
 
         if mode == 'gui':
             self.__visualizer = DebugVisualizer(self.__client_id)
