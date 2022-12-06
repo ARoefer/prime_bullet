@@ -229,10 +229,10 @@ path_b = ibs.res_package_path('package://my_package/some_file.txt')
 
 As pybullet is limited to a single search path, prime bullet re-writes all loaded URDF files to use global paths. It is important, that all the packages mentioned in the URDF can be found over the search paths.
 
-### Lie-Algebra
-Throughout the examples, we have encountered `ibs.Transform` multiple times. This class is part of prime bullet's micro lie-algebra library, which we will introduce you to briefly.
+### Spatial Transformations
+Throughout the examples, we have encountered `ibs.Transform` multiple times. This class is part of prime bullet's micro spatial transformation library, which we will introduce you to briefly.
 
-The lie-algebra module implements only 4 datatypes: `Vector3`, `Point3`, `Quaternion`, and `Transform`. The first three are extensions of Python's `tuple` type and are thus compatible with both `pybullet` and `numpy` without any need for conversions. However, when combined with one another they do follow the rules of SE3 lie-algebra. Let us look at a couple examples:
+The module implements only 4 datatypes: `Vector3`, `Point3`, `Quaternion`, and `Transform`. The first three are extensions of Python's `tuple` type and are thus compatible with both `pybullet` and `numpy` without any need for conversions. However, when combined with one another they do follow the rules of SE3 algebra. Let us look at a couple examples:
 
 ```python
 import numpy as np
