@@ -269,6 +269,9 @@ class Transform:
         ti  = Transform(td.position * fac, Quaternion.from_axis_angle(axis, angle * fac))
         return self.dot(ti)
 
+    def array(self):
+        return np.hstack((self.position, self.quaternion))
+
     @staticmethod
     def from_xyz_rpy(x, y, z, rr, rp, ry):
         return Transform(Point3(x, y, z), Quaternion.from_euler(rr, rp, ry))
