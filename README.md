@@ -93,7 +93,7 @@ sphere   = sim.create_sphere(0.3, ibs.Transform.from_xyz(0, 2, 0.6))
 cylinder = sim.create_cylinder(0.2, 1, ibs.Transform.from_xyz(0, 3, 1))
 
 # A monkey mesh at (0, 4, 1)
-mesh     = sim.create_mesh('package://iai_bullet_sim/meshes/suzanne.dae', ibs.Transform.from_xyz(0, 4, 1))
+mesh     = sim.create_mesh('package://iai_bullet_sim/meshes/suzanne.dae', pose=ibs.Transform.from_xyz(0, 4, 1))
 
 # A URDF of a windmill at (0, 5, 0)
 windmill = sim.load_urdf('package://iai_bullet_sim/src/iai_bullet_sim/data/urdf/windmill.urdf', ibs.Transform.from_xyz(0, 5, 0))
