@@ -363,7 +363,8 @@ class BasicSimulator(object):
                         pose=Transform.identity(), 
                         joint_driver=JointDriver(), 
                         useFixedBase=0, 
-                        name_override=None):
+                        name_override=None,
+                        use_self_collision=None):
         """Loads an Object from a URDF and registers it with this simulator.
 
         :param urdf_path:     Path of the file as local or global path, or as ROS package URI.
@@ -378,8 +379,21 @@ class BasicSimulator(object):
         :type  useFixedBase:  int, bool
         :param name_override: Custom name to assign to this object during registration.
         :type  name_override: str, NoneType
+        :param use_self_collision: Set self collision behavior of the loaded urdf. [all, all_no_parent, no_parents, None]
+        :type  use_self_collision: str, NoneType
         :rtype: iai_bullet_sim.multibody.MultiBody
         """
+        if use_self_collision is None:
+            flags = 0
+        elif use_self_collision == 'all':
+            flags = pb.URDF_USE_SELF_COLLISION
+        elif use_self_collision == 'all_no_parent':
+            flags = pb.URDF_USE_SELF_COLLISION | pb.URDF_USE_SELF_COLLISION_EXCLUDE_PARENT
+        elif use_self_collision == 'no_parents':
+            flags = pb.URDF_USE_SELF_COLLISION | pb.URDF_USE_SELF_COLLISION_EXCLUDE_ALL_PARENTS
+        else:
+            raise Exception(f'Unknown self collision mode "{use_self_collision}". Options are: None, "all", "all_no_parent", "no_parents"')
+
         #print('Simulator: {}'.format(res_urdf_path))
         abs_urdf_path = abs_urdf_paths(urdf_path, tempfile.gettempdir())
 
@@ -388,7 +402,7 @@ class BasicSimulator(object):
                                                pose.quaternion,
                                                0,              # MAXIMAL COORDINATES, DO NOT TOUCH!
                                                useFixedBase,
-                                               flags=pb.URDF_USE_SELF_COLLISION | pb.URDF_USE_SELF_COLLISION_EXCLUDE_PARENT, 
+                                               flags=flags, 
                                                physicsClientId=self.__client_id), 
                                    pose, 
                                    joint_driver, 
