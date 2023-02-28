@@ -147,6 +147,8 @@ class CartesianRelativeVirtualPointController(object):
     def act(self, delta : Union[np.ndarray, Vector3]):
         self._point += delta
 
+        ee_vp_delta = self._transform.position - self._link.pose.position
+
         # Clip goal point back to max distance from link
         if ee_vp_delta.norm() > self._max_vp_delta:
             self._transform.position = self._link.pose.position + ee_vp_delta.normalized() * self._max_vp_delta
