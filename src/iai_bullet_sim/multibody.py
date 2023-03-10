@@ -337,7 +337,7 @@ JointInfo = namedtuple('JointInfo', ['jointIndex', 'jointName', 'jointType', 'qI
                                      'axis', 'parentFramePos', 'parentFrameOrn', 'parentIndex'])
 
 
-class Joint(object):
+class Joint(Frame):
     def __init__(self, body, jointIndex, jointName, jointType, qIndex, uIndex,
                              flags, jointDamping, jointFriction, lowerLimit,
                              upperLimit, maxEffort, maxVelocity, linkName,
