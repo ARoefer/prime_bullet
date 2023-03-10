@@ -357,12 +357,20 @@ class Joint(Frame):
         self.qd_max   = maxVelocity
         self.link     = body.links[linkName.decode('utf-8')]
         self.axis     = Vector3(*axis)
-        self.local_pose = Transform(Point3(*parentFramePos), Quaternion(*parentFrameOrn))
-        self.parent     = body.get_link_by_index(parentIndex)
+        self._local_pose = Transform(Point3(*parentFramePos), Quaternion(*parentFrameOrn))
+        self._parent     = body.get_link_by_index(parentIndex)
 
     @property
     def is_dynamic(self):
         return self.type != pb.JOINT_FIXED
+
+    @property
+    def local_pose(self):
+        return self._local_pose
+
+    @property
+    def parent(self):
+        return self._parent
 
 
 # Link state structure. Assigns names to bullet's info structure.
