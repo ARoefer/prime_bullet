@@ -800,3 +800,11 @@ class FTSensor():
 
         return self.body._joint_state[self.joint].reactionForce
 
+    def get_world_space(self):
+        f_local = self.get()
+
+        w_T_j  = self.body.joints[self.joint].pose
+        f_in_w = w_T_j.dot(f_local.linear)
+        t_in_w = w_T_j.dot(f_local.angular)
+
+        return ReactionForces(f_in_w, t_in_w)
