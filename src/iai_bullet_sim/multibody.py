@@ -451,7 +451,46 @@ class MultiBody(RigidBody):
         # Initialize empty JS for objects without dynamic joints
         self._joint_state = None if len(self.__dynamic_joint_indices) > 0 else {}
         self.__last_sim_js_update = -1
+        self._torque_control = False
 
+    @property
+    def torque_control(self):
+        return self._torque_control
+
+    @torque_control.setter
+    def torque_control(self, enable):
+        if self._torque_control == enable:
+            return
+
+        self._torque_control = enable
+        if enable:
+            self._enable_torque_control()
+        else:
+            self._disable_torque_control()
+
+    def _set_velocity_control(self, max_forces):
+        pb.setJointMotorControlArray(self._bulletId,
+                                     self.__dynamic_joint_indices,
+                                     pb.VELOCITY_CONTROL,
+                                     forces=max_forces,
+                                     physicsClientId=self._client_id)
+
+    def _enable_torque_control(self):
+        """
+        Please refer to the official pybullet's QuickStart Guide on Google Drive.
+        By setting control mode to VELOCITY_CONTROL and max forces to zero, this
+        will enable torque control.
+        """
+        self._set_velocity_control(np.zeros(len(self.__dynamic_joint_indices)))
+
+    def _disable_torque_control(self):
+        """
+        Restore pybullet's default control mode: "VELOCITY_CONTROL" and zero
+        target velocity, and set max force to a huge number (MAX_FORCE). If
+        the motor is strong enough (i.e. has large enough torque upper limit),
+        this is essentially locking all the motors.
+        """
+        self._set_velocity_control(self.q_f_max)
 
     def has_dynamic_joints(self):
         """Returns True, if this multi body hase any dynamic joints.
@@ -469,6 +508,7 @@ class MultiBody(RigidBody):
     def reset(self):
         """Resets this object's pose and joints to their initial configuration."""
         super().reset()
+        self.apply_joint_torque_cmds(np.zeros_like(self.q))
         self.set_joint_positions(self._initial_joint_state)
         self.__last_sim_js_update = -1
         for l in self.links.values():
@@ -591,6 +631,8 @@ class MultiBody(RigidBody):
 
         # self.joint_driver.update_positions(self, cmd)
 
+        self.torque_control = False
+
         pb.setJointMotorControlArray(self._bulletId, 
                                      cmd_indices, 
                                      pb.POSITION_CONTROL, 
@@ -606,20 +648,21 @@ class MultiBody(RigidBody):
         :param cmd: Joint velocity goals to set.
         :type  cmd: dict
         """
-        cmd_indices = []
-        cmd_vels    = []
-        self.joint_driver.update_velocities(self, cmd)
-        for jname in cmd.keys():
-            if jname in self.joints:
-                cmd_indices.append(self.joints[jname].index)
-                cmd_vels.append(cmd[jname])
+        if type(cmd) == dict:
+            cmd_indices, cmd_pos = zip(*[(self.joints[j].index, c) for j, c in cmd.items() 
+                                                                   if j in self.joints])
+        else:
+            cmd_indices = self.__dynamic_joint_indices
+            cmd_vel = cmd
 
         #print('\n'.join(['{}: {}'.format(self.__joint_names[cmd_indices[x]], cmd_vels[x]) for x in range(len(cmd_vels))])) # TODO: REMOVE THIS
+
+        self.torque_control = False
 
         pb.setJointMotorControlArray(self._bulletId, 
                                      cmd_indices, 
                                      pb.VELOCITY_CONTROL, 
-                                     targetVelocities=cmd_vels,
+                                     targetVelocities=cmd_vel,
                                      forces=max_force,
                                      physicsClientId=self._client_id)
 
@@ -629,18 +672,19 @@ class MultiBody(RigidBody):
         :param cmd: Joint effort goals to set.
         :type  cmd: dict
         """
-        cmd_indices = []
-        cmd_torques = []
-        self.joint_driver.update_effort(self, cmd)
-        for jname in cmd.keys():
-            if jname in self.joints:
-                cmd_indices.append(self.joints[jname].index)
-                cmd_torques.append(cmd[jname])
+        if type(cmd) == dict:
+            cmd_indices, cmd_pos = zip(*[(self.joints[j].index, c) for j, c in cmd.items() 
+                                                                   if j in self.joints])
+        else:
+            cmd_indices = self.__dynamic_joint_indices
+            cmd_torque = cmd
+
+        self.torque_control = True
 
         pb.setJointMotorControlArray(self._bulletId, 
                                      cmd_indices, 
                                      pb.TORQUE_CONTROL, 
-                                     forces=cmd_torques, 
+                                     forces=cmd_torque, 
                                      physicsClientId=self._client_id)
 
     def get_contacts(self, other_body=None, own_link=None, other_link=None):
