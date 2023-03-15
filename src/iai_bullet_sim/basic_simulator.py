@@ -254,6 +254,9 @@ class BasicSimulator(object):
             self.loop_sleep(start_time)
         self.post_update()
 
+    def update_collisions(self):
+        pb.performCollisionDetection(physicsClientId=self.__client_id)
+
     def reset(self):
         """Resets all bodies in the simulation to their initial state."""
         for body in self.bodies.values():
