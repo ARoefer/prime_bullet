@@ -17,6 +17,7 @@ from iai_bullet_sim.geometry import Point3,     \
                                     AABB
 from iai_bullet_sim.utils    import ColorRGBA,  \
                                     res_pkg_path
+from .link import Link
 
 # Mapping of bullet's geometry constants to internal keywords
 GEOM_SPHERE   = 'sphere'

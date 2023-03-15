@@ -19,6 +19,7 @@ from .geometry   import Vector3,         \
                         Point3,          \
                         Quaternion,      \
                         Transform
+from .link       import Link
 from .multibody  import MultiBody, JointDriver
 from .rigid_body import BoxBody,         \
                         CylinderBody, MeshBody, SDFBody, SDFWorldBody,    \
@@ -68,8 +69,9 @@ def hsva_to_rgba(h, s, v, a):
 class ContactPoint(object):
     """Wrapper for bullet's contact point structure."""
     # Reference to first body
-    bodyA : Union[MultiBody, RigidBody]
+    bodyA : Union[MultiBody, RigidBody, Link]
     # Reference to second body
+    bodyB : Union[MultiBody, RigidBody, Link]
     bodyB : Union[MultiBody, RigidBody]
     # Link of first body; None in case of rigid body
     linkA : str
