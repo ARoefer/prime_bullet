@@ -72,11 +72,6 @@ class ContactPoint(object):
     bodyA : Union[MultiBody, RigidBody, Link]
     # Reference to second body
     bodyB : Union[MultiBody, RigidBody, Link]
-    bodyB : Union[MultiBody, RigidBody]
-    # Link of first body; None in case of rigid body
-    linkA : str
-    # Link of second body; None in case of rigid body
-    linkB : str
     # Coordinates of contact on link of A
     posOnA : Union[Iterable, Vector3]
     # Coordinates of contact on link of B
@@ -125,6 +120,7 @@ class BasicSimulator(object):
         self.__cId_IdMap = {}
         self.__sdf_worlds = set()
         self.__visualizer = None
+        self.__body_id_tuple_map = {}
 
         self.__h = random.random()
         self.__nextId = 0
@@ -275,6 +271,12 @@ class BasicSimulator(object):
         :param name_override: Name to assign to the object.
         :type  obj:           str, NoneType
         """
+
+        if isinstance(obj, MultiBody):
+            self.__body_id_tuple_map.update({(obj.bId, i): l for i, l in obj.i_links.items()})
+        elif isinstance(obj, RigidBody):
+            self.__body_id_tuple_map[(obj.bId, -1)] = obj
+
         if name_override is None:
             if isinstance(obj, MultiBody):
                 _, bodyId = pb.getBodyInfo(obj.bId, physicsClientId=self.__client_id)
@@ -630,63 +632,24 @@ class BasicSimulator(object):
         return [self.__get_obj_link_tuple(bulletId, linkIdx) for bulletId, linkIdx in raw_overlap if self.bodies[self.__bId_IdMap[bulletId]] not in filter]
 
     # @profile
-    def get_contacts(self, bodyA=None, bodyB=None, linkA=None, linkB=None):
+    def get_contacts(self):
         """Returns all contacts generated during the last physics step.
 
-        :param bodyA: All returned contacts will involve this object.
-        :type  bodyA: iai_bullet_sim.rigid_body.RigidBody, iai_bullet_sim.multibody.MultiBody
-        :param bodyB: All returned contacts will only be between this object and bodyA.
-        :type  bodyB: iai_bullet_sim.rigid_body.RigidBody, iai_bullet_sim.multibody.MultiBody
-        :param linkA: All contact will involve this link of bodyA.
-        :type  linkA: str, NoneType
-        :param linkB: All returned will involve this link of bodyB
-        :type  linkB: str, NoneType
         :rtype: list
         """
-        bulletA = bodyA.bId if bodyA != None else -1
-        bulletB = bodyB.bId if bodyB != None else -1
-        bulletLA = bodyA.link_index_map[linkA] if bodyA != None and linkA != None and isinstance(bodyA, MultiBody) else -1
-        bulletLB = bodyB.link_index_map[linkB] if bodyB != None and linkB != None and isinstance(bodyB, MultiBody) else -1
-        contacts = []
-        if bulletLA == -1 and bulletLB == -1:
-            contacts = pb.getContactPoints(bulletA, bulletB, physicsClientId=self.__client_id)
-        elif bulletLA != -1 and bulletLB == -1:
-            contacts = pb.getContactPoints(bulletA, bulletB, linkIndexA=bulletLA, physicsClientId=self.__client_id)
-        elif bulletLA == -1 and bulletLB != -1:
-            contacts = pb.getContactPoints(bulletA, bulletB, linkIndexB=bulletLB, physicsClientId=self.__client_id)
-        else:
-            contacts = pb.getContactPoints(bulletA, bulletB, bulletLA, bulletLB, physicsClientId=self.__client_id)
-        return [self.__create_contact_point(c) for c in contacts]
+        contacts = pb.getContactPoints(-1, -1, physicsClientId=self.__client_id)
+        return [self._decode_contact_point(c) for c in contacts]
 
 
     # @profile
-    def get_closest_points(self, bodyA, bodyB, linkA=None, linkB=None, dist=0.2):
-        """Returns all the closest points between two objects.
+    def get_closest_points(self, dist=0.2):
+        """Returns all the closest points between all objects.
 
-        :param bodyA: First body.
-        :type  bodyA: iai_bullet_sim.rigid_body.RigidBody, iai_bullet_sim.multibody.MultiBody
-        :param bodyB: Second body.
-        :type  bodyB: iai_bullet_sim.rigid_body.RigidBody, iai_bullet_sim.multibody.MultiBody
-        :param linkA: Closest point will be on this link of bodyA.
-        :type  linkA: str, NoneType
-        :param linkB: Closest point will be on this link of bodyB.
-        :type  linkB: str, NoneType
         :rtype: list
         """
-        bulletA = bodyA.bId if bodyA != None else -1
-        bulletB = bodyB.bId if bodyB != None else -1
-        bulletLA = bodyA.link_index_map[linkA] if bodyA != None and linkA != None and isinstance(bodyA, MultiBody) else -1
-        bulletLB = bodyB.link_index_map[linkB] if bodyB != None and linkB != None and isinstance(bodyB, MultiBody) else -1
-        contacts = []
-        if bulletLA == -1 and bulletLB == -1:
-            contacts = pb.getClosestPoints(bulletA, bulletB, distance=dist, physicsClientId=self.__client_id)
-        elif bulletLA != -1 and bulletLB == -1:
-            contacts = pb.getClosestPoints(bulletA, bulletB, linkIndexA=bulletLA, distance=dist, physicsClientId=self.__client_id)
-        elif bulletLA == -1 and bulletLB != -1:
-            contacts = pb.getClosestPoints(bulletA, bulletB, linkIndexB=bulletLB, distance=dist, physicsClientId=self.__client_id)
-        else:
-            contacts = pb.getClosestPoints(bulletA, bulletB, dist, bulletLA, bulletLB, physicsClientId=self.__client_id)
-        return [self.__create_contact_point(c) for c in contacts]
+        contacts = pb.getClosestPoints(-1, -1, distance=dist, physicsClientId=self.__client_id)
+        return [self._decode_contact_point(c) for c in contacts]
+
 
     def load_world(self, world_dict):
         """Loads a world configuration from a dictionary.
@@ -872,14 +835,10 @@ class BasicSimulator(object):
         return out
 
 
-    def __create_contact_point(self, bcp):
+    def _decode_contact_point(self, bcp):
         """Internal. Turns a bullet contact point into a ContactPoint."""
-        bodyA, linkA = self.__get_obj_link_tuple(bcp[1], bcp[3])
-        bodyB, linkB = self.__get_obj_link_tuple(bcp[2], bcp[4])
-        return ContactPoint(bodyA,            # Body A
-                            bodyB,            # Body B
-                            linkA,            # Link of A
-                            linkB,            # Link of B
+        return ContactPoint(self.__body_id_tuple_map[bcp[1], bcp[3]],            # Body A
+                            self.__body_id_tuple_map[bcp[2], bcp[4]],            # Body B
                             Point3(*bcp[5]),  # Point on A
                             Point3(*bcp[6]),  # Point on B
                             Vector3(*bcp[7]), # Normal from B to A

@@ -7,6 +7,7 @@ from hashlib     import md5
 from jinja2      import Template
 from omegaconf   import OmegaConf
 from pathlib     import Path
+from typing      import Union
 
 from iai_bullet_sim import IAI_BULLET_ROOT
 from iai_bullet_sim.frame    import Frame
@@ -205,31 +206,29 @@ class RigidBody(Frame):
         out.type = self.type
         return out
 
-    def get_contacts(self, other_body=None, other_link=None):
-        """Gets the contacts this body had during the last physics step.
-        The contacts can be filtered by other bodies and their links.
+    def get_contacts(self, other=None):
+        if other is not None:
+            if isinstance(other, RigidBody):
+                contacts = pb.getContactPoints(self._bulletId, other._bulletId, physicsClientId=self._client_id)
+            elif isinstance(other, Link):
+                contacts = pb.getContactPoints(self._bulletId, other._bulletId, linkIndexB=other.idx, physicsClientId=self._client_id)
+            else:
+                raise Exception(f'Unsupported type for contact checking "{type(other)}". Need to inherit from RigidBody or Link.')
+        else:
+            contacts = pb.getContactPoints(self._bulletId, -1, physicsClientId=self._client_id)
+        return [self._simulator._decode_contact_point(cp) for cp in contacts]
 
-        :param other_body: Other body to filter by
-        :type  other_body: iai_bullet_sim.multibody.MultiBody, RigidBody, NoneType
-        :param other_link: Other object's link to filter by.
-        :type  other_link: str, NoneType
-        :rtype: list
-        """
-        return self._simulator.get_contacts(self, other_body, None, other_link)
-
-    def get_closest_points(self, other_body=None, other_link=None, dist=0.2):
-        """Gets the closest points of this body to its environment.
-        The closest points can be filtered by other bodies and their links.
-
-        :param other_body: Other body to filter by
-        :type  other_body: iai_bullet_sim.multibody.MultiBody, RigidBody, NoneType
-        :param other_link: Other object's link to filter by.
-        :type  other_link: str, NoneType
-        :param dist:       Maximum distance to search. Greater distance -> more expensive
-        :type  dist:       float
-        :rtype: list
-        """
-        return self._simulator.get_closest_points(self, other_body, None, other_link, dist)
+    def get_closest_points(self, other=None, dist=0.2):
+        if other is not None:
+            if isinstance(other, RigidBody):
+                contacts = pb.getClosestPoints(self._bulletId, other._bulletId, distance=dist, physicsClientId=self._client_id)
+            elif isinstance(other, Link):
+                contacts = pb.getClosestPoints(self._bulletId, other._bulletId, linkIndexB=other.idx, distance=dist, physicsClientId=self._client_id)
+            else:
+                raise Exception(f'Unsupported type for contact checking "{type(other)}". Need to inherit from RigidBody or Link.')
+        else:
+            contacts = pb.getClosestPoints(self._bulletId, -1, distance=dist, physicsClientId=self._client_id)
+        return [self._simulator._decode_contact_point(cp) for cp in contacts]
 
 
 with open(f'{IAI_BULLET_ROOT}/data/urdf/template_box.urdf', 'r') as f:

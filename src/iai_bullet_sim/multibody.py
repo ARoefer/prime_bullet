@@ -52,6 +52,7 @@ class JointState(object):
         self.reactionForce = ReactionForces(Vector3(*rForce[:3]), Vector3(*rForce[3:]))
         self.effort = appliedTorque
 
+
 @dataclass
 class ReactionForces:
     linear  : Vector3
@@ -355,13 +356,16 @@ class MultiBody(RigidBody):
         if type(cmd) == dict:
             cmd_indices, cmd_pos = zip(*[(self.joints[j].index, c) for j, c in cmd.items() 
                                                                    if j in self.joints])
+            max_force = np.take(self.q_f_max, cmd_indices) if max_force is None else max_force
         else:
             cmd_indices = self.__dynamic_joint_indices
             cmd_pos = cmd
+            max_force = self.q_f_max if max_force is None else max_force
 
         # self.joint_driver.update_positions(self, cmd)
 
         self.torque_control = False
+
 
         pb.setJointMotorControlArray(self._bulletId, 
                                      cmd_indices, 
