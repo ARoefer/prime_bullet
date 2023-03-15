@@ -14,7 +14,11 @@ try:
 
 # Switch to regular pip install
 except ModuleNotFoundError:
+   from pathlib    import Path
    from setuptools import setup, find_packages
+
+   with open(f'{Path(__file__).parent}/requirements.txt', 'r') as f:
+      pip_dependencies = f.readlines()
 
    setup(
       name='IAI Bullet Sim',
@@ -28,11 +32,5 @@ except ModuleNotFoundError:
       license='LICENSE',
       description='An OO wrapper for Pybullet with optional ROS1 instegration.',
       # long_description=open('README.txt').read(),
-      install_requires=[
-         "pybullet",
-         "numpy",
-         "MarkupSafe==2.0.1",  # Jinja installs the wrong markup version.
-         "jinja2",
-         "omegaconf"
-      ],
+      install_requires=pip_dependencies
    )
