@@ -1,0 +1,68 @@
+<?xml version="1.0" ?>
+<robot name="windmill">
+	<link name="base">
+<!-- 		<inertial>
+			<mass value="80"/>
+			<inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="1"/>
+		</inertial> -->
+		<visual>
+			<geometry>
+				<mesh filename="package://iai_bullet_sim/meshes/windmill_base.dae"/>
+			</geometry>
+		</visual>
+		<collision>
+			<origin rpy="0 0 0" xyz="0 0 0"/>
+			<geometry>
+				<mesh filename="package://iai_bullet_sim/meshes/windmill_base.dae"/>
+			</geometry>
+		</collision>
+	</link>
+	<link name="head">
+<!-- 		<inertial>
+			<mass value="20"/>
+			<inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="1"/>
+		</inertial> -->
+		<visual>
+			<geometry>
+				<mesh filename="package://iai_bullet_sim/meshes/windmill_head.dae"/>
+			</geometry>
+		</visual>
+		<collision>
+			<origin rpy="0 0 0" xyz="0 0 0"/>
+			<geometry>
+				<mesh filename="package://iai_bullet_sim/meshes/windmill_head.dae"/>
+			</geometry>
+		</collision>
+	</link>
+	<link name="wings">
+<!-- 		<inertial>
+			<mass value="4"/>
+			<inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="1"/>
+		</inertial> -->
+		<visual>
+			<geometry>
+				<mesh filename="package://iai_bullet_sim/meshes/windmill_wings.dae"/>
+			</geometry>
+		</visual>
+		<collision>
+			<origin rpy="0 0 0" xyz="0 0 0"/>
+			<geometry>
+				<mesh filename="package://iai_bullet_sim/meshes/windmill_wings.dae"/>
+			</geometry>
+		</collision>
+	</link>
+	<joint name="head_pan" type="revolute">
+		<parent link="base"/>
+		<child link="head"/>
+		<origin rpy="0 0 0" xyz="0 0 1.29"/>
+		<axis xyz="0 0 1"/>
+		<limit effort="30" lower="-1.6" upper="1.6" velocity="0.1"/>
+	</joint>
+	<joint name="wings_rotor" type="continuous">
+		<parent link="head"/>
+		<child link="wings"/>
+		<origin rpy="0 0 0" xyz="0 -0.4 0.13"/>
+		<axis xyz="0 1 0"/>
+		<limit effort="10" velocity="10"/>
+	</joint>
+</robot>
