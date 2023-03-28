@@ -202,3 +202,37 @@ class CartesianRelativeVPointCOrientationController(object):
     def goal(self):
         return self._transform
 
+# Virtual point variable orientation controller
+class CartesianRelativeVPointVOrientationController(object):
+    def __init__(self, robot : MultiBody, link : Link, max_delta=1.0):
+        self._robot = robot
+        self._link  = link
+        self._max_vp_delta = max_delta
+        self.reset()
+    
+    def act(self, delta : Union[np.ndarray, Transform]):
+        self._transform.position += delta.position
+        self._transform.quaternion = self._transform.quaternion.dot(delta.quaternion)
+
+        ee_vp_delta = self._transform.position - self._link.pose.position
+
+        # Clip goal point back to max distance from link
+        if ee_vp_delta.norm() > self._max_vp_delta:
+            self._transform.position = self._link.pose.position + ee_vp_delta.normalized() * self._max_vp_delta
+
+        ik_solution = self._link.ik(self._transform)
+        self._robot.apply_joint_pos_cmds(ik_solution, 
+                                         self._robot.q_f_max)
+    
+    def reset(self):
+        self._transform = self._link.pose
+
+    @property
+    def delta(self):
+        ee_pose = self._link.pose
+        return np.array([(self._transform.position - ee_pose.position).norm(), 
+                          self._transform.quaternion.angle(ee_pose.quaternion)])
+
+    @property
+    def goal(self):
+        return self._transform
