@@ -20,6 +20,16 @@ class LinkState:
     angular_velocity    : Vector3
 
 
+# Link state structure. Assigns names to bullet's info structure.
+@dataclass
+class LinkState:
+    com_pose            : Transform
+    local_inertial_pose : Transform
+    world_pose          : Transform
+    linear_velocity     : Vector3
+    angular_velocity    : Vector3
+
+
 class Link(Frame):
     def __init__(self, simulator, multibody, idx : int, name : str):
         super().__init__(None)
