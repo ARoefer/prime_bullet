@@ -104,16 +104,6 @@ class Joint(Frame):
         return self._parent
 
 
-# Link state structure. Assigns names to bullet's info structure.
-@dataclass
-class LinkState:
-    com_pose            : Transform
-    local_inertial_pose : Transform
-    world_pose          : Transform
-    linear_velocity     : Vector3
-    angular_velocity    : Vector3
-
-
 class MultiBody(RigidBody):
     """Wrapper class giving object oriented access to PyBullet's multibodies.
     """
