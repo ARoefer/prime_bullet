@@ -1,12 +1,23 @@
 import numpy    as np
 import pybullet as pb
 
-from typing import Union
+from dataclasses import dataclass
+from typing      import Union
 
 from .frame    import Frame
 from .geometry import Transform, \
                       Point3,    \
                       Vector3
+
+# Link state structure. Assigns names to bullet's info structure.
+@dataclass
+class LinkState:
+    com_pose            : Transform
+    local_inertial_pose : Transform
+    world_pose          : Transform
+    linear_velocity     : Vector3
+    angular_velocity    : Vector3
+
 
 class Link(Frame):
     def __init__(self, simulator, multibody, idx : int, name : str):
