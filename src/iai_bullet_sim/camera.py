@@ -110,4 +110,11 @@ class PerspectiveCamera(Camera):
                                                 initial_pose,
                                                 parent)
         self._fov = fov
+    
+    def intrinsics(self):
+        cx = self._resolution[0] / 2
+        cy = self._resolution[1] / 2
+        fx = cx / np.tan(np.deg2rad(self._fov) / 2)
+        fy = fx
+        return np.array([[fx, 0, cx], [0, fy, cy], [0, 0, 1]])
 
