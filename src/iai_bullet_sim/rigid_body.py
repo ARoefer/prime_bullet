@@ -271,7 +271,7 @@ class BoxBody(RigidBody):
                                initial_pose.quaternion,
                                0,
                                0,
-                               pb.URDF_MERGE_FIXED_LINKS | pb.URDF_ENABLE_SLEEPING,
+                               pb.URDF_MERGE_FIXED_LINKS,
                                physicsClientId=simulator.client_id)
         
         super().__init__(simulator, bulletId, 'box', initial_pose)
@@ -315,7 +315,7 @@ class CylinderBody(RigidBody):
                                initial_pose.quaternion,
                                0,
                                0,
-                               pb.URDF_MERGE_FIXED_LINKS | pb.URDF_ENABLE_SLEEPING,
+                               pb.URDF_MERGE_FIXED_LINKS,
                                physicsClientId=simulator.client_id)
         
         super().__init__(simulator, bulletId, 'cylinder', initial_pose)
@@ -356,7 +356,7 @@ class SphereBody(RigidBody):
                                initial_pose.quaternion,
                                0,
                                0,
-                               pb.URDF_MERGE_FIXED_LINKS | pb.URDF_ENABLE_SLEEPING,
+                               pb.URDF_MERGE_FIXED_LINKS,
                                physicsClientId=simulator.client_id)
         
         super().__init__(simulator, bulletId, 'sphere', initial_pose)
@@ -407,7 +407,7 @@ class MeshBody(RigidBody):
                                    initial_pose.quaternion,
                                    0,
                                    0,
-                                   pb.URDF_MERGE_FIXED_LINKS | pb.URDF_ENABLE_SLEEPING,
+                                   pb.URDF_MERGE_FIXED_LINKS,
                                    physicsClientId=simulator.client_id)
         except pb.error as e:
             raise Exception(f'Exception raised during load of generated urdf "{fpath}": {e}')
