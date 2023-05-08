@@ -174,7 +174,7 @@ class ServiceSimulatorNode(BasicSimulatorNode):
             try:
                 body = self.sim.create_object(req.geom_type, extents, req.radius, req.height, pos, quat, req.mass, color, name)
                 res.success   = True
-                res.object_id = self.sim.get_body_id(body.bId())
+                res.object_id = self.sim.get_body_id(body.bId)
             except Exception as e:
                 traceback.print_exc()
                 res.success = False
@@ -193,7 +193,7 @@ class ServiceSimulatorNode(BasicSimulatorNode):
             try:
                 body = self.sim.load_urdf(req.urdf_path, pos, quat, useFixedBase=req.fixed_base, name_override=name)
                 res.success   = True
-                res.object_id = self.sim.get_body_id(body.bId())
+                res.object_id = self.sim.get_body_id(body.bId)
 
                 if body.has_dynamic_joints():
                     self.sim.register_plugin(JSPublisher(body, res.object_id))

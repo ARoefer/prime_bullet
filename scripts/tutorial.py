@@ -113,7 +113,7 @@ class SimplePlugin(SimulatorPlugin):
         print('\n'.join(['{:>20} moved {: 2.6f} rad'.format(j, d) for j, d in jp_delta.items()]))
 
     def to_dict(self, simulator):
-        return {'body': simulator.get_body_id(self.body.bId())}
+        return {'body': simulator.get_body_id(self.body.bId)}
 
     @classmethod
     def factory(cls, simulator, init_dict):

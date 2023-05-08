@@ -27,6 +27,7 @@ class Constraint(object):
 
         self.axis = axis
 
+    @property
     def bId(self):
         return self.bulletId
 
@@ -37,10 +38,10 @@ class Constraint(object):
             pb.changeConstraint(self.__bulletId, self.child_pos, self.child_rot, self.max_force, physicsClientId=self.__client_id)
 
     def on_body_deleted(self, simulator, Id, obj):
-        if self.parent.bId() == obj.bId():
+        if self.parent.bId == obj.bId:
             if self.child is not None:
                 self.child.deregister_deletion_cb(self.on_body_deleted)    
         else:
             self.parent.deregister_deletion_cb(self.on_body_deleted)
         
-        simulator.delete_constraint(self.bId())
+        simulator.delete_constraint(self.bId)
