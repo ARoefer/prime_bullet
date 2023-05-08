@@ -373,7 +373,7 @@ class MultiBody(RigidBody):
         :type  cmd: dict
         """
         if type(cmd) == dict:
-            cmd_indices, cmd_pos = zip(*[(self.joints[j].index, c) for j, c in cmd.items() 
+            cmd_indices, cmd_vel = zip(*[(self.joints[j].index, c) for j, c in cmd.items() 
                                                                    if j in self.joints])
         else:
             cmd_indices = self.__dynamic_joint_indices
@@ -397,7 +397,7 @@ class MultiBody(RigidBody):
         :type  cmd: dict
         """
         if type(cmd) == dict:
-            cmd_indices, cmd_pos = zip(*[(self.joints[j].index, c) for j, c in cmd.items() 
+            cmd_indices, cmd_torque = zip(*[(self.joints[j].index, c) for j, c in cmd.items() 
                                                                    if j in self.joints])
         else:
             cmd_indices = self.__dynamic_joint_indices
