@@ -306,6 +306,11 @@ class BasicSimulator(object):
                 self.__bId_IdMap[obj.bId] = name_override
             return name_override
 
+    def get_object_name(self, obj):
+        if obj.bId not in self.__bId_IdMap:
+            raise KeyError(f'Object with Id {obj.bId} is unknown')
+        return self.__bId_IdMap[obj.bId]
+
     def register_deletion_cb(self, bodyId, cb):
         """Registers a callback function which is called when the specified object is deleted.
 

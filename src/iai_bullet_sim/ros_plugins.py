@@ -2,15 +2,23 @@ import rospy
 import tf
 import pybullet as pb
 import numpy as np
+import tf2_ros
 
-from geometry_msgs.msg import WrenchStamped as WrenchMsg
-from sensor_msgs.msg import JointState as JointStateMsg
-from sensor_msgs.msg import LaserScan as LaserScanMsg
+from geometry_msgs.msg import WrenchStamped    as WrenchMsg, \
+                              TransformStamped as TransformStampedMsg, \
+                              Transform        as TransformMsg
+from sensor_msgs.msg   import JointState    as JointStateMsg, \
+                              LaserScan     as LaserScanMsg
 from trajectory_msgs.msg import JointTrajectory as JointTrajectoryMsg
 from nav_msgs.msg import Odometry as OdometryMsg
 
 from iai_bullet_sim.basic_simulator import SimulatorPlugin
 from iai_bullet_sim.multibody import MultiBody
+
+from .frame     import Frame
+from .multibody import MultiBody
+from geometry   import Transform
+
 
 class Watchdog(object):
     """Watchdog class. Barks if not ticked for long enough."""
@@ -874,3 +882,64 @@ class LaserScanner(SimulatorPlugin):
                               init_dict['range_max'],
                               init_dict['axis'],
                               init_dict['sensor_name'])
+
+
+
+tf2_static_pub  = tf2_ros.StaticTransformBroadcaster()
+tf2_dynamic_pub = tf2_ros.TransformBroadcaster()
+
+
+def transform_to_rosmsg(tf : Transform, out : TransformMsg):
+    out.translation.x, out.translation.y, out.translation.z = tf.position
+    out.rotation.x, out.rotation.y, out.rotation.z, out.rotation.w = tf.quaternion
+    return out
+
+
+class WorldFrame(Frame):
+    def __init__(self):
+        super().__init__(None)
+        self.name = 'world'
+
+    @property
+    def local_pose(self) -> Transform:
+        return Transform.identity()
+
+
+WORLD_FRAME = WorldFrame()
+
+
+class ROSTFPublisher(SimulatorPlugin):
+    """Publishes TF frames for bodies and links"""
+    def __init__(self, sim, obj : Frame):
+        super(SimulatorPlugin, self).__init__('ROSTFPublisher')
+        
+        name = sim.get_object_name(obj)
+        self._dynamic_frames = [(name, obj, WORLD_FRAME, WORLD_FRAME.name)]
+
+        if isinstance(obj, MultiBody):
+            for j in obj.joints.values():
+                if j.is_dynamic:
+                    self._dynamic_frames.append((f'{name}/{j.link.name}', j.link, j.parent, f'{name}/{j.parent.name}'))
+                else:
+                    out = TransformStampedMsg()
+                    out.header.stamp    = rospy.Time.now()
+                    out.header.frame_id = f'{name}/{j.parent.name}'
+                    out.child_frame_id  = f'{name}/{j.link.name}'
+                    transform_to_rosmsg(j.local_pose, out.transform)
+                    tf2_static_pub.sendTransform(out)
+
+    def post_physics_update(self, simulator, deltaT):
+        """Implements post physics step behavior.
+
+        :type simulator: BasicSimulator
+        :type deltaT: float
+        """
+        now = rospy.Time.now()
+        for name, child, parent, parent_name in self._dynamic_frames:
+            msg = TransformStampedMsg()
+            msg.header.stamp = now
+            msg.header.frame_id = parent_name
+            msg.child_frame_id  = name
+            tf = parent.pose.inv().dot(child.pose)
+            transform_to_rosmsg(tf, msg.transform)
+            tf2_dynamic_pub.sendTransform(tf)
