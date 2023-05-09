@@ -17,7 +17,7 @@ from iai_bullet_sim.multibody import MultiBody
 
 from .frame     import Frame
 from .multibody import MultiBody
-from geometry   import Transform
+from .geometry  import Transform
 
 
 class Watchdog(object):
@@ -911,18 +911,25 @@ WORLD_FRAME = WorldFrame()
 class ROSTFPublisher(SimulatorPlugin):
     """Publishes TF frames for bodies and links"""
     def __init__(self, sim, obj : Frame):
-        super(SimulatorPlugin, self).__init__('ROSTFPublisher')
+        super().__init__('ROSTFPublisher')
         
         name = sim.get_object_name(obj)
         self._dynamic_frames = [(name, obj, WORLD_FRAME, WORLD_FRAME.name)]
 
         if isinstance(obj, MultiBody):
+            now = rospy.Time.now()
+            out = TransformStampedMsg()
+            out.header.stamp    = now
+            out.header.frame_id = name
+            out.child_frame_id  = f'{name}/{obj.base_link}'
+            tf2_static_pub.sendTransform(out)
+
             for j in obj.joints.values():
                 if j.is_dynamic:
                     self._dynamic_frames.append((f'{name}/{j.link.name}', j.link, j.parent, f'{name}/{j.parent.name}'))
                 else:
                     out = TransformStampedMsg()
-                    out.header.stamp    = rospy.Time.now()
+                    out.header.stamp    = now
                     out.header.frame_id = f'{name}/{j.parent.name}'
                     out.child_frame_id  = f'{name}/{j.link.name}'
                     transform_to_rosmsg(j.local_pose, out.transform)
@@ -942,4 +949,4 @@ class ROSTFPublisher(SimulatorPlugin):
             msg.child_frame_id  = name
             tf = parent.pose.inv().dot(child.pose)
             transform_to_rosmsg(tf, msg.transform)
-            tf2_dynamic_pub.sendTransform(tf)
+            tf2_dynamic_pub.sendTransform(msg)
