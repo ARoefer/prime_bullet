@@ -30,6 +30,30 @@ class JointPositionController(object):
     def goal(self):
         return self._q_goal
 
+class TestController(object):
+    def __init__(self, robot : MultiBody, link : Link):
+        self._robot = robot
+        self._link  = link
+        self.reset()
+
+    def act(self, position : Union[np.ndarray, Transform], max_iters : int = 50):
+        self._transform = position
+
+        ik_solution = self._link.ik(self._transform, max_iters)
+        self._robot.set_joint_positions(ik_solution)
+
+    def reset(self):
+        self._transform = self._link.pose
+
+    @property
+    def delta(self):
+        ee_pose = self._link.pose
+        return np.array([(self._transform.position - ee_pose.position).norm(), 
+                          self._transform.quaternion.angle(ee_pose.quaternion)])
+
+    @property
+    def goal(self):
+        return self._transform
 
 class CartesianController(object):
     def __init__(self, robot : MultiBody, link : Link):
