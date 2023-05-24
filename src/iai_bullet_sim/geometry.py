@@ -265,7 +265,7 @@ class Transform:
             return self
 
         # Interpolate
-        fac = np.clamp(fac, 0.0, 1.0)
+        fac = np.clip(fac, 0.0, 1.0)
         ti  = Transform(td.position * fac, Quaternion.from_axis_angle(axis, angle * fac))
         return self.dot(ti)
 
