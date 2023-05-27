@@ -36,11 +36,33 @@ class TestController(object):
         self._link  = link
         self.reset()
 
-    def act(self, position : Union[np.ndarray, Transform], max_iters : int = 50):
+    def set_target(self, target_pose : Transform, thresh_lin : float = 0.05, thresh_ang : float = np.deg2rad(15)):
+        current_pose = self._link.pose
+        tf_delta = current_pose.relative(target_pose)
+        lin_dist = tf_delta.position.norm()
+        ang_dist = tf_delta.quaternion.angle()
+
+        thresh_lin = 0.05
+        thresh_ang = np.deg2rad(15)
+
+        lin_steps = int(lin_dist / thresh_lin)
+        ang_steps = int(ang_dist / thresh_ang)
+
+        n_steps = max(1, lin_steps, ang_steps)
+
+        increment_steps = [(1 / n_steps) * s for s in range(1, n_steps + 1)]
+
+        points = [current_pose.lerp(target_pose, step) for step in increment_steps]
+
+        return points
+
+
+    def act(self, position : Union[np.ndarray, Transform], force_scale : float = 1.0):
         self._transform = position
 
-        ik_solution = self._link.ik(self._transform, max_iters)
-        self._robot.set_joint_positions(ik_solution)
+        ik_solution = self._link.ik(self._transform)
+        self._robot.apply_joint_pos_cmds(ik_solution, 
+                                         self._robot.q_f_max*force_scale)
 
     def reset(self):
         self._transform = self._link.pose
