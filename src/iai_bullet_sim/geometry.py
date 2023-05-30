@@ -261,7 +261,7 @@ class Transform:
         td = self.relative(other)
 
         axis, angle = td.quaternion.axis_angle(epsilon)
-        if td.position.norm() <= epsilon or angle <= epsilon:
+        if td.position.norm() <= epsilon and angle <= epsilon:
             return self
 
         # Interpolate

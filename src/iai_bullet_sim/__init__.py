@@ -34,9 +34,10 @@ from .multibody     import MultiBody, Link
 from .constraint    import Constraint
 
 
-from .basic_simulator import BasicSimulator, \
-                             ContactPoint, \
-                             SimulatorPlugin
+from .basic_simulator import BasicSimulator,  \
+                             ContactPoint,    \
+                             SimulatorPlugin, \
+                             DebugVisualizer
 
 from .controllers     import JointPositionController, \
                              CartesianController, \

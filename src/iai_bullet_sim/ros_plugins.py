@@ -96,7 +96,7 @@ class JSPublisher(SimulatorPlugin):
         :type simulator: iai_bullet_sim.basic_simulator.BasicSimulator
         :rtype: dict
         """
-        return {'body': simulator.get_body_id(self.body.bId()),
+        return {'body': simulator.get_body_id(self.body.bId),
                 'topic_prefix': self.topic_prefix}
 
     @classmethod
@@ -174,7 +174,7 @@ class SensorPublisher(SimulatorPlugin):
         :type simulator: iai_bullet_sim.basic_simulator.BasicSimulator
         :rtype: dict
         """
-        return {'body': simulator.get_body_id(self.body.bId()),
+        return {'body': simulator.get_body_id(self.body.bId),
                 'topic_prefix': self.__topic_prefix}
 
     @classmethod
@@ -297,7 +297,7 @@ class JointPositionController(WatchdoggedJointController):
         :type simulator: iai_bullet_sim.basic_simulator.BasicSimulator
         :rtype: dict
         """
-        return {'body': simulator.get_body_id(self.body.bId()),
+        return {'body': simulator.get_body_id(self.body.bId),
                 'topic_prefix': self.__topic_prefix,
                 'watchdog_timeout': self.watchdog_timeout}
 
@@ -359,7 +359,7 @@ class JointVelocityController(WatchdoggedJointController):
         :type simulator: iai_bullet_sim.basic_simulator.BasicSimulator
         :rtype: dict
         """
-        return {'body': simulator.get_body_id(self.body.bId()),
+        return {'body': simulator.get_body_id(self.body.bId),
                 'topic_prefix': self.__topic_prefix,
                 'watchdog_timeout': self.watchdog_timeout}
 
@@ -469,7 +469,7 @@ class TrajectoryPositionController(CommandSubscriber):
         :type simulator: iai_bullet_sim.basic_simulator.BasicSimulator
         :rtype: dict
         """
-        return {'body': simulator.get_body_id(self.body.bId()),
+        return {'body': simulator.get_body_id(self.body.bId),
                 'topic_prefix': self.__topic_prefix}
 
     @classmethod
@@ -627,7 +627,7 @@ class OdometryPublisher(SimulatorPlugin):
         :type  child_frame_id: str
         """
         super(OdometryPublisher, self).__init__('Odometry Publisher')
-        name = simulator.get_body_id(multibody.bId())
+        name = simulator.get_body_id(multibody.bId)
         self.publisher = rospy.Publisher('{}/odometry'.format(name), OdometryMsg, queue_size=1, tcp_nodelay=True)
         self.body = multibody
         simulator.register_deletion_cb(name, self.on_obj_deleted)
@@ -682,7 +682,7 @@ class OdometryPublisher(SimulatorPlugin):
         :type simulator: iai_bullet_sim.basic_simulator.BasicSimulator
         :rtype: dict
         """
-        return {'body': simulator.get_body_id(self.body.bId()),
+        return {'body': simulator.get_body_id(self.body.bId),
                 'child_frame_id': self.msg_template.child_frame_id}
 
     @classmethod
@@ -775,7 +775,7 @@ class LaserScanner(SimulatorPlugin):
         self.body = body
         self.link = link
         self.sensor_name = sensor_name
-        body_name = simulator.get_body_id(body.bId())
+        body_name = simulator.get_body_id(body.bId)
         simulator.register_deletion_cb(body_name, self.on_obj_deleted)
 
         if link is None or link == '':
@@ -850,7 +850,7 @@ class LaserScanner(SimulatorPlugin):
         :type simulator: BasicSimulator
         :rtype: dict
         """
-        return {'body': simulator.get_body_id(self.body.bId()),
+        return {'body': simulator.get_body_id(self.body.bId),
                 'link': self.link if self.link != None else '',
                 'angle_min': self.msg_template.angle_min,
                 'angle_max': self.msg_template.angle_max,

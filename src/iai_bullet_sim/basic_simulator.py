@@ -81,7 +81,7 @@ class ContactPoint(object):
     # Penetration depth of the contact
     dist : float
     # Force vector of the contact
-    normalForce : Union[Iterable, Vector3]
+    normalForce : float
 
     def __leq__(self, other):
         """
