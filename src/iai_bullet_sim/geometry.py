@@ -115,7 +115,7 @@ class Point3(Vector3):
 # Datastructure representing a quaternion
 class Quaternion(tuple):
     def __new__(cls, x, y, z, w):
-        return super(Quaternion, cls).__new__(cls, (x, y, z, w))
+        return super(Quaternion, cls).__new__(cls, np.clip((x, y, z, w), -1, 1))
 
     def __str__(self):
         return self.__repr__()
