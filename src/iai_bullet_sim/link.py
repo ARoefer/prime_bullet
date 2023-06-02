@@ -154,21 +154,6 @@ class Link(Frame):
                                                             physicsClientId=self._client_id
                                                             ))
     
-    def ik_null(self, world_pose : Union[Point3, Transform], max_iterations=50):
-
-        rest = np.array([0, 0, 0, -2, 0, 2, 0, 0, 0])
-
-        return np.asarray(pb.calculateInverseKinematics(self._multibody.bId,
-                                                        self._idx,
-                                                        world_pose.position,
-                                                        world_pose.quaternion,
-                                                        lowerLimits=list(self._multibody.q_min),
-                                                        upperLimits=list(self._multibody.q_max),
-                                                        # jointRanges=self._multibody.q_max - self._multibody.q_min,
-                                                        jointRanges=[4]*len(self._multibody.q_min),
-                                                        restPoses=rest
-                                                        ))
-
     def get_contacts(self, other=None):
         if other is not None:
             if isinstance(other, Link):

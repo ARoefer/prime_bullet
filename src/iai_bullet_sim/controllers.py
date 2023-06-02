@@ -30,20 +30,17 @@ class JointPositionController(object):
     def goal(self):
         return self._q_goal
 
-class TestController(object):
+class CartesianInterpolationController(object):
     def __init__(self, robot : MultiBody, link : Link):
         self._robot = robot
         self._link  = link
         self.reset()
 
-    def set_target(self, target_pose : Transform, thresh_lin : float = 0.05, thresh_ang : float = np.deg2rad(15)):
+    def set_target(self, target_pose : Transform, thresh_lin : float = 0.05, thresh_ang : float = np.deg2rad(10)):
         current_pose = self._link.pose
         tf_delta = current_pose.relative(target_pose)
         lin_dist = tf_delta.position.norm()
         ang_dist = tf_delta.quaternion.angle()
-
-        thresh_lin = 0.05
-        thresh_ang = np.deg2rad(15)
 
         lin_steps = int(lin_dist / thresh_lin)
         ang_steps = int(ang_dist / thresh_ang)
@@ -57,12 +54,12 @@ class TestController(object):
         return points
 
 
-    def act(self, position : Union[np.ndarray, Transform], force_scale : float = 1.0):
+    def act(self, position : Union[np.ndarray, Transform]):
         self._transform = position
 
         ik_solution = self._link.ik(self._transform)
         self._robot.apply_joint_pos_cmds(ik_solution, 
-                                         self._robot.q_f_max*force_scale)
+                                         self._robot.q_f_max)
 
     def reset(self):
         self._transform = self._link.pose

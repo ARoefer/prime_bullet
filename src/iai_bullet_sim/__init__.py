@@ -47,4 +47,4 @@ from .controllers     import JointPositionController, \
                              CartesianRelativePointCOrientationController,  \
                              CartesianRelativeVPointCOrientationController, \
                              CartesianRelativeVPointVOrientationController, \
-                             TestController
+                             CartesianInterpolationController
