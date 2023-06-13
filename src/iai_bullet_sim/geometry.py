@@ -138,7 +138,7 @@ class Quaternion(tuple):
 
     @property
     def w(self):
-        return self[2]
+        return self[3]
 
     def dot(self, other):
         if type(other) == Quaternion:
