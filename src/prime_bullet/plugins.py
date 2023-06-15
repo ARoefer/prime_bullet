@@ -1,4 +1,4 @@
-from iai_bullet_sim.basic_simulator import SimulatorPlugin
+from .basic_simulator import SimulatorPlugin
 
 
 class ContactEventListener(SimulatorPlugin):

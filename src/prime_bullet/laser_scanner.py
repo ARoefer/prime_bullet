@@ -1,10 +1,10 @@
 import numpy as np
 import pybullet as pb
 
-from iai_bullet_sim.frame           import Frame
-from iai_bullet_sim.geometry        import Transform
-from iai_bullet_sim.rigid_body      import RigidBody
-from iai_bullet_sim.multibody       import Link
+from .frame           import Frame
+from .geometry        import Transform
+from .rigid_body      import RigidBody
+from .multibody       import Link
 
 
 class LaserScanner(Frame):

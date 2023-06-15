@@ -1,8 +1,8 @@
 import pybullet as pb
 import numpy    as np
 
-from iai_bullet_sim.frame    import Frame
-from iai_bullet_sim.geometry import Transform
+from .frame    import Frame
+from .geometry import Transform
 
 
 class Camera(Frame):

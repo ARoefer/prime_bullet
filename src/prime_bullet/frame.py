@@ -1,4 +1,5 @@
-from iai_bullet_sim.geometry import Transform
+from .geometry import Transform
+
 
 class Frame(object):
     def __init__(self, parent):

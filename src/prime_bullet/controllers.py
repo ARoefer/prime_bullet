@@ -2,10 +2,11 @@ import numpy as np
 
 from typing import Union
 
-from iai_bullet_sim.geometry  import Vector3,  \
-                                     Point3,   \
-                                     Transform
-from iai_bullet_sim.multibody import MultiBody, Link
+from .geometry  import Vector3,   \
+                       Point3,    \
+                       Transform
+from .multibody import MultiBody, \
+                       Link
 
 
 class JointPositionController(object):

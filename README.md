@@ -31,7 +31,7 @@ A brief overview to get you into the features of *prime bullet*.
 Prime Bullet uses a simulator instance as interface to bullet. In case you are familiar with the inner workings of bullet: This instance maintains the connection to the bullet server.
 
 ```python
-import iai_bullet_sim as ibs
+import prime_bullet as ibs
 
 # Simulator with 50Hz rate, standard gravity, and no EGL rendering
 sim = ibs.BasicSimulator()
@@ -48,7 +48,7 @@ sim2.init('direct')
 The typical life-cycle for the simulator looks like this:
 
 ```python
-import iai_bullet_sim as ibs
+import prime_bullet as ibs
 
 sim = ibs.BasicSimulator()
 sim.init('gui')
@@ -77,7 +77,7 @@ sim.kill()
 Creation of objects is handled through the simulator, as objects are always associated with exactly one simulation. The following object types can be created:
 
 ```python
-import iai_bullet_sim as ibs
+import prime_bullet as ibs
 
 sim = ibs.BasicSimulator()
 sim.init('gui')
@@ -112,7 +112,7 @@ There are two types of objects in prime bullet: Rigid bodies and articulated obj
 Rigid bodies have a number of convenience functions, but primarily it is important to point out the following:
 
 ```python
-import iai_bullet_sim as ibs
+import prime_bullet as ibs
 
 sim = ibs.BasicSimulator()
 sim.init('gui')
@@ -146,7 +146,7 @@ aabb = box.aabb
 Articulated objects, such as robots, are more complicated, as they contain joints and their states. Notable functions are:
 
 ```python
-import iai_bullet_sim as ibs
+import prime_bullet as ibs
 
 sim = ibs.BasicSimulator()
 sim.init('gui')
@@ -215,7 +215,7 @@ wrench = ft_sensor.get()  # Current wrench measurement
 As you could see before, prime bullet is able to use *package* paths. In case you are working with ROS, prime bullet will automatically add your ROS package path to the paths it searches. In case you are using prime bullet without ROS, you can always add paths manually with `add_search_path()`:
 
 ```python
-import iai_bullet_sim as ibs
+import prime_bullet as ibs
 
 ibs.add_search_path('my_awesome_library_root')
 ibs.add_search_path('some_other_place/my_package')
@@ -296,7 +296,7 @@ There are more constructors for all these data types and more operators. It is w
 Prime bullet adds the concept of frames, which allow users to build transformation hierarchies. A frame always has a `local_pose` and a `pose`, which describe their transformation either relative to their parent, or relative to the world. All bodies and all links implement the frame concept, however here both of these attributes are always identical, as pybullet does not support the concept of frames. Nonetheless, frames become useful when we want to attach "virtual" object, such as cameras or other sensors, to the bodies managed by the physics simulation. As an example, let us take a look at the `PerspectiveCamera` class.
 
 ```python
-import iai_bullet_sim as ibs
+import prime_bullet as ibs
 
 link = some_body.links['link']
 
@@ -313,7 +313,7 @@ We don't have the time to go into details, but we would like to point out that p
 
 
 ```python
-import iai_bullet_sim as ibs
+import prime_bullet as ibs
 
 # Camera rendering 200x200 pixel images at 70deg FOV in a volume from 10cm-10m
 cam  = ibs.PerspectiveCamera(sim, (200, 200), 70, 0.1, 10.0)
@@ -333,7 +333,7 @@ For more details, please check the class references. It would also be nice to ha
 In addition to new sensor modalities, prime bullet also provides a couple controllers to get you started with (Cartesian) robotic control. The following is not going into detail on their usage, but rather serves as an overview.
 
 ```python
-import iai_bullet_sim as ibs
+import prime_bullet as ibs
 
 # Control for joint positions. Holds current position by default
 jc = ibs.JointPositionControl(robot)
@@ -386,7 +386,7 @@ Briefly, let us remark on the usage of prime bullet with the OpenAI `gym` API. S
 
 ```python
 import gym
-import iai_bullet_sim as ibs
+import prime_bullet as ibs
 
 class MyEnv(gym.Env):
     def __init__(self, hz_action, substeps=1, **more_params_that_I_need):

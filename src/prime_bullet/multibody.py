@@ -6,13 +6,13 @@ from dataclasses import dataclass
 from functools   import lru_cache
 from typing      import Union
 
-from iai_bullet_sim.frame      import Frame
-from iai_bullet_sim.rigid_body import RigidBody
-from iai_bullet_sim.geometry   import Point3, \
-                                      Transform, \
-                                      Vector3, \
-                                      Quaternion, \
-                                      AABB
+from .frame      import Frame
+from .rigid_body import RigidBody
+from .geometry   import Point3, \
+                        Transform, \
+                        Vector3, \
+                        Quaternion, \
+                        AABB
 from .link import Link
 
 from math import atan2, cos, sin

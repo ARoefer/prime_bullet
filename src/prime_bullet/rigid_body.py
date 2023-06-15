@@ -9,15 +9,15 @@ from omegaconf   import OmegaConf
 from pathlib     import Path
 from typing      import Union
 
-from iai_bullet_sim import IAI_BULLET_ROOT
-from iai_bullet_sim.frame    import Frame
-from iai_bullet_sim.geometry import Point3,     \
-                                    Quaternion, \
-                                    Vector3,    \
-                                    Transform,  \
-                                    AABB
-from iai_bullet_sim.utils    import ColorRGBA,  \
-                                    res_pkg_path
+from . import IAI_BULLET_ROOT
+from .frame    import Frame
+from .geometry import Point3,     \
+                      Quaternion, \
+                      Vector3,    \
+                      Transform,  \
+                      AABB
+from .utils    import ColorRGBA,  \
+                      res_pkg_path
 from .link import Link
 
 # Mapping of bullet's geometry constants to internal keywords
