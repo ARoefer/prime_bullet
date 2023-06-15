@@ -1,5 +1,0 @@
----
-string[] name
-iai_bullet_sim/MultiBody[] body
-uint8[] controller
-string[] body_name
