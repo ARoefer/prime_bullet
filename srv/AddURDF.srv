@@ -1,8 +1,0 @@
-string urdf_path         # Path of the URDF. ROS package URI or regular file path
-geometry_msgs/Pose pose  # Pose to instantiate the URDF at
-bool fixed_base          # Fix the base of the URDF
-string name              # Id to assign to the object. Leave blank for automatic Id
----
-bool success             # Was the call successful
-string error_msg         # Error message, if any
-string object_id         # Object Id assigned to the loaded URDF

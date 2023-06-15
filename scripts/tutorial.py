@@ -3,8 +3,12 @@ import sys
 from time import time
 from math import sin
 
-from iai_bullet_sim.basic_simulator import BasicSimulator, SimulatorPlugin
+from prime_bullet import BasicSimulator, \
+                         SimulatorPlugin
 
+from prime_bullet import Transform, \
+                         Point3,    \
+                         Vector3
 
 class DemoIntro(object):
     def __init__(self):
@@ -74,23 +78,26 @@ class DemoContacts(object):
         pass
 
     def run(self):
-        sim = BasicSimulator()
+        sim = BasicSimulator(30)
         sim.init(mode='gui')
         floor = sim.create_box(extents=[10,10,0.1], mass=0)
-        scale = sim.load_urdf('package://iai_bullet_sim/urdf/scale.urdf', pos=[0,0,0.1], useFixedBase=1)
+        scale = sim.load_urdf('package://iai_bullet_sim/urdf/scale.urdf', 
+                              pose=Transform.from_xyz(0,0,0.1), useFixedBase=1)
 
         for x in range(5):
-            sim.create_box(extents=[0.2,0.2,0.2], pos=[0,0,2 + x*0.5], mass=20)
+            sim.create_box(extents=[0.2,0.2,0.2], pose=Transform.from_xyz(0,0,2 + x*0.5), mass=20)
 
         scale.apply_joint_pos_cmds({'plate_lift': 0.2})
-        scale.enable_joint_sensor('plate_lift')
+        sensor = scale.get_ft_sensor('plate_lift')
+
+        plate_link = scale.links['plate']
 
         last_update = time()
         while True:
             if time() - last_update >= sim.time_step:
                 sim.update()
-                contacts = scale.get_contacts(own_link='plate')
-                print('Contacts with plate:\n  {}'.format('\n  '.join([sim.get_body_id(c.bodyB.bId()) for c in contacts])))
+                contacts = plate_link.get_contacts()
+                print('Contacts with plate:\n  {}'.format('\n  '.join([str(c.bodyB.bId) for c in contacts])))
                 last_update = time()
 
 
@@ -107,7 +114,7 @@ class SimplePlugin(SimulatorPlugin):
         print('\n'.join(['{:>20} moved {: 2.6f} rad'.format(j, d) for j, d in jp_delta.items()]))
 
     def to_dict(self, simulator):
-        return {'body': simulator.get_body_id(self.body.bId())}
+        return {'body': simulator.get_body_id(self.body.bId)}
 
     @classmethod
     def factory(cls, simulator, init_dict):

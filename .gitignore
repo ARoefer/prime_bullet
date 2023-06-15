@@ -52,3 +52,6 @@ CATKIN_IGNORE
 
 # Blender
 *.blend1
+
+# pip
+**/*.egg-info
