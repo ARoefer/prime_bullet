@@ -7,7 +7,7 @@ from .utils         import ColorRGBA, \
 try:
     import rospy
     
-    IAI_BULLET_ROOT = res_pkg_path('package://iai_bullet_sim/src/iai_bullet_sim')
+    IAI_BULLET_ROOT = res_pkg_path('package://prime_bullet/src/prime_bullet')
 
 except ImportError:
     IAI_BULLET_ROOT = Path(__file__).parent
