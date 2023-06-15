@@ -25,7 +25,7 @@ class Constraint(object):
         self.child_pos  = child_pos
         self.child_rot  = child_rot
 
-        self.axis = axis
+        self.axis = axis_in_child
 
     @property
     def bId(self):

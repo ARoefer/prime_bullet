@@ -3,8 +3,7 @@ import sys
 from time import time
 from math import sin
 
-from iai_bullet_sim.basic_simulator import BasicSimulator
-
+from iai_bullet_sim import BasicSimulator
 
 
 if __name__ == '__main__':
