@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(iai_bullet_sim)
+project(prime_bullet)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
 # add_compile_options(-std=c++11)
@@ -10,10 +10,6 @@ project(iai_bullet_sim)
 find_package(catkin REQUIRED COMPONENTS
   message_generation
   rospy
-  std_msgs
-  geometry_msgs
-  sensor_msgs
-  visualization_msgs
 )
 
 ## System dependencies are found with CMake's conventions
@@ -50,32 +46,12 @@ catkin_python_setup()
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
 ## Generate messages in the 'msg' folder
-add_message_files(
-  FILES
-  RigidBody.msg
-  MultiBody.msg
-)
+# add_message_files(
+#   FILES
+# )
 
 ## Generate services in the 'srv' folder
-add_service_files(
-  FILES
-  AddRigidObject.srv
-  AddURDF.srv
-  Empty.srv
-  GetJoints.srv
-  GetObjectIds.srv
-  GetMultibodies.srv
-  GetRigidBodies.srv
-  GetSimulatorState.srv
-  ObjectId.srv
-  SaveSimulator.srv
-  SetController.srv
-  SetGravity.srv
-  SetJointSensor.srv
-  SetJointState.srv
-  SetObjectPose.srv
-  GetStaticGeometry.srv
-)
+# add_service_files(FILES)
 
 ## Generate actions in the 'action' folder
 # add_action_files(
@@ -85,13 +61,13 @@ add_service_files(
 # )
 
 ## Generate added messages and services with any dependencies listed here
-generate_messages(
-  DEPENDENCIES
-  std_msgs  # Or other packages containing msgs
-  geometry_msgs
-  sensor_msgs
-  visualization_msgs
-)
+# generate_messages(
+#   DEPENDENCIES
+#   std_msgs  # Or other packages containing msgs
+#   geometry_msgs
+#   sensor_msgs
+#   visualization_msgs
+# )
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##

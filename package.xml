@@ -1,19 +1,19 @@
 <?xml version="1.0"?>
 <package format="2">
-  <name>iai_bullet_sim</name>
+  <name>prime_bullet</name>
   <version>0.0.0</version>
   <description>A lightweight simulator based on the Bullet physics engine.</description>
 
   <!-- One maintainer tag required, multiple allowed, one person per tag -->
   <!-- Example:  -->
   <!-- <maintainer email="jane.doe@example.com">Jane Doe</maintainer> -->
-  <maintainer email="aroefer@lookatgithub.com">Adrian Roefer</maintainer>
+  <maintainer email="aroefer@cs.uni-freiburg.de">Adrian Röfer</maintainer>
 
 
   <!-- One license tag required, multiple allowed, one license per tag -->
   <!-- Commonly used license strings: -->
   <!--   BSD, MIT, Boost Software License, GPLv2, GPLv3, LGPLv2.1, LGPLv3 -->
-  <license>GPLv2</license>
+  <license>GPLv3</license>
 
 
   <!-- Url tags are optional, but multiple are allowed, one per tag -->
