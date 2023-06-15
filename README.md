@@ -34,13 +34,13 @@ Prime Bullet uses a simulator instance as interface to bullet. In case you are f
 import prime_bullet as pb
 
 # Simulator with 50Hz rate, standard gravity, and no EGL rendering
-sim = pb.BasicSimulator()
+sim = pb.Simulator()
 
 # Establishes connection with Bullet in 'gui' mode. There is also headless, aka 'direct' mode
 sim.init('gui')
 
 # Second simulator with 100Hz rate.
-sim2 = pb.BasicSimulator(100)
+sim2 = pb.Simulator(100)
 # New connection to bullet. This simulator is completely separate from the first
 sim2.init('direct')
 ```
@@ -50,7 +50,7 @@ The typical life-cycle for the simulator looks like this:
 ```python
 import prime_bullet as pb
 
-sim = pb.BasicSimulator()
+sim = pb.Simulator()
 sim.init('gui')
 
 # Create a couple objects
@@ -79,7 +79,7 @@ Creation of objects is handled through the simulator, as objects are always asso
 ```python
 import prime_bullet as pb
 
-sim = pb.BasicSimulator()
+sim = pb.Simulator()
 sim.init('gui')
 
 # Create a couple objects
@@ -114,7 +114,7 @@ Rigid bodies have a number of convenience functions, but primarily it is importa
 ```python
 import prime_bullet as pb
 
-sim = pb.BasicSimulator()
+sim = pb.Simulator()
 sim.init('gui')
 
 box = sim.create_box([0.2] * 3, pb.Transform.from_xyz(0, 1, 0.2))
@@ -148,7 +148,7 @@ Articulated objects, such as robots, are more complicated, as they contain joint
 ```python
 import prime_bullet as pb
 
-sim = pb.BasicSimulator()
+sim = pb.Simulator()
 sim.init('gui')
 
 mill = sim.load_urdf('package://iai_bullet_sim/src/iai_bullet_sim/data/urdf/windmill.urdf', pb.Transform.from_xyz(0, 5, 0))
@@ -374,7 +374,7 @@ There are three more things in this library to mention:
  
  1. The `pb.ColorRGBA` type, which behaves like the other types, but represents colors and defines a few constant ones.
  2. The `pb.AABB` type which represents axis aligned bounding boxes and can be used to check if points are within such a box.
- 3. The `pb.DebugVisualizer` which can be obtained from a `BasicSimulator` instance which is currently in `gui` mode. This class can be used to control pybullet's visualizer.
+ 3. The `pb.DebugVisualizer` which can be obtained from a `Simulator` instance which is currently in `gui` mode. This class can be used to control pybullet's visualizer.
 
 
 ### Plugins
@@ -382,7 +382,7 @@ TODO. But generally, they allow users to attach additional functionality to the 
 
 ## Usage with `gym.Env`
 
-Briefly, let us remark on the usage of prime bullet with the OpenAI `gym` API. Since the `BasicSimulator` class seems to have a functional overlap with a `gym.Env`, it might be tempting to create a custom environment by deriving a class from both `BasicSimulator` and `gym.Env`. We advise against this, as it will create a messy architecture in which different semantic goals and timesteps collide. Instead, we propose the following as a rough skeleton for using prime bullet with gym environments:
+Briefly, let us remark on the usage of prime bullet with the OpenAI `gym` API. Since the `Simulator` class seems to have a functional overlap with a `gym.Env`, it might be tempting to create a custom environment by deriving a class from both `Simulator` and `gym.Env`. We advise against this, as it will create a messy architecture in which different semantic goals and timesteps collide. Instead, we propose the following as a rough skeleton for using prime bullet with gym environments:
 
 ```python
 import gym
@@ -391,7 +391,7 @@ import prime_bullet as pb
 class MyEnv(gym.Env):
     def __init__(self, hz_action, substeps=1, **more_params_that_I_need):
         # Create simulation with higher resolution than actual agent frequency
-        self.sim = pb.BasicSimulator(hz_action * substeps)
+        self.sim = pb.Simulator(hz_action * substeps)
         self.sim.init('direct')
         self._substeps = substeps
 

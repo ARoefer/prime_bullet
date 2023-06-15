@@ -34,15 +34,15 @@ from .multibody     import MultiBody, Link
 from .constraint    import Constraint
 
 
-from .basic_simulator import BasicSimulator,  \
-                             ContactPoint,    \
-                             SimulatorPlugin, \
-                             DebugVisualizer
+from .simulator     import Simulator,  \
+                           ContactPoint,    \
+                           SimulatorPlugin, \
+                           DebugVisualizer
 
-from .controllers     import JointPositionController, \
-                             CartesianController, \
-                             CartesianRelativeVirtualPointController,       \
-                             CartesianRelativePointController,              \
-                             CartesianRelativeController,                   \
-                             CartesianRelativePointCOrientationController,  \
-                             CartesianRelativeVPointCOrientationController
+from .controllers   import JointPositionController, \
+                           CartesianController, \
+                           CartesianRelativeVirtualPointController,       \
+                           CartesianRelativePointController,              \
+                           CartesianRelativeController,                   \
+                           CartesianRelativePointCOrientationController,  \
+                           CartesianRelativeVPointCOrientationController

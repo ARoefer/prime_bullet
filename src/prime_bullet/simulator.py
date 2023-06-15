@@ -93,7 +93,7 @@ class ContactPoint(object):
         return self.dist <= other.dist
 
 
-class BasicSimulator(object):
+class Simulator(object):
     """Class wrapping the PyBullet interface in an object oriented manner."""
     def __init__(self, step_frequency=20, gravity=[0,0,-9.81], real_time=False,  use_egl=False):
         """Constructs a simulator.
