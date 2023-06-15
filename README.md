@@ -236,7 +236,7 @@ The module implements only 4 datatypes: `Vector3`, `Point3`, `Quaternion`, and `
 
 ```python
 import numpy as np
-from iai_bullet_sim import Vector3, Point3, Quaternion, Transform
+from prime_bullet import Vector3, Point3, Quaternion, Transform
 
 p1 = Point3(2, 0, 0)
 v1 = Vector3(0, 1, 0)
