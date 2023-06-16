@@ -105,6 +105,16 @@ def res_sdf_model_path(mpath):
             if p.exists():
                 return str(p)
         raise Exception(f'Could not resolve sdf-model path {mpath}')
+    elif mpath[:7] == 'file://':
+        mpath = mpath[7:]
+        if mpath[-4] != '.':  # It's not a model file
+            mpath = f'{mpath}/model.sdf'
+
+        for rpp in _SEARCH_PATHS:
+            p = Path(f'{rpp}/{mpath}')
+            if p.exists():
+                return str(p)
+        raise Exception(f'Could not resolve sdf-model path {mpath}')
     return mpath
 
 def res_sdf_world_path(mpath):
@@ -166,29 +176,45 @@ def abs_urdf_paths(file_path, temp_dir):
 
 def abs_sdf_paths(file_path, temp_dir):
     abs_path = Path(res_sdf_model_path(file_path)).absolute()
-    
+
     if hash(abs_path) in _RESOLVED_FILES:
         return _RESOLVED_FILES[hash(abs_path)]
 
     hex_name = md5(str(abs_path).encode('utf-8')).hexdigest()
     temp_file_name = f'{temp_dir}/{hex_name}.sdf'
 
-    with open(file_path, 'r') as of:
-        with open(temp_file_name, 'w') as tf:
-            for l in of:
-                idx = l.find('model://', 0)
-                while idx != -1:
-                    e_idx = l.find('</uri>', idx)
-                    pkg_path = l[idx:e_idx]
-                    r_path = res_sdf_model_path(pkg_path)
-                    # Recursively resolve SDF files
-                    if r_path[-4:].lower() == '.sdf':
-                        r_path = abs_sdf_paths(r_path, temp_dir)
+    with open(abs_path, 'r') as of:
+        tree = ET.parse(of)
 
-                    l = l.replace(l[idx:e_idx], r_path)
-                    idx = l.find('model://', idx + len(r_path))
-                tf.write(l)
-    
+    for link in tree.iterfind('.//link'):
+        inertial = link.find('inertial')
+        if inertial is None:
+            inertial = ET.SubElement(link, 'inertial')
+            mass = ET.SubElement(inertial, 'mass')
+            mass.text = str(0)
+            inertia = ET.SubElement(inertial, 'inertia')
+            for k in ['ixx', 'ixy', 'ixz', 'iyy', 'iyz', 'izz']:
+                i = ET.SubElement(inertia, k)
+                i.text = str(0)
+        else:
+            mass = inertial.find('mass')
+            inertia = inertial.find('.//inertia')
+            if mass is None:
+                mass = ET.SubElement(inertial, 'mass')
+                mass.text = str(0)
+            if inertia is None:
+                inertia = ET.SubElement(inertial, 'inertia')
+                for k in ['ixx', 'ixy', 'ixz', 'iyy', 'iyz', 'izz']:
+                    i = ET.SubElement(inertia, k)
+                    i.text = str(0)
+
+    for mesh in tree.iterfind('.//mesh'):
+        uri = mesh.find('uri')
+        if uri is not None:
+            uri.text = res_sdf_model_path(uri.text)
+
+    with open(temp_file_name, 'bw') as tf:
+        tree.write(tf, 'utf-8')
     _RESOLVED_FILES[abs_path] = temp_file_name
 
     return temp_file_name
