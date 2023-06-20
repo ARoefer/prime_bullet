@@ -115,6 +115,16 @@ def res_sdf_model_path(mpath):
             if p.exists():
                 return str(p)
         raise Exception(f'Could not resolve sdf-model path {mpath}')
+    elif mpath[:10] == 'package://':
+        mpath = mpath[10:]
+        if mpath[-4] != '.':  # It's not a model file
+            mpath = f'{mpath}/model.sdf'
+
+        for rpp in _SEARCH_PATHS:
+            p = Path(f'{rpp}/{mpath}')
+            if p.exists():
+                return str(p)
+        raise Exception(f'Could not resolve sdf-model path {mpath}')
     return mpath
 
 def res_sdf_world_path(mpath):
@@ -191,22 +201,28 @@ def abs_sdf_paths(file_path, temp_dir):
         if inertial is None:
             inertial = ET.SubElement(link, 'inertial')
             mass = ET.SubElement(inertial, 'mass')
-            mass.text = str(0)
+            mass.text = str(1)
             inertia = ET.SubElement(inertial, 'inertia')
             for k in ['ixx', 'ixy', 'ixz', 'iyy', 'iyz', 'izz']:
                 i = ET.SubElement(inertia, k)
-                i.text = str(0)
+                if k == 'ixx' or k == 'iyy' or k == 'izz':
+                    i.text = str(1)
+                else:
+                    i.text = str(0)
         else:
             mass = inertial.find('mass')
             inertia = inertial.find('.//inertia')
             if mass is None:
                 mass = ET.SubElement(inertial, 'mass')
-                mass.text = str(0)
+                mass.text = str(1)
             if inertia is None:
                 inertia = ET.SubElement(inertial, 'inertia')
                 for k in ['ixx', 'ixy', 'ixz', 'iyy', 'iyz', 'izz']:
                     i = ET.SubElement(inertia, k)
-                    i.text = str(0)
+                    if k == 'ixx' or k == 'iyy' or k == 'izz':
+                        i.text = str(1)
+                    else:
+                        i.text = str(0)
 
     for mesh in tree.iterfind('.//mesh'):
         uri = mesh.find('uri')
