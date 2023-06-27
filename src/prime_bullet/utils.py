@@ -90,7 +90,7 @@ def res_pkg_path(rpath):
                 return f'{rpp[:rpp.rfind("/")]}/{rpath}'
             if os.path.isdir(f'{rpp}/{pkg}'):
                 return f'{rpp}/{rpath}'
-        raise Exception(f'Package "{pkg}" can not be found in search paths!')
+        raise Exception(f'Package {pkg} can not be found in search paths!')
     return rpath
 
 
