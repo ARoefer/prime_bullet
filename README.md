@@ -431,7 +431,7 @@ class MyEnv(gym.Env):
         return some_specification_of_an_action_space
 ```
 
-As you can see in the code example, we suggest that you perform multiple simulation steps per agent step. While this is dependent on your agent's action frquency, we have found that a 30Hz simulation frequency easily leads to oscillations in the simulation. 
+As you can see in the code example, we suggest that you perform multiple simulation steps per agent step. While this is dependent on your agent's action frequency, we have found that a 30Hz simulation frequency easily leads to oscillations in the simulation. 
 
 ## Conclusion
 
