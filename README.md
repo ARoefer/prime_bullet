@@ -4,7 +4,7 @@
 
 # Prime Bullet
 
-Prime Bullet is an object-oriented wrapper for PyBullet which tries to offer a game-engine like interaction with the physics simulator. Aside from the structuring of data, it also include a small Lie-Algebra library compatible with bullet and numpy, implementations of cameras and laser scanner, as well as simple controllers for robot. It's primary audience are roboticists who are researching manipulation -- both mobile and static.
+Prime Bullet is an object-oriented wrapper for PyBullet which tries to offer a game-engine like interaction with the physics simulator. Aside from the structuring of data, it also include a small SE3/SO3 math library compatible with bullet and numpy, implementations of cameras and laser scanner, as well as simple controllers for robot. Its primary audience are roboticists who are researching manipulation -- both mobile and static.
 
 
 ## Installation
