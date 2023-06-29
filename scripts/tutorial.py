@@ -3,11 +3,12 @@ import sys
 from time import time
 from math import sin
 
-from iai_bullet_sim.basic_simulator import BasicSimulator, SimulatorPlugin
+from prime_bullet import BasicSimulator, \
+                         SimulatorPlugin
 
-from iai_bullet_sim import Transform, \
-                           Point3,    \
-                           Vector3
+from prime_bullet import Transform, \
+                         Point3,    \
+                         Vector3
 
 class DemoIntro(object):
     def __init__(self):
