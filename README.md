@@ -1,7 +1,3 @@
-[![Total alerts](https://img.shields.io/lgtm/alerts/g/ARoefer/iai_bullet_sim.svg?style=flat-square&logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/ARoefer/iai_bullet_sim/alerts/)
-[![Language grade: Python](https://img.shields.io/lgtm/grade/python/g/ARoefer/iai_bullet_sim.svg?style=flat-square&logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/ARoefer/iai_bullet_sim/context:python)
-[![Language grade: JavaScript](https://img.shields.io/lgtm/grade/javascript/g/ARoefer/iai_bullet_sim.svg?style=flat-square&logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/ARoefer/iai_bullet_sim/context:javascript)
-
 # Prime Bullet
 
 Prime Bullet is an object-oriented wrapper for PyBullet which tries to offer a game-engine like interaction with the physics simulator. Aside from the structuring of data, it also include a small SE3/SO3 math library compatible with bullet and numpy, implementations of cameras and laser scanner, as well as simple controllers for robot. Its primary audience are roboticists who are researching manipulation -- both mobile and static.
