@@ -19,7 +19,7 @@ cd iai_bullet_sim
 pip install -e .
 ```
 
-For the usage with ROS *noetic*, we recommend (rosvenv)[https://github.com/ARoefer/rosvenv] as a companion tool.
+For the usage with ROS *noetic*, we recommend [rosvenv](https://github.com/ARoefer/rosvenv) as a companion tool.
 
 
 ## Getting Started
