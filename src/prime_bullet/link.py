@@ -8,7 +8,8 @@ from .frame    import Frame
 from .geometry import Transform, \
                       Point3,    \
                       Vector3,   \
-                      Quaternion
+                      Quaternion, \
+                      AABB
 
 # Link state structure. Assigns names to bullet's info structure.
 @dataclass
