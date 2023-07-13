@@ -282,6 +282,10 @@ class Transform:
         return Transform(Point3(x, y, z), Quaternion.identity())
 
     @staticmethod
+    def from_matrix(m):
+        return Transform(Point3(*m[:3, 3].flatten()), Quaternion.from_matrix(m))
+
+    @staticmethod
     def identity():
         return Transform(Point3(0, 0, 0), Quaternion.identity())
 
