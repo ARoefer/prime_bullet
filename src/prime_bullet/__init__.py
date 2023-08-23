@@ -20,7 +20,9 @@ from .geometry      import Point3, \
                            AABB
 
 from .frame         import Frame
-from .camera        import Camera, PerspectiveCamera
+from .camera        import Camera,            \
+                           PerspectiveCamera, \
+                           OrthographicCamera
 from .laser_scanner import LaserScanner
 from .rigid_body    import RigidBody, \
                            BoxBody, \
