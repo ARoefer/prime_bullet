@@ -36,7 +36,7 @@ class Vector3(tuple):
         return np.asarray(self) >  other
 
     def __eq__(self, other):
-        return np.asarray(self) == other
+        return (np.asarray(self) == other).min()
 
     def __and__(self, other):
         return np.asarray(other) & other
@@ -117,6 +117,9 @@ class Quaternion(tuple):
     def __new__(cls, x, y, z, w):
         mag = np.linalg.norm((x, y, z, w))
         return super(Quaternion, cls).__new__(cls, (x/mag, y/mag, z/mag, w/mag))
+
+    def __eq__(self, other):
+        return (np.asarray(self) == other).min()
 
     def __str__(self):
         return self.__repr__()
