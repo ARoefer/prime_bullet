@@ -483,7 +483,7 @@ class Simulator(object):
                                 name_override=None):
         try:
             import trimesh
-        except
+        except:
             raise RuntimeError("create_mesh_from_trimesh requires trimesh installed")
         if isinstance(mesh, trimesh.Scene):
             mesh = mesh.dump().sum()
