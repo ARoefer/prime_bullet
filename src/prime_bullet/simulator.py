@@ -4,12 +4,19 @@ import random
 import tempfile
 import pkgutil
 import time
+from pathlib import Path
+
+try:
+    import trimesh
+except:
+    pass
+
 
 EGL = pkgutil.get_loader('eglRenderer')
 
 from dataclasses import dataclass
 from jinja2      import Template
-from typing      import Iterable, Union
+from typing      import Iterable, Union, Optional
 
 from . import IAI_BULLET_ROOT
 from .camera import Camera
@@ -472,6 +479,40 @@ class Simulator(object):
         self.register_object(body, name_override)
         return body
 
+    def create_mesh_from_trimesh(self, mesh: Union[trimesh.Trimesh, trimesh.Scene],
+                                scale=1,
+                                pose=Transform.identity(),
+                                mass=1,
+                                color=[1]*4,
+                                collision_mesh: Optional[Union[trimesh.Trimesh, trimesh.Scene]] = None,
+                                name_override=None):
+        if isinstance(mesh, trimesh.Scene):
+            mesh = mesh.dump().sum()
+        if not isinstance(mesh, trimesh.Trimesh):
+            raise TypeError("The mesh parameter must be a trimesh mesh.")
+        # Create tmp trimesh file
+        tmp_obj_path = Path(f'{tempfile.gettempdir()}/trimesh.obj')
+        trimesh.exchange.export.export_mesh(mesh, tmp_obj_path)
+        if collision_mesh:
+            tmp_collision_obj_path = Path(f'{tempfile.gettempdir()}/trimesh_collision.obj')
+            trimesh.exchange.export.export_mesh(mesh, tmp_collision_obj_path)
+        else:
+            tmp_collision_obj_path = None
+
+        body = self.create_mesh(
+            str(tmp_obj_path),
+            scale=scale,
+            pose=pose,
+            mass=mass,
+            color=color,
+            collision_mesh_path=str(tmp_collision_obj_path) if tmp_collision_obj_path else None,
+            name_override=name_override
+        )
+        # Remove tmp trimesh file
+        tmp_obj_path.unlink()
+        if tmp_collision_obj_path:
+            tmp_collision_obj_path.unlink()
+        return body
 
     def create_sphere(self, radius=0.5, 
                             pose=Transform.identity(), 
