@@ -36,7 +36,7 @@ class Vector3(tuple):
         return np.asarray(self) >  other
 
     def __eq__(self, other):
-        return np.asarray(self) == other
+        return (np.asarray(self) == other).min()
 
     def __and__(self, other):
         return np.asarray(other) & other
@@ -117,6 +117,9 @@ class Quaternion(tuple):
     def __new__(cls, x, y, z, w):
         mag = np.linalg.norm((x, y, z, w))
         return super(Quaternion, cls).__new__(cls, (x/mag, y/mag, z/mag, w/mag))
+
+    def __eq__(self, other):
+        return (np.asarray(self) == other).min()
 
     def __str__(self):
         return self.__repr__()
@@ -206,12 +209,33 @@ class Quaternion(tuple):
     @staticmethod
     def from_matrix(mat):
         """Extracts a quaternion from a >= 3x3 matrix."""
-        w  = np.sqrt(1 + mat[0,0] + mat[1,1] + mat[2,2]) * 0.5
-        w4 = 4 * w
-        x  = (mat[2,1] - mat[1,2]) / w4
-        y  = (mat[0,2] - mat[2,0]) / w4
-        z  = (mat[1,0] - mat[0,1]) / w4
-        return Quaternion(x,y,z,w)
+        tr = mat[0, 0] + mat[1, 1] + mat[2, 2]
+
+        if tr > 0:
+            S = np.sqrt(tr + 1.0) * 2
+            qw = 0.25 * S
+            qx = (mat[2, 1] - mat[1, 2]) / S
+            qy = (mat[0, 2] - mat[2, 0]) / S
+            qz = (mat[1, 0] - mat[0, 1]) / S
+        elif (mat[0, 0] > mat[1, 1]) and (mat[0, 0] > mat[2, 2]):
+            S = np.sqrt(1.0 + mat[0, 0] - mat[1, 1] - mat[2, 2]) * 2
+            qw = (mat[2, 1] - mat[1, 2]) / S
+            qx = 0.25 * S
+            qy = (mat[0, 1] + mat[1, 0]) / S
+            qz = (mat[0, 2] + mat[2, 0]) / S
+        elif mat[1, 1] > mat[2, 2]:
+            S = np.sqrt(1.0 + mat[1, 1] - mat[0, 0] - mat[2, 2]) * 2
+            qw = (mat[0, 2] - mat[2, 0]) / S
+            qx = (mat[0, 1] + mat[1, 0]) / S
+            qy = 0.25 * S
+            qz = (mat[1, 2] + mat[2, 1]) / S
+        else:
+            S = np.sqrt(1.0 + mat[2, 2] - mat[0, 0] - mat[1, 1]) * 2
+            qw = (mat[1, 0] - mat[0, 1]) / S
+            qx = (mat[0, 2] + mat[2, 0]) / S
+            qy = (mat[1, 2] + mat[2, 1]) / S
+            qz = 0.25 * S
+        return Quaternion(qx, qy, qz, qw)
 
     @staticmethod
     def identity():
