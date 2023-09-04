@@ -479,12 +479,12 @@ class Simulator(object):
         self.register_object(body, name_override)
         return body
 
-    def create_mesh_from_trimesh(self, mesh: Union[trimesh.Trimesh, trimesh.Scene],
+    def create_mesh_from_trimesh(self, mesh, # : Union[trimesh.Trimesh, trimesh.Scene]
                                 scale=1,
                                 pose=Transform.identity(),
                                 mass=1,
                                 color=[1]*4,
-                                collision_mesh: Optional[Union[trimesh.Trimesh, trimesh.Scene]] = None,
+                                collision_mesh = None, # : Optional[Union[trimesh.Trimesh, trimesh.Scene]]
                                 name_override=None):
         if isinstance(mesh, trimesh.Scene):
             mesh = mesh.dump().sum()
