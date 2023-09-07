@@ -89,8 +89,8 @@ class Camera(Frame):
         rgb   = np.reshape(rgba, (ih, iw, 4))[:, :, :3]
         depth = np.reshape(d, (ih, iw))
         self.__current_rgb = rgb
-        self.__current_d   = depth 
-        self.__current_lin_d = self._near * self._far / (self._far - (self._far - self._near) * depth)
+        self.__current_d   = self._near * self._far / (self._far - (self._far - self._near) * depth)
+        self.__current_d  += self._hidden_pose.position.x
         self.__current_seg = np.reshape(seg, (ih, iw))
         self.__current_pcd = None
 
@@ -176,19 +176,20 @@ class OrthographicCamera(Camera):
         fov_v  = fov_h / aspect
 
         new_far = 20 * (far - near)
+        new_near = new_far - near
 
         # correct_projection = np.asarray([[2 / fov_h,                  0,                 0,            0],
         #                                  [        0, 2 * aspect / fov_h,                 0,            0],
         #                                  [        0,                  0, -2 / (far - near), -(far + near) / (far - near)],
         #                                  [        0,                  0,                 0,            1]]),
 
-        pseudo_ortho = np.asarray(pb.computeProjectionMatrix(-fov_h * 0.5, fov_h * 0.5, -fov_v * 0.5, fov_v * 0.5, new_far - near, new_far)).reshape((4, 4))
+        pseudo_ortho = np.asarray(pb.computeProjectionMatrix(-fov_h * 0.5, fov_h * 0.5, -fov_v * 0.5, fov_v * 0.5, new_near, new_far)).reshape((4, 4))
 
         super(OrthographicCamera, self).__init__(simulator, 
                                                  resolution,
                                                  pseudo_ortho,
-                                                 near,
-                                                 far,
+                                                 new_near,
+                                                 new_far,
                                                  initial_pose,
                                                  parent,
                                                  hidden_pose=Transform.from_xyz(far - new_far, 0, 0))
