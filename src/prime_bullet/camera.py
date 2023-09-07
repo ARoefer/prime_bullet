@@ -37,7 +37,7 @@ class Camera(Frame):
 
         self.__current_rgb   = None
         self.__current_d     = None
-        self.__current_lin_d = None
+        self.__current_gl_d = None
         self.__current_seg   = None
         self.__current_pcd   = None
         self.__last_image_update = -1
@@ -52,7 +52,7 @@ class Camera(Frame):
         self.__last_image_update = -1
         self.__current_rgb   = None
         self.__current_d     = None
-        self.__current_lin_d = None
+        self.__current_gl_d = None
         self.__current_seg   = None
         self.__current_pcd   = None
         self.pose = self.initial_pose
@@ -89,6 +89,9 @@ class Camera(Frame):
         rgb   = np.reshape(rgba, (ih, iw, 4))[:, :, :3]
         depth = np.reshape(d, (ih, iw))
         self.__current_rgb = rgb
+        # Store raw GL depth, used for PC generation
+        self.__current_gl_d = depth 
+        # Calculate true depth values
         self.__current_d   = self._near * self._far / (self._far - (self._far - self._near) * depth)
         self.__current_d  += self._hidden_pose.position.x
         self.__current_seg = np.reshape(seg, (ih, iw))
@@ -100,7 +103,7 @@ class Camera(Frame):
 
     def depth(self):
         self.render()
-        return self.__current_lin_d
+        return self.__current_d
     
     def rgbd(self):
         self.render()
@@ -114,7 +117,7 @@ class Camera(Frame):
         """Returns camera-frame pointcloud (n, 4) calculated as here: https://github.com/bulletphysics/bullet3/issues/1924"""
         self.render()
         if self.__current_pcd is None:
-            pixels = np.vstack([self.__pix_coords, self.__current_d.flatten(), np.ones(self.__pix_coords.shape[1])])
+            pixels = np.vstack([self.__pix_coords, self.__current_gl_d.flatten(), np.ones(self.__pix_coords.shape[1])])
             # X is forward in our system...
             pixels = pixels.T[pixels[2] < 0.999].T
             pixels[2] = pixels[2] * 2 - 1
