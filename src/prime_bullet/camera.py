@@ -116,9 +116,9 @@ class Camera(Frame):
 
     def project(self, points : np.ndarray):
         return np.array([[self._resolution[0] / 2,    0, 0, self._resolution[0] / 2],
-                         [0, self._resolution[1] / 2, 0, self._resolution[1] / 2],
-                         [0,                       0, 0.5 * (self._far - self._near), self._near],
-                         [0,                       0, 0, 1]]).dot(self.project_gl(points).T).T
+                         [0,    self._resolution[1] / 2, 0, self._resolution[1] / 2],
+                         [0,                          0, 0.5 * (self._far - self._near), self._near],
+                         [0,                          0, 0, 1]]).dot(self.project_gl(points).T).T
 
     def project_gl(self, points : np.ndarray):
         pm = np.asarray(self._p_matrix).reshape((4, 4)).T
