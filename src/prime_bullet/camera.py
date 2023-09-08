@@ -58,6 +58,22 @@ class Camera(Frame):
         self.pose = self.initial_pose
 
     @property
+    def resolution(self):
+        return self._resolution
+
+    @property
+    def near(self):
+        return self._near
+
+    @property
+    def far(self):
+        return self._far
+
+    @property
+    def fov(self):
+        return self._fov
+
+    @property
     def local_pose(self):
         return self._pose
 
