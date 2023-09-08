@@ -132,7 +132,11 @@ class Camera(Frame):
     def depth(self):
         self.render()
         return self.__current_lin_d
-    
+
+    def gl_depth(self):
+        self.render()
+        return self.__current_d
+
     def rgbd(self):
         self.render()
         return self.__current_rgb, self.__current_lin_d
