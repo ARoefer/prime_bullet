@@ -119,7 +119,7 @@ class Camera(Frame):
     
     def rgbd(self):
         self.render()
-        return self.__current_rgb, self.__current_d
+        return self.__current_rgb, self.__current_lin_d
 
     def segmentation(self):
         self.render()
