@@ -6,9 +6,9 @@ from .geometry import Transform
 
 
 class Camera(Frame):
-    def __init__(self, simulator, 
-                       resolution, 
-                       projection_matrix, 
+    def __init__(self, simulator,
+                       resolution,
+                       projection_matrix,
                        near,
                        far,
                        initial_pose : Transform,
@@ -41,8 +41,8 @@ class Camera(Frame):
         self.__current_seg   = None
         self.__current_pcd   = None
         self.__last_image_update = -1
-        self.__view_map = np.asarray(pb.computeViewMatrix([0, 0, 0], 
-                                                          [1, 0, 0], 
+        self.__view_map = np.asarray(pb.computeViewMatrix([0, 0, 0],
+                                                          [1, 0, 0],
                                                           [0, 0, 1])).reshape((4, 4)).T
         self.__c_T_pix  = np.linalg.inv(self._p_matrix.reshape(4, 4).T.dot(self.__view_map).dot(self._hidden_pose.matrix()))
         self.__pix_coords = np.stack(np.meshgrid(np.linspace(-1,  1, resolution[0]),
@@ -105,7 +105,7 @@ class Camera(Frame):
         rgb   = np.reshape(rgba, (ih, iw, 4))[:, :, :3]
         depth = np.reshape(d, (ih, iw))
         self.__current_rgb = rgb
-        self.__current_d   = depth 
+        self.__current_d   = depth
         self.__current_lin_d = self._near * self._far / (self._far - (self._far - self._near) * depth)
         self.__current_seg = np.reshape(seg, (ih, iw))
         self.__current_pcd = None
@@ -174,18 +174,18 @@ class Camera(Frame):
 
 
 class PerspectiveCamera(Camera):
-    def __init__(self, simulator, 
-                       resolution, 
-                       fov_h, 
+    def __init__(self, simulator,
+                       resolution,
+                       fov_h,
                        near,
                        far,
                        initial_pose : Transform,
                        parent=None):
-        super(PerspectiveCamera, self).__init__(simulator, 
+        super(PerspectiveCamera, self).__init__(simulator,
                                                 resolution,
-                                                np.reshape(pb.computeProjectionMatrixFOV(fov_h, 
-                                                                                         resolution[0] / resolution[1], 
-                                                                                         near, 
+                                                np.reshape(pb.computeProjectionMatrixFOV(fov_h,
+                                                                                         resolution[0] / resolution[1],
+                                                                                         near,
                                                                                          far),
                                                            (4, 4)),
                                                 near,
@@ -193,7 +193,7 @@ class PerspectiveCamera(Camera):
                                                 initial_pose,
                                                 parent)
         self._fov = fov_h
-    
+
     def intrinsics(self):
         cx, cy = np.asarray(self._resolution) / 2
         fx = cx / np.tan(np.deg2rad(self._fov) / 2)
@@ -204,15 +204,15 @@ class PerspectiveCamera(Camera):
 class OrthographicCamera(Camera):
     """FAKE Orthographic Camera. PyBullet does not support orthographic cameras.
        (https://github.com/bulletphysics/bullet3/issues/2628)
-    
+
        This camera implementation fakes an orthograpic camera by moving the camera
        very far away and increasing the focal length by a factor of 20 compared to
        distance between near and far plane. Use this carefully. It is not numerically
        stable for areas of large depth that you want to capture.
     """
-    def __init__(self, simulator, 
-                       resolution, 
-                       fov_h, 
+    def __init__(self, simulator,
+                       resolution,
+                       fov_h,
                        near,
                        far,
                        initial_pose : Transform,
@@ -229,7 +229,7 @@ class OrthographicCamera(Camera):
 
         pseudo_ortho = np.asarray(pb.computeProjectionMatrix(-fov_h * 0.5, fov_h * 0.5, -fov_v * 0.5, fov_v * 0.5, new_far - near, new_far)).reshape((4, 4))
 
-        super(OrthographicCamera, self).__init__(simulator, 
+        super(OrthographicCamera, self).__init__(simulator,
                                                  resolution,
                                                  pseudo_ortho,
                                                  near,
