@@ -145,19 +145,29 @@ class Camera(Frame):
         self.render()
         return self.__current_seg
 
-    def pointcloud(self):
+    def pointcloud(self, gl_depth : np.ndarray=None):
         """Returns camera-frame pointcloud (n, 4) calculated as here: https://github.com/bulletphysics/bullet3/issues/1924"""
-        self.render()
-        if self.__current_pcd is None:
-            pixels = np.vstack([self.__pix_coords, self.__current_d.flatten(), np.ones(self.__pix_coords.shape[1])])
+        if gl_depth is None:
+            if self.__current_pcd is not None:
+                return self.__current_pcd
+
+            self.render()
+            depth = self.__current_d
+        else:
+            depth = gl_depth
+
+            pixels = np.vstack([self.__pix_coords, depth.flatten(), np.ones(self.__pix_coords.shape[1])])
             # X is forward in our system...
             pixels = pixels.T[pixels[2] < 0.999].T
             pixels[2] = pixels[2] * 2 - 1
 
             points  = self.__c_T_pix.dot(pixels)
             points /= points[3]
-            self.__current_pcd = points.T
-        return self.__current_pcd
+            if gl_depth is None:
+                self.__current_pcd = points.T
+        return points.T
+
+
 
     def intrinsics(self):
         raise NotImplementedError(f'Intrinsics are not implemented by camera of type "{type(self)}".')
