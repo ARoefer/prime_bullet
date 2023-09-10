@@ -146,6 +146,9 @@ class Simulator(object):
         if self.__egl_plugin is not None:
             pb.unloadPlugin(self.__egl_plugin, physicsClientId=self.__client_id)
 
+        if pb.getConnectionInfo(self.__client_id)["isConnected"] > 0:
+            pb.disconnect(self.__client_id)        
+
     @property
     def sim_step(self):
         """Returns the number of performed updates.
