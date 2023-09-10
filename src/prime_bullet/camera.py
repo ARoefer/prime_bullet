@@ -6,9 +6,9 @@ from .geometry import Transform
 
 
 class Camera(Frame):
-    def __init__(self, simulator, 
-                       resolution, 
-                       projection_matrix, 
+    def __init__(self, simulator,
+                       resolution,
+                       projection_matrix,
                        near,
                        far,
                        initial_pose : Transform,
@@ -41,8 +41,8 @@ class Camera(Frame):
         self.__current_seg   = None
         self.__current_pcd   = None
         self.__last_image_update = -1
-        self.__view_map = np.asarray(pb.computeViewMatrix([0, 0, 0], 
-                                                          [1, 0, 0], 
+        self.__view_map = np.asarray(pb.computeViewMatrix([0, 0, 0],
+                                                          [1, 0, 0],
                                                           [0, 0, 1])).reshape((4, 4)).T
         self.__c_T_pix  = np.linalg.inv(self._p_matrix.reshape(4, 4).T.dot(self.__view_map).dot(self._hidden_pose.matrix()))
         self.__pix_coords = np.stack(np.meshgrid(np.linspace(-1,  1, resolution[0]),
@@ -56,6 +56,22 @@ class Camera(Frame):
         self.__current_seg   = None
         self.__current_pcd   = None
         self.pose = self.initial_pose
+
+    @property
+    def resolution(self):
+        return self._resolution
+
+    @property
+    def near(self):
+        return self._near
+
+    @property
+    def far(self):
+        return self._far
+
+    @property
+    def fov(self):
+        return self._fov
 
     @property
     def local_pose(self):
@@ -97,6 +113,21 @@ class Camera(Frame):
         self.__current_seg = np.reshape(seg, (ih, iw))
         self.__current_pcd = None
 
+    @property
+    def view_matrix(self):
+        return self.__view_map.dot(self.pose.dot(self._hidden_pose).inv().matrix())
+
+    def project(self, points : np.ndarray):
+        return np.array([[self._resolution[0] / 2,    0, 0, self._resolution[0] / 2],
+                         [0,    self._resolution[1] / 2, 0, self._resolution[1] / 2],
+                         [0,                          0, 0.5 * (self._far - self._near), self._near],
+                         [0,                          0, 0, 1]]).dot(self.project_gl(points).T).T
+
+    def project_gl(self, points : np.ndarray):
+        pm = np.asarray(self._p_matrix).reshape((4, 4)).T
+        projected = pm.dot(self.view_matrix).dot(points.T)
+        return (projected / projected[3]).T
+
     def rgb(self):
         self.render()
         return self.__current_rgb
@@ -105,45 +136,61 @@ class Camera(Frame):
         self.render()
         return self.__current_d
     
+    def gl_depth(self):
+        self.render()
+        return self.__current_gl_d
+
     def rgbd(self):
         self.render()
-        return self.__current_rgb, self.__current_d
+        return self.__current_rgb, self.__current_lin_d
 
     def segmentation(self):
         self.render()
         return self.__current_seg
 
-    def pointcloud(self):
+    def pointcloud(self, gl_depth : np.ndarray=None):
         """Returns camera-frame pointcloud (n, 4) calculated as here: https://github.com/bulletphysics/bullet3/issues/1924"""
-        self.render()
-        if self.__current_pcd is None:
-            pixels = np.vstack([self.__pix_coords, self.__current_gl_d.flatten(), np.ones(self.__pix_coords.shape[1])])
-            # X is forward in our system...
-            pixels = pixels.T[pixels[2] < 0.999].T
-            pixels[2] = pixels[2] * 2 - 1
+        if gl_depth is None:
+            if self.__current_pcd is not None:
+                return self.__current_pcd
 
-            points  = self.__c_T_pix.dot(pixels)
-            points /= points[3]
+            self.render()
+            depth = self.__current_gl_d
+        else:
+            depth = gl_depth
+
+        pixels = np.vstack([self.__pix_coords, depth.flatten(), np.ones(self.__pix_coords.shape[1])])
+        # X is forward in our system...
+        pixels = pixels.T[pixels[2] < 0.999].T
+        pixels[2] = pixels[2] * 2 - 1
+
+        points  = self.__c_T_pix.dot(pixels)
+        points /= points[3]
+        
+        # Save point cloud only if we use the depth provided by this camera
+        if gl_depth is None:
             self.__current_pcd = points.T
-        return self.__current_pcd
+        return points.T
+
+
 
     def intrinsics(self):
         raise NotImplementedError(f'Intrinsics are not implemented by camera of type "{type(self)}".')
 
 
 class PerspectiveCamera(Camera):
-    def __init__(self, simulator, 
-                       resolution, 
-                       fov_h, 
+    def __init__(self, simulator,
+                       resolution,
+                       fov_h,
                        near,
                        far,
                        initial_pose : Transform,
                        parent=None):
-        super(PerspectiveCamera, self).__init__(simulator, 
+        super(PerspectiveCamera, self).__init__(simulator,
                                                 resolution,
-                                                np.reshape(pb.computeProjectionMatrixFOV(fov_h, 
-                                                                                         resolution[0] / resolution[1], 
-                                                                                         near, 
+                                                np.reshape(pb.computeProjectionMatrixFOV(fov_h,
+                                                                                         resolution[0] / resolution[1],
+                                                                                         near,
                                                                                          far),
                                                            (4, 4)),
                                                 near,
@@ -151,7 +198,7 @@ class PerspectiveCamera(Camera):
                                                 initial_pose,
                                                 parent)
         self._fov = fov_h
-    
+
     def intrinsics(self):
         cx, cy = np.asarray(self._resolution) / 2
         fx = cx / np.tan(np.deg2rad(self._fov) / 2)
@@ -162,15 +209,15 @@ class PerspectiveCamera(Camera):
 class OrthographicCamera(Camera):
     """FAKE Orthographic Camera. PyBullet does not support orthographic cameras.
        (https://github.com/bulletphysics/bullet3/issues/2628)
-    
+
        This camera implementation fakes an orthograpic camera by moving the camera
        very far away and increasing the focal length by a factor of 20 compared to
        distance between near and far plane. Use this carefully. It is not numerically
        stable for areas of large depth that you want to capture.
     """
-    def __init__(self, simulator, 
-                       resolution, 
-                       fov_h, 
+    def __init__(self, simulator,
+                       resolution,
+                       fov_h,
                        near,
                        far,
                        initial_pose : Transform,
@@ -188,7 +235,7 @@ class OrthographicCamera(Camera):
 
         pseudo_ortho = np.asarray(pb.computeProjectionMatrix(-fov_h * 0.5, fov_h * 0.5, -fov_v * 0.5, fov_v * 0.5, new_near, new_far)).reshape((4, 4))
 
-        super(OrthographicCamera, self).__init__(simulator, 
+        super(OrthographicCamera, self).__init__(simulator,
                                                  resolution,
                                                  pseudo_ortho,
                                                  new_near,
