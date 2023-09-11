@@ -37,7 +37,7 @@ class Camera(Frame):
 
         self.__current_rgb   = None
         self.__current_d     = None
-        self.__current_lin_d = None
+        self.__current_gl_d = None
         self.__current_seg   = None
         self.__current_pcd   = None
         self.__last_image_update = -1
@@ -52,7 +52,7 @@ class Camera(Frame):
         self.__last_image_update = -1
         self.__current_rgb   = None
         self.__current_d     = None
-        self.__current_lin_d = None
+        self.__current_gl_d = None
         self.__current_seg   = None
         self.__current_pcd   = None
         self.pose = self.initial_pose
@@ -105,8 +105,11 @@ class Camera(Frame):
         rgb   = np.reshape(rgba, (ih, iw, 4))[:, :, :3]
         depth = np.reshape(d, (ih, iw))
         self.__current_rgb = rgb
-        self.__current_d   = depth
-        self.__current_lin_d = self._near * self._far / (self._far - (self._far - self._near) * depth)
+        # Store raw GL depth, used for PC generation
+        self.__current_gl_d = depth 
+        # Calculate true depth values
+        self.__current_d   = self._near * self._far / (self._far - (self._far - self._near) * depth)
+        self.__current_d  += self._hidden_pose.position.x
         self.__current_seg = np.reshape(seg, (ih, iw))
         self.__current_pcd = None
 
@@ -131,15 +134,15 @@ class Camera(Frame):
 
     def depth(self):
         self.render()
-        return self.__current_lin_d
-
+        return self.__current_d
+    
     def gl_depth(self):
         self.render()
-        return self.__current_d
+        return self.__current_gl_d
 
     def rgbd(self):
         self.render()
-        return self.__current_rgb, self.__current_lin_d
+        return self.__current_rgb, self.__current_d
 
     def segmentation(self):
         self.render()
@@ -152,19 +155,21 @@ class Camera(Frame):
                 return self.__current_pcd
 
             self.render()
-            depth = self.__current_d
+            depth = self.__current_gl_d
         else:
             depth = gl_depth
 
-            pixels = np.vstack([self.__pix_coords, depth.flatten(), np.ones(self.__pix_coords.shape[1])])
-            # X is forward in our system...
-            pixels = pixels.T[pixels[2] < 0.999].T
-            pixels[2] = pixels[2] * 2 - 1
+        pixels = np.vstack([self.__pix_coords, depth.flatten(), np.ones(self.__pix_coords.shape[1])])
+        # X is forward in our system...
+        pixels = pixels.T[pixels[2] < 0.999].T
+        pixels[2] = pixels[2] * 2 - 1
 
-            points  = self.__c_T_pix.dot(pixels)
-            points /= points[3]
-            if gl_depth is None:
-                self.__current_pcd = points.T
+        points  = self.__c_T_pix.dot(pixels)
+        points /= points[3]
+        
+        # Save point cloud only if we use the depth provided by this camera
+        if gl_depth is None:
+            self.__current_pcd = points.T
         return points.T
 
 
@@ -221,19 +226,20 @@ class OrthographicCamera(Camera):
         fov_v  = fov_h / aspect
 
         new_far = 20 * (far - near)
+        new_near = new_far - near
 
         # correct_projection = np.asarray([[2 / fov_h,                  0,                 0,            0],
         #                                  [        0, 2 * aspect / fov_h,                 0,            0],
         #                                  [        0,                  0, -2 / (far - near), -(far + near) / (far - near)],
         #                                  [        0,                  0,                 0,            1]]),
 
-        pseudo_ortho = np.asarray(pb.computeProjectionMatrix(-fov_h * 0.5, fov_h * 0.5, -fov_v * 0.5, fov_v * 0.5, new_far - near, new_far)).reshape((4, 4))
+        pseudo_ortho = np.asarray(pb.computeProjectionMatrix(-fov_h * 0.5, fov_h * 0.5, -fov_v * 0.5, fov_v * 0.5, new_near, new_far)).reshape((4, 4))
 
         super(OrthographicCamera, self).__init__(simulator,
                                                  resolution,
                                                  pseudo_ortho,
-                                                 near,
-                                                 far,
+                                                 new_near,
+                                                 new_far,
                                                  initial_pose,
                                                  parent,
                                                  hidden_pose=Transform.from_xyz(far - new_far, 0, 0))
