@@ -35,11 +35,11 @@ class Camera(Frame):
 
         self.initial_pose = initial_pose
 
-        self.__current_rgb   = None
-        self.__current_d     = None
+        self.__current_rgb  = None
+        self.__current_d    = None
         self.__current_gl_d = None
-        self.__current_seg   = None
-        self.__current_pcd   = None
+        self.__current_seg  = None
+        self.__current_pcd  = None
         self.__last_image_update = -1
         self.__view_map = np.asarray(pb.computeViewMatrix([0, 0, 0],
                                                           [1, 0, 0],
@@ -50,11 +50,11 @@ class Camera(Frame):
 
     def reset(self):
         self.__last_image_update = -1
-        self.__current_rgb   = None
-        self.__current_d     = None
+        self.__current_rgb  = None
+        self.__current_d    = None
         self.__current_gl_d = None
-        self.__current_seg   = None
-        self.__current_pcd   = None
+        self.__current_seg  = None
+        self.__current_pcd  = None
         self.pose = self.initial_pose
 
     @property
