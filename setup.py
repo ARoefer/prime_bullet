@@ -6,7 +6,7 @@ try:
    from distutils.core import setup
 
    d = generate_distutils_setup(
-      packages=['iai_bullet_sim'],
+      packages=['prime_bullet'],
       package_dir={'': 'src'}
    )
 
@@ -21,16 +21,16 @@ except ModuleNotFoundError:
       pip_dependencies = f.readlines()
 
    setup(
-      name='IAI Bullet Sim',
-      version='0.2.0',
+      name='Prime Bullet',
+      version='1.0.0',
       author='Adrian Roefer',
       author_email='aroefer@cs.uni-freiburg.de',
-      packages=['iai_bullet_sim'],
+      packages=['prime_bullet'],
       package_dir={'': 'src'},
       # scripts=['bin/script1','bin/script2'],
-      url='http://pypi.python.org/pypi/iai_bullet_sim/',
+      url='http://pypi.python.org/pypi/prime_bullet/',
       license='LICENSE',
-      description='An OO wrapper for Pybullet with optional ROS1 instegration.',
+      description='Object-oriented wrapper for PyBullet.',
       # long_description=open('README.txt').read(),
       install_requires=pip_dependencies
    )

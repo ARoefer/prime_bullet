@@ -1,5 +1,0 @@
-string path                  # Path to save the configuration to. In case of files, URIs are allowed
-bool use_current_as_initial  # Save the current state instead of the initial state
----
-bool success                 # Was the call successful
-string error_msg             # Error message, if any

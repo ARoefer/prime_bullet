@@ -1,4 +1,0 @@
-geometry_msgs/Vector3 gravity  # Gravity to set
----
-bool success                   # Was the call successful
-string error_msg               # Error message, if any
