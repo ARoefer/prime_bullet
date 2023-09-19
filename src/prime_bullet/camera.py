@@ -114,6 +114,10 @@ class Camera(Frame):
         self.__current_pcd = None
 
     @property
+    def projection_matrix(self):
+        return np.array(self._p_matrix).reshape((4, 4)).T
+
+    @property
     def view_matrix(self):
         return self.__view_map.dot(self.pose.dot(self._hidden_pose).inv().matrix())
 
