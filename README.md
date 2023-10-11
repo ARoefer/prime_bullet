@@ -8,9 +8,9 @@ Prime Bullet is an object-oriented wrapper for PyBullet which tries to offer a g
 Installing *prime-bullet* is easy. Simply clone the repository, go to its root and run `pip install -e .`:
 
 ```bash
-git clone https://github.com/ARoefer/iai_bullet_sim
+git clone https://github.com/ARoefer/prime_bullet
 
-cd iai_bullet_sim
+cd prime_bullet
 
 pip install -e .
 ```
