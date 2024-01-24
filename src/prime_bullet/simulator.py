@@ -493,11 +493,13 @@ class Simulator(object):
         if not isinstance(mesh, trimesh.Trimesh):
             raise TypeError("The mesh parameter must be a trimesh mesh.")
         # Create tmp trimesh file
-        tmp_obj_path = Path(f'{tempfile.gettempdir()}/trimesh.obj')
-        trimesh.exchange.export.export_mesh(mesh, tmp_obj_path)
+        tmp_obj_path = Path(f'{tempfile.gettempdir()}/{mesh.identifier_hash}.obj')
+        if not tmp_obj_path.exists():
+            trimesh.exchange.export.export_mesh(mesh, tmp_obj_path)
         if collision_mesh:
-            tmp_collision_obj_path = Path(f'{tempfile.gettempdir()}/trimesh_collision.obj')
-            trimesh.exchange.export.export_mesh(mesh, tmp_collision_obj_path)
+            tmp_collision_obj_path = Path(f'{tempfile.gettempdir()}/{collision_mesh.identifier_hash}.obj')
+            if not tmp_collision_obj_path.exists():
+                trimesh.exchange.export.export_mesh(collision_mesh, tmp_collision_obj_path)
         else:
             tmp_collision_obj_path = None
 
@@ -511,9 +513,9 @@ class Simulator(object):
             name_override=name_override
         )
         # Remove tmp trimesh file
-        tmp_obj_path.unlink()
-        if tmp_collision_obj_path:
-            tmp_collision_obj_path.unlink()
+        # tmp_obj_path.unlink()
+        # if tmp_collision_obj_path:
+        #     tmp_collision_obj_path.unlink()
         return body
 
     def create_sphere(self, radius=0.5, 
