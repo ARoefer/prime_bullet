@@ -298,6 +298,10 @@ class Transform:
         return np.hstack((self.position, self.quaternion))
 
     @staticmethod
+    def from_rpy(rr, rp, ry):
+        return Transform(Point3.zero(), Quaternion.from_euler(rr, rp, ry))
+
+    @staticmethod
     def from_xyz_rpy(x, y, z, rr, rp, ry):
         return Transform(Point3(x, y, z), Quaternion.from_euler(rr, rp, ry))
 
