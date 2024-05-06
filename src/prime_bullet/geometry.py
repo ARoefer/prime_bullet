@@ -127,6 +127,9 @@ class Quaternion(tuple):
     def __repr__(self):
         return f'Quaternion{super().__repr__()}'
 
+    def __matmul__(self, other):
+        return self.dot(other)
+
     @property
     def x(self):
         return self[0]
@@ -253,6 +256,9 @@ class Transform:
     def __repr__(self):
         return f'Transform({self.position}, {self.quaternion})'
 
+    def __matmul__(self, other):
+        return self.dot(other)
+
     def dot(self, other):
         if type(other) == Transform:
             new_pose = pb.multiplyTransforms(self.position, self.quaternion,
@@ -300,6 +306,10 @@ class Transform:
     @staticmethod
     def from_rpy(rr, rp, ry):
         return Transform(Point3.zero(), Quaternion.from_euler(rr, rp, ry))
+
+    @staticmethod
+    def from_xyz_quat(x, y, z, qx, qy, qz, qw):
+        return Transform(Point3(x, y, z), Quaternion(qx, qy, qz, qw))
 
     @staticmethod
     def from_xyz_rpy(x, y, z, rr, rp, ry):
