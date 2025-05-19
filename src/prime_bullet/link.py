@@ -4,12 +4,13 @@ import pybullet as pb
 from dataclasses import dataclass
 from typing      import Union
 
-from .frame    import Frame
-from .geometry import Transform, \
-                      Point3,    \
-                      Vector3,   \
-                      Quaternion, \
-                      AABB
+from .dynamics_info import DynamicInfoAccessor
+from .frame         import Frame
+from .geometry      import Transform, \
+                           Point3,    \
+                           Vector3,   \
+                           Quaternion, \
+                           AABB
 
 # Link state structure. Assigns names to bullet's info structure.
 @dataclass
@@ -40,6 +41,8 @@ class Link(Frame):
         self._multibody = multibody
         self._idx       = idx
         self._name      = name
+
+        self.dynamics_info = DynamicInfoAccessor(self._multibody.bId, self._idx, self._client_id)
 
         self.__current_state = None
         self.__last_sim_pose_update = -1

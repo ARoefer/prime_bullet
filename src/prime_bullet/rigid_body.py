@@ -1,3 +1,4 @@
+import numpy    as np
 import pybullet as pb
 import tempfile
 
@@ -10,15 +11,16 @@ from pathlib     import Path
 from typing      import Union
 
 from . import IAI_BULLET_ROOT
-from .frame    import Frame
-from .geometry import Point3,     \
-                      Quaternion, \
-                      Vector3,    \
-                      Transform,  \
-                      AABB
-from .utils    import ColorRGBA,  \
-                      res_pkg_path
-from .link import Link
+from .dynamics_info import DynamicInfoAccessor
+from .frame         import Frame
+from .geometry      import Point3,     \
+                           Quaternion, \
+                           Vector3,    \
+                           Transform,  \
+                           AABB
+from .link          import Link
+from .utils         import ColorRGBA,  \
+                           res_pkg_path
 
 # Mapping of bullet's geometry constants to internal keywords
 GEOM_SPHERE   = 'sphere'
@@ -64,6 +66,7 @@ class RigidBody(Frame):
         self._initial_pose  = initial_pose
         
         self.type           = type
+        self.dynamics_info  = DynamicInfoAccessor(self._bulletId, -1, self._client_id)
 
         self.__current_pose = None
         self.__last_sim_pose_update = -1
@@ -168,35 +171,35 @@ class RigidBody(Frame):
         self._initial_pose = pose
 
     def apply_force(self, force : Vector3, point : Point3):
-        pb.applyExternalForce(self._bulletId, \
-                              -1, \
-                              force, \
-                              point, \
-                              pb.WORLD_FRAME, \
+        pb.applyExternalForce(self._bulletId,
+                              -1,
+                              force,
+                              point,
+                              pb.WORLD_FRAME,
                               self._client_id)
 
     def apply_local_force(self, force : Vector3, point : Point3):
-        pb.applyExternalForce(self._bulletId, \
-                              -1, \
-                              force, \
-                              point, \
-                              pb.LINK_FRAME, \
+        pb.applyExternalForce(self._bulletId,
+                              -1,
+                              force,
+                              point,
+                              pb.LINK_FRAME,
                               self._client_id)
 
     def apply_torque(self, torque : Vector3):
-        pb.applyExternalTorque(self._bulletId, \
-                               -1, \
-                               torque, \
-                               Point3.zero(), \
-                               pb.WORLD_FRAME, \
+        pb.applyExternalTorque(self._bulletId,
+                               -1,
+                               torque,
+                               Point3.zero(),
+                               pb.WORLD_FRAME,
                                self._client_id)
 
     def apply_local_torque(self, torque : Vector3):
-        pb.applyExternalTorque(self._bulletId, \
-                               -1, \
-                               torque, \
-                               Point3.zero(), \
-                               pb.LINK_FRAME, \
+        pb.applyExternalTorque(self._bulletId,
+                               -1,
+                               torque,
+                               Point3.zero(),
+                               pb.LINK_FRAME,
                                self._client_id)
 
     def conf(self) -> OmegaConf:
