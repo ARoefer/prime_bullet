@@ -376,7 +376,7 @@ class Simulator(object):
                         joint_driver=JointDriver(), 
                         useFixedBase=0, 
                         name_override=None,
-                        use_self_collision=None):
+                        use_self_collision=None) -> MultiBody:
         """Loads an Object from a URDF and registers it with this simulator.
 
         :param urdf_path:     Path of the file as local or global path, or as ROS package URI.
@@ -425,7 +425,7 @@ class Simulator(object):
         #print('Created new multibody with id {}'.format(bodyId))
         return new_body
 
-    def load_sdf(self, sdf_path):
+    def load_sdf(self, sdf_path) -> MultiBody:
         """Loads an Object from a URDF and registers it with this simulator.
 
         :param urdf_path:     Path of the file as local or global path, or as ROS package URI.
@@ -471,7 +471,7 @@ class Simulator(object):
                           mass=1,
                           color=[1]*4,
                           collision_mesh_path=None,
-                          name_override=None):
+                          name_override=None) -> RigidBody:
         # Trim the file ending
         body = MeshBody(self, mesh_path, collision_mesh_path, scale, pose, color, mass)
         self.register_object(body, name_override)
@@ -483,7 +483,7 @@ class Simulator(object):
                                 mass=1,
                                 color=[1]*4,
                                 collision_mesh: Optional[Union["trimesh.Trimesh", "trimesh.Scene"]] = None,
-                                name_override=None):
+                                name_override=None) -> RigidBody:
         try:
             import trimesh
         except:
@@ -522,7 +522,7 @@ class Simulator(object):
                             pose=Transform.identity(), 
                             mass=1, 
                             color=[0, 0, 1, 1], 
-                            name_override=None):
+                            name_override=None) -> RigidBody:
         body = SphereBody(self, radius, pose, color, mass)
         self.register_object(body, name_override)
         return body
@@ -531,7 +531,7 @@ class Simulator(object):
                          pose=Transform.identity(), 
                          mass=1, 
                          color=[1, 0, 0, 1], 
-                         name_override=None):
+                         name_override=None) -> RigidBody:
         body = BoxBody(self, extents, pose, color, mass)
         self.register_object(body, name_override)
         return body
@@ -541,12 +541,12 @@ class Simulator(object):
                               pose=Transform.identity(), 
                               mass=1, 
                               color=[0, 1, 0, 1], 
-                              name_override=None):
+                              name_override=None) -> RigidBody:
         body = CylinderBody(self, radius, height, pose, color, mass)
         self.register_object(body, name_override)
         return body
 
-    def get_body_id(self, bulletId):
+    def get_body_id(self, bulletId) -> str:
         """Returns the name of the object associated with a specific Bullet Id.
 
         :type bulletId: long
@@ -556,7 +556,7 @@ class Simulator(object):
             return self.__bId_IdMap[bulletId]
         return None
 
-    def get_body(self, bodyId):
+    def get_body(self, bodyId) -> RigidBody:
         """Returns the object associated with a name.
 
         :type bodyId: str
