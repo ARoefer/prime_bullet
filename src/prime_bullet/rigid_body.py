@@ -141,26 +141,45 @@ class RigidBody(Frame):
         self.local_pose = pose
 
     @property
-    def linear_velocity(self):
-        """Returns the object's current linear velocity.
-        :rtype: list
-        """
+    def velocity(self):
         if self._simulator.sim_step != self.__last_sim_velocity_update:
             temp = pb.getBaseVelocity(self._bulletId, physicsClientId=self._client_id)
             self.__current_lin_velocity, self.__current_ang_velocity = Vector3(*temp[0]), Vector3(*temp[1])
             self.__last_sim_velocity_update = self._simulator.sim_step
-        return self.__current_lin_velocity
+        return self.__current_lin_velocity, self.__current_ang_velocity
+
+    @velocity.setter
+    def velocity(self, velocity):
+        pb.resetBaseVelocity(self._bulletId,
+                             linearVelocity=velocity[:3],
+                             angularVelocity=velocity[3:],
+                             physicsClientId=self._client_id)
+
+    @property
+    def linear_velocity(self):
+        """Returns the object's current linear velocity.
+        :rtype: list
+        """
+        return self.velocity[0]
+
+    @linear_velocity.setter
+    def linear_velocity(self, velocity):
+        pb.resetBaseVelocity(self._bulletId,
+                             linearVelocity=velocity,
+                             physicsClientId=self._client_id)
 
     @property
     def angular_velocity(self):
         """Returns the object's current angular velocity.
         :rtype: list
         """
-        if self._simulator.sim_step != self.__last_sim_velocity_update:
-            temp = pb.getBaseVelocity(self._bulletId, physicsClientId=self._client_id)
-            self.__current_lin_velocity, self.__current_ang_velocity = Vector3(temp[0]), Vector3(temp[1])
-            self.__last_sim_velocity_update = self._simulator.sim_step
-        return self.__current_ang_velocity
+        return self.velocity[1]
+
+    @angular_velocity.setter
+    def angular_velocity(self, velocity):
+        pb.resetBaseVelocity(self._bulletId,
+                             angularVelocity=velocity,
+                             physicsClientId=self._client_id)
 
     @property
     def initial_pose(self):
