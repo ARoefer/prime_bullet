@@ -258,9 +258,12 @@ class BoxBody(RigidBody):
                        size=Vector3(1, 1, 1),
                        initial_pose=Transform.identity(), 
                        color=ColorRGBA(1, 0, 0, 1),
-                       mass=1):
+                       mass=1,
+                       density=None):
         self.size  = size
-        self.mass  = mass
+        volume = np.prod(size)
+        self.mass  = mass if density is None else volume * density
+        self.density = density if density is not None else self.mass / volume
         self.color = color
         
         file_hash = md5(f'box_{size}_{mass}_{color}'.encode('utf-8')).hexdigest()
@@ -301,9 +304,13 @@ class CylinderBody(RigidBody):
                        length=1.0,
                        initial_pose=Transform.identity(), 
                        color=ColorRGBA(0, 1, 0, 1),
-                       mass=1):
+                       mass=1,
+                       density=None):
         self.radius = radius
         self.length = length
+        volume = np.pi * radius**2 * length
+        self.mass  = mass if density is None else volume * density
+        self.density = density if density is not None else self.mass / volume
         self.mass   = mass
         self.color  = color
         
@@ -343,8 +350,12 @@ class SphereBody(RigidBody):
                        radius=0.5,
                        initial_pose=Transform.identity(), 
                        color=ColorRGBA(0, 0, 1, 1),
-                       mass=1):
+                       mass=1,
+                       density=None):
         self.radius = radius
+        volume = 4 / 3 * np.pi * radius**3
+        self.mass  = mass if density is None else volume * density
+        self.density = density if density is not None else self.mass / volume
         self.mass   = mass
         self.color  = color
         

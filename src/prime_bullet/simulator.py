@@ -1,3 +1,4 @@
+import numpy as np
 import os
 import pybullet as pb
 import random
@@ -470,8 +471,11 @@ class Simulator(object):
                           pose=Transform.identity(),
                           mass=1,
                           color=[1]*4,
+                          density=None,
                           collision_mesh_path=None,
                           name_override=None) -> RigidBody:
+        if density is not None:
+            raise ValueError('Calculating the mass of a mesh by density is currently not supported.')
         # Trim the file ending
         body = MeshBody(self, mesh_path, collision_mesh_path, scale, pose, color, mass)
         self.register_object(body, name_override)
@@ -482,6 +486,7 @@ class Simulator(object):
                                 pose=Transform.identity(),
                                 mass=1,
                                 color=[1]*4,
+                                density=None,
                                 collision_mesh: Optional[Union["trimesh.Trimesh", "trimesh.Scene"]] = None,
                                 name_override=None) -> RigidBody:
         try:
@@ -509,6 +514,7 @@ class Simulator(object):
             pose=pose,
             mass=mass,
             color=color,
+            density=density,
             collision_mesh_path=str(tmp_collision_obj_path) if tmp_collision_obj_path else None,
             name_override=name_override
         )
@@ -522,17 +528,19 @@ class Simulator(object):
                             pose=Transform.identity(), 
                             mass=1, 
                             color=[0, 0, 1, 1], 
+                            density=None,
                             name_override=None) -> RigidBody:
-        body = SphereBody(self, radius, pose, color, mass)
+        body = SphereBody(self, radius, pose, color, mass, density)
         self.register_object(body, name_override)
         return body
 
     def create_box(self, extents=[1]*3, 
                          pose=Transform.identity(), 
                          mass=1, 
-                         color=[1, 0, 0, 1], 
+                         color=[1, 0, 0, 1],
+                         density=None,
                          name_override=None) -> RigidBody:
-        body = BoxBody(self, extents, pose, color, mass)
+        body = BoxBody(self, extents, pose, color, mass, density)
         self.register_object(body, name_override)
         return body
 
@@ -540,9 +548,10 @@ class Simulator(object):
                               height=1, 
                               pose=Transform.identity(), 
                               mass=1, 
-                              color=[0, 1, 0, 1], 
+                              color=[0, 1, 0, 1],
+                              density=None,
                               name_override=None) -> RigidBody:
-        body = CylinderBody(self, radius, height, pose, color, mass)
+        body = CylinderBody(self, radius, height, pose, color, mass, density)
         self.register_object(body, name_override)
         return body
 
