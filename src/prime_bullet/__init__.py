@@ -17,7 +17,8 @@ from .geometry      import Point3, \
                            Vector3, \
                            Quaternion, \
                            Transform, \
-                           AABB
+                           AABB, \
+                           pb as pybullet
 
 from .frame         import Frame
 from .camera        import Camera,            \
