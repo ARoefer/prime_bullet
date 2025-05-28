@@ -361,7 +361,6 @@ class MultiBody(RigidBody):
                                      cmd_indices, 
                                      pb.POSITION_CONTROL, 
                                      targetPositions=cmd_pos,
-                                     targetVelocities=np.zeros_like(cmd_pos),
                                      forces=max_force,
                                      physicsClientId=self._client_id)
 
