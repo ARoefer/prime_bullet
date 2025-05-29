@@ -132,7 +132,6 @@ def create_box(sim : pb.Simulator,
                closed_sampler : callable,
                density_sampler : callable,
                n_content_sampler : callable,
-               content_position_sampler : callable,
                content_shape_sampler : callable,
                content_size_sampler : callable,
                content_density_sampler : callable,
@@ -145,29 +144,33 @@ def create_box(sim : pb.Simulator,
 
     n_contents = n_content_sampler()
     if n_contents > 0:
-        inner_object_positions = content_position_sampler(20)
-        inner_object_positions -= inner_object_positions.mean(axis=0)
-        valid_positions_mask   = (np.abs(inner_object_positions) < np.asarray(box.size[:2]) * 0.5 - wall_thickness).all(axis=1)
-        inner_object_positions = inner_object_positions[valid_positions_mask]
-
-        n_valid_samples = min(n_contents, valid_positions_mask.sum())
-
-        if n_valid_samples == 0:
-            return box
-
-        extents   = content_size_sampler(n_valid_samples, box.size - 2 * wall_thickness)
-        densities = content_density_sampler(n_valid_samples)
-        shapes    = content_shape_sampler(n_valid_samples)
+        extents   = np.asarray(content_size_sampler(n_contents, box.size - 2 * wall_thickness))
+        extent_radii = np.linalg.norm(extents[:, :2], axis=-1)
+        ordered_extents = extents[np.argsort(extent_radii)]
+        ordered_radii   = extent_radii[np.argsort(extent_radii)]
+        densities = content_density_sampler(n_contents)
+        shapes    = content_shape_sampler(n_contents)
 
         inner_objects = []
         if extents[0] is None:
             return box
 
-        for xy_pos, d, shape, size in zip(inner_object_positions, densities, shapes, extents):
-        
+        positions = []
+        radii     = []
+        for d, shape, size, radius in zip(densities, shapes, ordered_extents, ordered_radii):
+            xy_pos_samples = bounded_space_sampler(box.size[:2] - 2 * wall_thickness,
+                                                   np.asarray(positions),
+                                                   np.asarray(radii),
+                                                   radius)
+
+            if len(xy_pos_samples) == 0:
+                continue
+
+            xy_pos = xy_pos_samples[np.random.choice(len(xy_pos_samples), p=(p:=(xy_pos_samples**2).sum(axis=-1))/p.sum())]
+
             if shape == 'box': # Box/Cylinder/Sphere
                 inner_obj = sim.create_box(size,
-                                            density=d)
+                                           density=d)
                 box_P_inner = pb.Point3(xy_pos[0], xy_pos[1], size[2] * 0.5)
             elif shape == 'cylinder':
                 inner_obj = sim.create_cylinder(size[0] * 0.5,
@@ -183,10 +186,27 @@ def create_box(sim : pb.Simulator,
 
             inner_obj.pose = box.inner_frame @ pb.Transform.from_xyz(*box_P_inner)
             inner_objects.append(inner_obj)
+            positions.append(xy_pos)
+            radii.append(radius)
     
         box.add_contents(inner_objects)
 
     return box
+
+# GRID FROM -0.5 to 0.5
+XY_UNIT_GRID = np.stack(np.meshgrid(np.linspace(-0.5, 0.5, 20),
+                                    np.linspace(-0.5, 0.5, 20)), axis=-1)
+
+def bounded_space_sampler(extents : np.ndarray, xy_positions : np.ndarray, xy_radii : np.ndarray, new_radius : float) -> np.ndarray:
+    local_grid = (XY_UNIT_GRID * extents).reshape((-1, 2))
+
+    # Positions with enough space to the boundary
+    positions_with_margins = local_grid[(np.abs(local_grid) < (extents * 0.5 - new_radius)).all(axis=-1)]
+    if len(positions_with_margins) == 0 or len(xy_positions) == 0:
+        return positions_with_margins
+
+    # Positions far enough away from all other objects
+    return positions_with_margins[(np.linalg.norm(positions_with_margins[:,None] - xy_positions[None], axis=-1) > xy_radii + new_radius).all(axis=-1)]
 
 
 def limit_sampler(choices : np.ndarray, samples, limits : np.ndarray) -> np.ndarray:
@@ -195,7 +215,10 @@ def limit_sampler(choices : np.ndarray, samples, limits : np.ndarray) -> np.ndar
             return [None] * samples
         return random.choices(list(choices[choice_mask]), k=samples)
 
-inner_object_sampler = PoissonDisk(2)
+
+def compute_stability(container : ContainerBody):
+    return np.min(container.size[:2]) / container.size[2]
+
 
 def generate_box_scene(sim : pb.Simulator, n_boxes):
     box_sizes = [np.array([0.4, 0.3, 0.25]),
@@ -226,8 +249,7 @@ def generate_box_scene(sim : pb.Simulator, n_boxes):
                         lambda: 0.01,
                         lambda: True,
                         lambda: MaterialDensities.ABS.value,
-                        lambda: np.random.choice(4) + 2,
-                        inner_object_sampler.random,
+                        lambda: 10,
                         partial(np.random.choice, ['box', 'cylinder', 'sphere']),
                         content_size_sampler=partial(limit_sampler, np.asarray(object_sizes)),
                         content_density_sampler=partial(np.random.choice, [MaterialDensities.ALUMINUM.value,
