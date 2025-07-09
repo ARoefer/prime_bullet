@@ -107,6 +107,16 @@ class RigidBody(Frame):
         self.__last_sim_pose_update = -1
         self.__last_sim_velocity_update = -1
 
+    def sleep(self):
+        pb.changeDynamics(self._bulletId, -1,
+                          activationState=pb.ACTIVATION_STATE_SLEEP,
+                          physicsClientId=self._client_id)
+        
+    def wake_up(self):
+        pb.changeDynamics(self._bulletId, -1,
+                          activationState=pb.ACTIVATION_STATE_WAKE_UP,
+                          physicsClientId=self._client_id)
+
     @property
     def aabb(self):
         """Returns the bounding box of this object.
