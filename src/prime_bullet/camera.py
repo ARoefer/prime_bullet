@@ -35,26 +35,26 @@ class Camera(Frame):
 
         self.initial_pose = initial_pose
 
-        self.__current_rgb  = None
-        self.__current_d    = None
-        self.__current_gl_d = None
-        self.__current_seg  = None
-        self.__current_pcd  = None
-        self.__last_image_update = -1
-        self.__view_map = np.asarray(pb.computeViewMatrix([0, 0, 0],
-                                                          [1, 0, 0],
-                                                          [0, 0, 1])).reshape((4, 4)).T
-        self.__c_T_pix  = np.linalg.inv(self._p_matrix.reshape(4, 4).T.dot(self.__view_map).dot(self._hidden_pose.matrix()))
-        self.__pix_coords = np.stack(np.meshgrid(np.linspace(-1,  1, resolution[0]),
+        self._current_rgb  = None
+        self._current_d    = None
+        self._current_gl_d = None
+        self._current_seg  = None
+        self._current_pcd  = None
+        self._last_image_update = -1
+        self._view_map = np.asarray(pb.computeViewMatrix([0, 0, 0],
+                                                         [0, 0,-1],
+                                                         [1, 0, 0])).reshape((4, 4)).T
+        self._c_T_pix  = np.linalg.inv(self._p_matrix.reshape(4, 4).T.dot(self._view_map).dot(self._hidden_pose.matrix()))
+        self._pix_coords = np.stack(np.meshgrid(np.linspace(-1,  1, resolution[0]),
                                                  np.linspace( 1, -1, resolution[1])), -1).reshape(-1, 2).T
 
     def reset(self):
-        self.__last_image_update = -1
-        self.__current_rgb  = None
-        self.__current_d    = None
-        self.__current_gl_d = None
-        self.__current_seg  = None
-        self.__current_pcd  = None
+        self._last_image_update = -1
+        self._current_rgb  = None
+        self._current_d    = None
+        self._current_gl_d = None
+        self._current_seg  = None
+        self._current_pcd  = None
         self.pose = self.initial_pose
 
     @property
@@ -91,11 +91,11 @@ class Camera(Frame):
         self.local_pose = w_to_p.dot(pose)
 
     def render(self):
-        if self.__last_image_update >= self._simulator.sim_step:
+        if self._last_image_update >= self._simulator.sim_step:
             return
 
         w_to_c = self.pose.dot(self._hidden_pose).inv()
-        vm = self.__view_map.dot(w_to_c.matrix())
+        vm = self._view_map.dot(w_to_c.matrix())
 
         iw, ih, rgba, d, seg = pb.getCameraImage(*self._resolution,
                                                 vm.T.flatten(),
@@ -104,14 +104,14 @@ class Camera(Frame):
                                                 physicsClientId=self._simulator.client_id)
         rgb   = np.reshape(rgba, (ih, iw, 4))[:, :, :3]
         depth = np.reshape(d, (ih, iw))
-        self.__current_rgb = rgb
+        self._current_rgb = rgb
         # Store raw GL depth, used for PC generation
-        self.__current_gl_d = depth 
+        self._current_gl_d = depth 
         # Calculate true depth values
-        self.__current_d   = self._near * self._far / (self._far - (self._far - self._near) * depth)
-        self.__current_d  += self._hidden_pose.position.x
-        self.__current_seg = np.reshape(seg, (ih, iw))
-        self.__current_pcd = None
+        self._current_d   = self._near * self._far / (self._far - (self._far - self._near) * depth)
+        self._current_d  += self._hidden_pose.position.x
+        self._current_seg = np.reshape(seg, (ih, iw))
+        self._current_pcd = None
 
     @property
     def projection_matrix(self):
@@ -119,7 +119,7 @@ class Camera(Frame):
 
     @property
     def view_matrix(self):
-        return self.__view_map.dot(self.pose.dot(self._hidden_pose).inv().matrix())
+        return self._view_map.dot(self.pose.dot(self._hidden_pose).inv().matrix())
 
     def project(self, points : np.ndarray):
         return np.array([[self._resolution[0] / 2,    0, 0, self._resolution[0] / 2],
@@ -134,49 +134,47 @@ class Camera(Frame):
 
     def rgb(self):
         self.render()
-        return self.__current_rgb
+        return self._current_rgb
 
     def depth(self):
         self.render()
-        return self.__current_d
+        return self._current_d
     
     def gl_depth(self):
         self.render()
-        return self.__current_gl_d
+        return self._current_gl_d
 
     def rgbd(self):
         self.render()
-        return self.__current_rgb, self.__current_d
+        return self._current_rgb, self._current_d
 
     def segmentation(self):
         self.render()
-        return self.__current_seg
+        return self._current_seg
 
     def pointcloud(self, gl_depth : np.ndarray=None):
         """Returns camera-frame pointcloud (n, 4) calculated as here: https://github.com/bulletphysics/bullet3/issues/1924"""
         if gl_depth is None:
-            if self.__current_pcd is not None:
-                return self.__current_pcd
+            if self._current_pcd is not None:
+                return self._current_pcd
 
             self.render()
-            depth = self.__current_gl_d
+            depth = self._current_gl_d
         else:
             depth = gl_depth
 
-        pixels = np.vstack([self.__pix_coords, depth.flatten(), np.ones(self.__pix_coords.shape[1])])
+        pixels = np.vstack([self._pix_coords, depth.flatten(), np.ones(self._pix_coords.shape[1])])
         # X is forward in our system...
         pixels = pixels.T[pixels[2] < 0.999].T
         pixels[2] = pixels[2] * 2 - 1
 
-        points  = self.__c_T_pix.dot(pixels)
+        points  = self._c_T_pix.dot(pixels)
         points /= points[3]
         
         # Save point cloud only if we use the depth provided by this camera
         if gl_depth is None:
-            self.__current_pcd = points.T
+            self._current_pcd = points.T
         return points.T
-
-
 
     def intrinsics(self):
         raise NotImplementedError(f'Intrinsics are not implemented by camera of type "{type(self)}".')

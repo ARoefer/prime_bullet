@@ -68,11 +68,11 @@ class RigidBody(Frame):
         self.type           = type
         self.dynamics_info  = DynamicInfoAccessor(self._bulletId, -1, self._client_id)
 
-        self.__current_pose = None
-        self.__last_sim_pose_update = -1
-        self.__current_lin_velocity = None
-        self.__current_ang_velocity = None
-        self.__last_sim_velocity_update = -1
+        self._current_pose = None
+        self._last_sim_pose_update = -1
+        self._current_lin_velocity = None
+        self._current_ang_velocity = None
+        self._last_sim_velocity_update = -1
         self._conf_type = RigidBody.Config
 
     @property
@@ -104,8 +104,26 @@ class RigidBody(Frame):
                                            self._initial_pose.position, 
                                            self._initial_pose.quaternion, 
                                            physicsClientId=self._client_id)
-        self.__last_sim_pose_update = -1
-        self.__last_sim_velocity_update = -1
+        self._last_sim_pose_update = -1
+        self._last_sim_velocity_update = -1
+
+    def sleep(self):
+        pb.changeDynamics(self._bulletId, -1,
+                          activationState=pb.ACTIVATION_STATE_SLEEP,
+                          physicsClientId=self._client_id)
+        
+    def wake_up(self):
+        pb.changeDynamics(self._bulletId, -1,
+                          activationState=pb.ACTIVATION_STATE_WAKE_UP,
+                          physicsClientId=self._client_id)
+
+    def to_dict(self) -> dict:
+        return {'__type__': self.type,
+                'params' : {'initial_pose': self._initial_pose,
+                            'mass': self.dynamics_info.mass},
+                'state': {'pose': self.pose,
+                          'velocity': self.velocity}
+                }
 
     def sleep(self):
         pb.changeDynamics(self._bulletId, -1,
@@ -127,12 +145,12 @@ class RigidBody(Frame):
 
     @property
     def local_pose(self) -> Transform:
-        if self._simulator.sim_step != self.__last_sim_pose_update:
+        if self._simulator.sim_step != self._last_sim_pose_update:
             temp = pb.getBasePositionAndOrientation(self._bulletId, physicsClientId=self._client_id)
-            self.__current_pose = Transform(Point3(*temp[0]), Quaternion(*temp[1]))
-            self.__last_sim_pose_update = self._simulator.sim_step
+            self._current_pose = Transform(Point3(*temp[0]), Quaternion(*temp[1]))
+            self._last_sim_pose_update = self._simulator.sim_step
 
-        return self.__current_pose
+        return self._current_pose
 
     @local_pose.setter
     def local_pose(self, pose):
@@ -140,7 +158,7 @@ class RigidBody(Frame):
                                            pose.position,
                                            pose.quaternion,
                                            physicsClientId=self._client_id)
-        self.__last_sim_pose_update = -1
+        self._last_sim_pose_update = -1
     
     @property
     def pose(self):
@@ -152,11 +170,11 @@ class RigidBody(Frame):
 
     @property
     def velocity(self):
-        if self._simulator.sim_step != self.__last_sim_velocity_update:
+        if self._simulator.sim_step != self._last_sim_velocity_update:
             temp = pb.getBaseVelocity(self._bulletId, physicsClientId=self._client_id)
-            self.__current_lin_velocity, self.__current_ang_velocity = Vector3(*temp[0]), Vector3(*temp[1])
-            self.__last_sim_velocity_update = self._simulator.sim_step
-        return self.__current_lin_velocity, self.__current_ang_velocity
+            self._current_lin_velocity, self._current_ang_velocity = Vector3(*temp[0]), Vector3(*temp[1])
+            self._last_sim_velocity_update = self._simulator.sim_step
+        return self._current_lin_velocity, self._current_ang_velocity
 
     @velocity.setter
     def velocity(self, velocity):
@@ -318,6 +336,11 @@ class BoxBody(RigidBody):
         out.mass  = self.mass
         out.color = self.color
         return out
+    
+    def to_dict(self):
+        d = super().to_dict()
+        d['params']['size'] = self.size
+        return d
 
 
 class CylinderBody(RigidBody):
@@ -367,6 +390,12 @@ class CylinderBody(RigidBody):
         out.color  = self.color
         return out
 
+    def to_dict(self):
+        d = super().to_dict()
+        d['params']['radius'] = self.radius
+        d['params']['length'] = self.length
+        return d
+
 
 class SphereBody(RigidBody):
     @dataclass
@@ -410,6 +439,11 @@ class SphereBody(RigidBody):
         out.mass   = self.mass
         out.color  = self.color
         return out
+
+    def to_dict(self):
+        d = super().to_dict()
+        d['params']['radius'] = self.radius
+        return d
 
 
 class MeshBody(RigidBody):
@@ -465,6 +499,13 @@ class MeshBody(RigidBody):
         out.mass  = self.mass
         out.color = self.color
         return out
+
+    def to_dict(self):
+        d = super().to_dict()
+        d['params']['scale'] = self.scale
+        d['params']['visual_mesh'] = self.visual_mesh
+        d['params']['collision_mesh'] = self.collision_mesh
+        return d
 
 
 class SDFBody(RigidBody):
