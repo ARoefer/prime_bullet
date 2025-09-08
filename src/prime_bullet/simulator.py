@@ -707,6 +707,18 @@ class Simulator(object):
         contacts = pb.getClosestPoints(-1, -1, distance=dist, physicsClientId=self.__client_id)
         return [self._decode_contact_point(c) for c in contacts]
 
+    def to_dict(self) -> dict:
+        d_params = {}
+        d_state  = {}
+        for name, body in self.bodies.items():
+            d_body = body.to_dict()
+            d_params[name] = d_body['params']
+            d_state[name]  = d_body['state']
+        
+        return {'simulator': {'gravity': self.gravity,
+                              'frequency': self.step_frequency},
+                'params': d_params,
+                'state':  d_state}
 
     def load_world(self, world_dict):
         """Loads a world configuration from a dictionary.

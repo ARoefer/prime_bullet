@@ -116,6 +116,16 @@ class RigidBody(Frame):
         pb.changeDynamics(self._bulletId, -1,
                           activationState=pb.ACTIVATION_STATE_WAKE_UP,
                           physicsClientId=self._client_id)
+
+    def to_dict(self) -> dict:
+        return {'__type__': self.type,
+                'params' : {'initial_pose': self._initial_pose,
+                            'mass': self.dynamics_info.mass},
+                'state': {'pose': self.pose,
+                          'velocity': self.velocity}
+                }
+
+
     @property
     def aabb(self):
         """Returns the bounding box of this object.
@@ -317,6 +327,11 @@ class BoxBody(RigidBody):
         out.mass  = self.mass
         out.color = self.color
         return out
+    
+    def to_dict(self):
+        d = super().to_dict()
+        d['params']['size'] = self.size
+        return d
 
 
 class CylinderBody(RigidBody):
@@ -366,6 +381,12 @@ class CylinderBody(RigidBody):
         out.color  = self.color
         return out
 
+    def to_dict(self):
+        d = super().to_dict()
+        d['params']['radius'] = self.radius
+        d['params']['length'] = self.length
+        return d
+
 
 class SphereBody(RigidBody):
     @dataclass
@@ -409,6 +430,11 @@ class SphereBody(RigidBody):
         out.mass   = self.mass
         out.color  = self.color
         return out
+
+    def to_dict(self):
+        d = super().to_dict()
+        d['params']['radius'] = self.radius
+        return d
 
 
 class MeshBody(RigidBody):
@@ -464,6 +490,13 @@ class MeshBody(RigidBody):
         out.mass  = self.mass
         out.color = self.color
         return out
+
+    def to_dict(self):
+        d = super().to_dict()
+        d['params']['scale'] = self.scale
+        d['params']['visual_mesh'] = self.visual_mesh
+        d['params']['collision_mesh'] = self.collision_mesh
+        return d
 
 
 class SDFBody(RigidBody):
