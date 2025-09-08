@@ -125,7 +125,6 @@ class RigidBody(Frame):
                           'velocity': self.velocity}
                 }
 
-
     @property
     def aabb(self):
         """Returns the bounding box of this object.

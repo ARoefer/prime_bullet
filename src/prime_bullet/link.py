@@ -98,6 +98,16 @@ class Link(Frame):
         self.__last_sim_pose_update = -1
         self.__last_aabb_update     = -1
 
+    def sleep(self):
+        pb.changeDynamics(self._multibody.bId, self._idx,
+                          activationState=pb.ACTIVATION_STATE_SLEEP,
+                          physicsClientId=self._client_id)
+        
+    def wake_up(self):
+        pb.changeDynamics(self._multibody.bId, self._idx,
+                          activationState=pb.ACTIVATION_STATE_WAKE_UP,
+                          physicsClientId=self._client_id)
+
     def apply_force(self, force : Vector3, point : Point3):
         pb.applyExternalForce(self._bulletId, \
                               self._idx, \
