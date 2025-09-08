@@ -150,8 +150,8 @@ class Quaternion(tuple):
         if type(other) == Quaternion:
             return Quaternion(*pb.multiplyTransforms((0, 0, 0), self,
                                                      (0, 0, 0), other)[1])
-        elif type(other) == Vector3:
-            return Vector3(*pb.multiplyTransforms((0, 0, 0), self,
+        elif isinstance(other, Vector3):
+            return type(other)(*pb.multiplyTransforms((0, 0, 0), self,
                                                   other, (0, 0, 0, 1))[0])
         raise Exception(f'Cannot rotate type {type(other)}')
 
