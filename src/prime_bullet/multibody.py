@@ -383,6 +383,8 @@ class MultiBody(RigidBody):
 
         self.torque_control = False
 
+        max_force = self.q_f_max[np.isin(self.__dynamic_joint_indices, cmd_indices)] if max_force is None else max_force * np.ones(len(cmd_indices))
+
         pb.setJointMotorControlArray(self._bulletId, 
                                      cmd_indices, 
                                      pb.VELOCITY_CONTROL, 
