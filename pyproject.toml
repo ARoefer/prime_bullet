@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "prime_bullet"
+version = "2026.04.13"
+description = "Object-oriented wrapper for PyBullet."
+authors = [
+    { name = "Adrian Roefer", email = "aroefer@cs.uni-freiburg.de" },
+]
+license = { file = "LICENSE" }
+requires-python = ">=3.8"
+dependencies = [
+    "pybullet",
+    "numpy",
+    "MarkupSafe>=2.0.1",
+    "jinja2",
+]
+
+[project.optional-dependencies]
+mesh-conversion = ["trimesh"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+prime_bullet = ["data/urdf/*.urdf"]

@@ -6,7 +6,6 @@ import tempfile
 from dataclasses import dataclass
 from hashlib     import md5
 from jinja2      import Template
-from omegaconf   import OmegaConf
 from pathlib     import Path
 from typing      import Union
 
@@ -239,7 +238,7 @@ class RigidBody(Frame):
                                pb.LINK_FRAME,
                                self._client_id)
 
-    def conf(self) -> OmegaConf:
+    def conf(self):
         out = self._conf_type()
         out.current_pose = self.pose
         out.initial_pose = self._initial_pose
@@ -320,7 +319,7 @@ class BoxBody(RigidBody):
         super().__init__(simulator, bulletId, 'box', initial_pose)
         self._conf_type = BoxBody.Config
 
-    def conf(self) -> OmegaConf:
+    def conf(self):
         out = super().conf()
         out.size  = self.size
         out.mass  = self.mass
@@ -372,7 +371,7 @@ class CylinderBody(RigidBody):
         
         super().__init__(simulator, bulletId, 'cylinder', initial_pose)
 
-    def conf(self) -> OmegaConf:
+    def conf(self):
         out = super().conf()
         out.radius = self.radius
         out.length = self.length
@@ -423,7 +422,7 @@ class SphereBody(RigidBody):
         
         super().__init__(simulator, bulletId, 'sphere', initial_pose)
 
-    def conf(self) -> OmegaConf:
+    def conf(self):
         out = super().conf()
         out.radius = self.radius
         out.mass   = self.mass
@@ -481,7 +480,7 @@ class MeshBody(RigidBody):
         
         super().__init__(simulator, bulletId, 'mesh', initial_pose)
 
-    def conf(self) -> OmegaConf:
+    def conf(self):
         out = super().conf()
         out.scale = self.scale
         out.visual_mesh = self.visual_mesh
@@ -509,7 +508,7 @@ class SDFBody(RigidBody):
         super().__init__(simulator, bulletId, 'sdf_mesh', None)
         self.initial_pose = self.pose
 
-    def conf(self) -> OmegaConf:
+    def conf(self):
         out = super().conf()
         out.sdf_path = self.sdf_path
         return out
@@ -520,6 +519,6 @@ class SDFWorldBody(RigidBody):
         super().__init__(simulator, bulletId, 'mesh', None)
         self.initial_pose = self.pose
 
-    def conf(self) -> OmegaConf:
+    def conf(self):
         return None
 
