@@ -18,6 +18,9 @@ dependencies = [
     "jinja2",
 ]
 
+[project.urls]
+Homepage = "https://github.com/ARoefer/prime_bullet"
+
 [project.optional-dependencies]
 mesh-conversion = ["trimesh"]
 
