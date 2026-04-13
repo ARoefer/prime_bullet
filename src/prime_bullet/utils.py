@@ -73,7 +73,7 @@ class ColorRGBA(tuple):
         return ColorRGBA(1.0, 0.7, 0.0, 1.0)
 
 
-def res_pkg_path(rpath):
+def res_pkg_path(rpath, file_location : Path=None, temp_dir : Path=None, is_mesh : bool=False):
     """Resolves a ROS package relative path to a global path.
 
     :param rpath: Potential ROS URI to resolve.
@@ -91,6 +91,32 @@ def res_pkg_path(rpath):
             if os.path.isdir(f'{rpp}/{pkg}'):
                 return f'{rpp}/{rpath}'
         raise Exception(f'Package {pkg} can not be found in search paths!')
+    elif file_location is not None and rpath[0] != '/': # Resolving local paths
+        rpath = str(file_location.parent / rpath)
+
+    if not is_mesh:
+        return rpath
+
+    if Path(rpath).suffix.lower() not in {'.obj', '.stl', '.dae'}:
+        if temp_dir is None:
+            raise ValueError(f'Mesh in URDF needs conversion, but no temp_dir was passed.')
+        
+        try:
+            import trimesh
+        except (ModuleNotFoundError, ImportError) as e:
+            raise RuntimeError(f'Cannot automatically convert mesh {rpath}, as trimesh is not installed. '
+                               f'Try reinstalling prime_bullet with the [mesh-conversion] option. Original error:\n{e}')
+
+        path_hex = md5(rpath.encode('utf-8')).hexdigest()
+        temp_file_path = temp_dir / f'{path_hex}.obj'
+        if not temp_file_path.exists():
+            mesh = trimesh.load(rpath)
+            if isinstance(mesh, trimesh.Scene):
+                mesh = trimesh.util.concatenate(mesh.dump())
+            mesh.export(temp_file_path)
+        
+        rpath = str(temp_file_path)
+
     return rpath
 
 
@@ -174,12 +200,15 @@ def abs_urdf_paths(file_path, temp_dir):
             ET.SubElement(inertial, 'mass', {'value': str(0)})
 
     for mesh in tree.iterfind('.//mesh'):
-        mesh.attrib['filename'] = res_pkg_path(mesh.attrib['filename'])
+        mesh.attrib['filename'] = res_pkg_path(mesh.attrib['filename'],
+                                               file_location=abs_path,
+                                               temp_dir=Path(temp_dir),
+                                               is_mesh=True)
 
     with open(temp_file_name, 'bw') as tf:
         tree.write(tf, 'utf-8')
     
-    _RESOLVED_FILES[abs_path] = temp_file_name
+    _RESOLVED_FILES[hash(abs_path)] = temp_file_name
 
     return temp_file_name
 
