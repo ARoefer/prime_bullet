@@ -113,6 +113,16 @@ def res_pkg_path(rpath, file_location : Path=None, temp_dir : Path=None, is_mesh
             mesh = trimesh.load(rpath)
             if isinstance(mesh, trimesh.Scene):
                 mesh = trimesh.util.concatenate(mesh.dump())
+            material = getattr(mesh.visual, 'material', None)
+            has_texture = (material is not None
+                           and hasattr(material, 'image')
+                           and material.image is not None)
+            if not has_texture:
+                mesh.visual = trimesh.visual.TextureVisuals(
+                    material=trimesh.visual.material.SimpleMaterial(
+                        diffuse=[200, 200, 200, 255]
+                    )
+                )
             mesh.export(temp_file_path)
         
         rpath = str(temp_file_path)
