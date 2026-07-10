@@ -413,35 +413,6 @@ class MultiBody(RigidBody):
                                      forces=cmd_torque, 
                                      physicsClientId=self._client_id)
 
-    def get_contacts(self, other_body=None, own_link=None, other_link=None):
-        """Gets the contacts this body had during the last physics step.
-        The contacts can be filtered by other bodies, their links and this body's own links.
-
-        :param other_body: Other body to filter by
-        :type  other_body: MultiBody, iai_bullet_sim.rigid_body.RigidBody, NoneType
-        :param own_link:   Own link to filter by
-        :type  own_link:   str, NoneType
-        :param other_link: Other object's link to filter by.
-        :type  other_link: str, NoneType
-        :rtype: list
-        """
-        return self._simulator.get_contacts(self, other_body, own_link, other_link)
-
-    def get_closest_points(self, other_body=None, own_link=None, other_link=None, dist=0.2):
-        """Gets the closest points of this body to its environment.
-        The closest points can be filtered by other bodies, their links and this body's own links.
-
-        :param other_body: Other body to filter by
-        :type  other_body: MultiBody, iai_bullet_sim.rigid_body.RigidBody, NoneType
-        :param own_link:   Own link to filter by
-        :type  own_link:   str, NoneType
-        :param other_link: Other object's link to filter by.
-        :type  other_link: str, NoneType
-        :param dist:       Maximum distance to search. Greater distance -> more expensive
-        :type  dist:       float
-        :rtype: list
-        """
-        return self._simulator.get_closest_points(self, other_body, own_link, other_link, dist)
 
 @dataclass
 class FTSensor():

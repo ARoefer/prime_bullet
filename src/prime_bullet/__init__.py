@@ -4,13 +4,8 @@ from .utils         import ColorRGBA, \
                            add_search_path, \
                            res_pkg_path
 
-try:
-    import rospy
-    
-    IAI_BULLET_ROOT = res_pkg_path('package://prime_bullet/src/prime_bullet')
 
-except ImportError:
-    IAI_BULLET_ROOT = Path(__file__).parent
+IAI_BULLET_ROOT = Path(__file__).parent
 
 
 from .geometry      import Point3, \
