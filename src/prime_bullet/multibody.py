@@ -346,11 +346,11 @@ class MultiBody(RigidBody):
         if type(cmd) == dict:
             cmd_indices, cmd_pos = zip(*[(self.joints[j].index, c) for j, c in cmd.items() 
                                                                    if j in self.joints])
-            max_force = np.take(self.q_f_max, cmd_indices) if max_force is None else max_force
         else:
             cmd_indices = self.__dynamic_joint_indices
             cmd_pos = cmd
-            max_force = self.q_f_max if max_force is None else max_force
+
+        max_force = self.q_f_max[np.isin(self.__dynamic_joint_indices, cmd_indices)] if max_force is None else max_force * np.ones(len(cmd_indices))
 
         # self.joint_driver.update_positions(self, cmd)
 
