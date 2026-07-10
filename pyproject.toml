@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "prime_bullet"
-version = "2026.04.14"
+version = "2026.07.10"
 description = "Object-oriented wrapper for PyBullet."
 authors = [
     { name = "Adrian Roefer", email = "aroefer@cs.uni-freiburg.de" },
