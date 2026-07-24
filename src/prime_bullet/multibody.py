@@ -3,7 +3,6 @@ import numpy    as np
 
 from collections import namedtuple
 from dataclasses import dataclass
-from functools   import lru_cache
 from typing      import Union
 
 from .frame      import Frame
@@ -158,6 +157,7 @@ class MultiBody(RigidBody):
 
         self.__joint_names           = [j.name for j in self.i_joints]
         self.__dynamic_joint_indices = [info.index for info in self.dynamic_joints.values()]
+        self.__dynamic_joint_names   = [self.__joint_names[x] for x in self.__dynamic_joint_indices]
         #print('dynamic joints:\n  {}'.format('\n  '.join([info.jointName for info in self.joints.values() if info.jointType != pb.JOINT_FIXED])))
         self.__monitored_joint_indices = self.__dynamic_joint_indices.copy()
 
@@ -239,9 +239,9 @@ class MultiBody(RigidBody):
         if link is None:
             return -1
         else:
-            if link not in self.link_index_map:
+            if link not in self.links:
                 raise Exception('Link "{}" is not defined'.format(link))
-            return self.link_index_map[link]
+            return self.links[link].idx
 
     def get_link_by_index(self, index):
         return self.i_links[index]
@@ -250,14 +250,12 @@ class MultiBody(RigidBody):
         return self.links[link]
 
     @property
-    @lru_cache(1)
     def joint_names(self):
         return self.__joint_names.copy()
 
     @property
-    @lru_cache(1)
     def dynamic_joint_names(self):
-        return [self.__joint_names[x] for x in self.__dynamic_joint_indices]
+        return self.__dynamic_joint_names.copy()
 
 
     def __refresh_joint_state(self):
@@ -268,7 +266,8 @@ class MultiBody(RigidBody):
             self._q     = np.array([j.position for j in new_js[:len(self.dynamic_joints)]])
             self._q_dot = np.array([j.velocity for j in new_js[:len(self.dynamic_joints)]])
             self._q_f   = np.array([j.effort   for j in new_js[:len(self.dynamic_joints)]])
-            self._joint_state = {self.__joint_names[x]: js for x, js in zip(self.__monitored_joint_indices, new_js)}        
+            self._joint_state = {self.__joint_names[x]: js for x, js in zip(self.__monitored_joint_indices, new_js)}
+            self.__last_sim_js_update = self._simulator.sim_step
 
     @property
     def q(self):

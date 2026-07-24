@@ -7,10 +7,16 @@ from hashlib     import md5
 from pathlib     import Path
 
 
+_PACKAGE_ROOT = Path(__file__).parent
+
 _SEARCH_PATHS = set()
 
 def add_search_path(path):
-    _SEARCH_PATHS.add(path)
+    _SEARCH_PATHS.add(str(path).rstrip('/'))
+
+# Makes the data shipped with prime_bullet resolvable as package://prime_bullet/...
+# no matter how the library was installed.
+add_search_path(_PACKAGE_ROOT)
 
 if 'ROS_PACKAGE_PATH' in os.environ:
     for rpp in os.environ['ROS_PACKAGE_PATH'].split(':'):
@@ -73,6 +79,19 @@ class ColorRGBA(tuple):
         return ColorRGBA(1.0, 0.7, 0.0, 1.0)
 
 
+def _pkg_path_candidates(pkg, rpath):
+    """Internal. All locations a package URI could refer to, given the current search paths.
+       Search paths are traversed in sorted order to keep resolution deterministic.
+    """
+    out = []
+    for rpp in sorted(_SEARCH_PATHS):
+        if rpp[rpp.rfind('/') + 1:] == pkg:  # The search path IS the package
+            out.append(f'{rpp[:rpp.rfind("/")]}/{rpath}')
+        if os.path.isdir(f'{rpp}/{pkg}'):    # The search path CONTAINS the package
+            out.append(f'{rpp}/{rpath}')
+    return out
+
+
 def res_pkg_path(rpath, file_location : Path=None, temp_dir : Path=None, is_mesh : bool=False):
     """Resolves a ROS package relative path to a global path.
 
@@ -85,12 +104,17 @@ def res_pkg_path(rpath, file_location : Path=None, temp_dir : Path=None, is_mesh
         rpath = rpath[10:]
         pkg = rpath[:rpath.find('/')] if rpath.find('/') != -1 else rpath
 
-        for rpp in _SEARCH_PATHS:
-            if rpp[rpp.rfind('/') + 1:] == pkg:
-                return f'{rpp[:rpp.rfind("/")]}/{rpath}'
-            if os.path.isdir(f'{rpp}/{pkg}'):
-                return f'{rpp}/{rpath}'
-        raise Exception(f'Package {pkg} can not be found in search paths!')
+        candidates = _pkg_path_candidates(pkg, rpath)
+        if len(candidates) == 0:
+            raise Exception(f'Package {pkg} can not be found in search paths!')
+
+        # Multiple search paths can claim the same package, so the one holding the file wins
+        for candidate in candidates:
+            if Path(candidate).exists():
+                rpath = candidate
+                break
+        else:
+            raise Exception(f'Package {pkg} was found, but "{rpath}" does not exist in it. Checked:\n  ' + '\n  '.join(candidates))
     elif file_location is not None and rpath[0] != '/': # Resolving local paths
         rpath = str(file_location.parent / rpath)
 

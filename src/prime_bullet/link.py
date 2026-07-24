@@ -22,16 +22,6 @@ class LinkState:
     angular_velocity    : Vector3
 
 
-# Link state structure. Assigns names to bullet's info structure.
-@dataclass
-class LinkState:
-    com_pose            : Transform
-    local_inertial_pose : Transform
-    world_pose          : Transform
-    linear_velocity     : Vector3
-    angular_velocity    : Vector3
-
-
 class Link(Frame):
     def __init__(self, simulator, multibody, idx : int, name : str):
         super().__init__(None)
@@ -70,19 +60,20 @@ class Link(Frame):
         if self._simulator.sim_step != self.__last_sim_pose_update:
             if self._idx == -1:  # Bullet does not handle base joints the same
                 world_pose = self._multibody.pose
-                self.__current_state = LinkState(world_pose, 
-                                                 Transform.identity(), 
+                self.__current_state = LinkState(world_pose,
+                                                 Transform.identity(),
                                                  world_pose,
                                                  self._multibody.linear_velocity,
                                                  self._multibody.angular_velocity)
             else:
-                ls = pb.getLinkState(self._multibody.bId, 
-                                     self._idx, 0, physicsClientId=self._client_id)
+                ls = pb.getLinkState(self._multibody.bId,
+                                     self._idx, 1, physicsClientId=self._client_id)
                 self.__current_state = LinkState(Transform(Point3(*ls[0]), Quaternion(*ls[1])),
                                                  Transform(Point3(*ls[2]), Quaternion(*ls[3])),
                                                  Transform(Point3(*ls[4]), Quaternion(*ls[5])),
-                                                 Vector3.zero(),
-                                                 Vector3.zero())
+                                                 Vector3(*ls[6]),
+                                                 Vector3(*ls[7]))
+            self.__last_sim_pose_update = self._simulator.sim_step
         return self.__current_state
 
     @property
@@ -90,6 +81,7 @@ class Link(Frame):
         if self._simulator.sim_step != self.__last_aabb_update:
             res = pb.getAABB(self._multibody.bId, self._idx, physicsClientId=self._client_id)
             self.__current_aabb = AABB(Point3(*res[0]), Point3(*res[1]))
+            self.__last_aabb_update = self._simulator.sim_step
         return self.__current_aabb
 
     def reset(self):
@@ -109,7 +101,7 @@ class Link(Frame):
                           physicsClientId=self._client_id)
 
     def apply_force(self, force : Vector3, point : Point3):
-        pb.applyExternalForce(self._bulletId, \
+        pb.applyExternalForce(self._multibody.bId, \
                               self._idx, \
                               force, \
                               point, \
@@ -117,7 +109,7 @@ class Link(Frame):
                               self._client_id)
 
     def apply_local_force(self, force : Vector3, point : Point3):
-        pb.applyExternalForce(self._bulletId, \
+        pb.applyExternalForce(self._multibody.bId, \
                               self._idx, \
                               force, \
                               point, \
@@ -125,18 +117,16 @@ class Link(Frame):
                               self._client_id)
 
     def apply_torque(self, torque : Vector3):
-        pb.applyExternalTorque(self._bulletId, \
+        pb.applyExternalTorque(self._multibody.bId, \
                                self._idx, \
                                torque, \
-                               Point3.zero(), \
                                pb.WORLD_FRAME, \
                                self._client_id)
 
     def apply_local_torque(self, torque : Vector3):
-        pb.applyExternalTorque(self._bulletId, \
+        pb.applyExternalTorque(self._multibody.bId, \
                                self._idx, \
                                torque, \
-                               Point3.zero(), \
                                pb.LINK_FRAME, \
                                self._client_id)
     

@@ -44,7 +44,8 @@ class Camera(Frame):
         self._view_map = np.asarray(pb.computeViewMatrix([0, 0, 0],
                                                          [0, 0,-1],
                                                          [1, 0, 0])).reshape((4, 4)).T
-        self._c_T_pix  = np.linalg.inv(self._p_matrix.reshape(4, 4).T.dot(self._view_map).dot(self._hidden_pose.matrix()))
+        # NDC -> nominal camera frame. The hidden pose is inverted, as it displaces the camera, not the points
+        self._c_T_pix  = np.linalg.inv(self._p_matrix.reshape(4, 4).T.dot(self._view_map).dot(self._hidden_pose.inv().matrix()))
         self._pix_coords = np.stack(np.meshgrid(np.linspace(-1,  1, resolution[0]),
                                                  np.linspace( 1, -1, resolution[1])), -1).reshape(-1, 2).T
 
@@ -109,7 +110,8 @@ class Camera(Frame):
         self._current_gl_d = depth 
         # Calculate true depth values
         self._current_d   = self._near * self._far / (self._far - (self._far - self._near) * depth)
-        self._current_d  += self._hidden_pose.position.x
+        # Undo the pull-back of pseudo-orthographic cameras, so depth is measured from the nominal pose
+        self._current_d  -= self._hidden_pose.position.z
         self._current_seg = np.reshape(seg, (ih, iw))
         self._current_pcd = None
 
@@ -227,8 +229,11 @@ class OrthographicCamera(Camera):
         aspect = resolution[0] / resolution[1]
         fov_v  = fov_h / aspect
 
-        new_far = 20 * (far - near)
-        new_near = new_far - near
+        # The camera is pulled back along its viewing axis (local +Z) so that a narrow
+        # frustum approximates parallel projection over the nominal [near, far] range.
+        new_far  = 20 * (far - near)
+        pullback = new_far - far
+        new_near = near + pullback
 
         # correct_projection = np.asarray([[2 / fov_h,                  0,                 0,            0],
         #                                  [        0, 2 * aspect / fov_h,                 0,            0],
@@ -244,5 +249,5 @@ class OrthographicCamera(Camera):
                                                  new_far,
                                                  initial_pose,
                                                  parent,
-                                                 hidden_pose=Transform.from_xyz(far - new_far, 0, 0))
+                                                 hidden_pose=Transform.from_xyz(0, 0, pullback))
         self._fov = fov_h

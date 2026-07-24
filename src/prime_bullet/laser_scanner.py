@@ -37,7 +37,7 @@ class LaserScanner(Frame):
                                       np.zeros(len(angles)),
                                       np.ones(len(angles))))
         
-        if isinstance(parent, RigidBody) and isinstance(parent, Link):
+        if isinstance(parent, (RigidBody, Link)):
             self._rays_start = self._rays_start[:3].T
             self._rays_end   = self._rays_end[:3].T
             self._parent_object_id = self._parent.bId
@@ -52,7 +52,7 @@ class LaserScanner(Frame):
 
     @local_pose.setter
     def local_pose(self, pose) -> None:
-        self._local_pose = pose
+        self._pose = pose
 
     @property
     def pose(self) -> Transform:
@@ -70,12 +70,12 @@ class LaserScanner(Frame):
             s_to_w = self.pose.matrix()
             rays_start = s_to_w.dot(self._rays_start)[:3].T
             rays_end   = s_to_w.dot(self._rays_end)[:3].T
-            results = pb.rayTestBatch(rays_start, rays_end, self._simulator.client_id)
+            results = pb.rayTestBatch(rays_start, rays_end, physicsClientId=self._simulator.client_id)
         else:
-            results = pb.rayTestBatch(self._rays_start, 
+            results = pb.rayTestBatch(self._rays_start,
                                       self._rays_end,
-                                      self._parent_object_id,
-                                      self._parent_link_id,
+                                      parentObjectUniqueId=self._parent_object_id,
+                                      parentLinkIndex=self._parent_link_id,
                                       physicsClientId=self._simulator.client_id)
         ids, links, frac, pos, normal = zip(*results) 
         return np.asarray(frac) * self.__range_scale + self._range_min

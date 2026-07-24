@@ -32,9 +32,9 @@ GEOM_MESH     = 'mesh'
 class RigidBody(Frame):
     @dataclass
     class Config:
-        initial_pose : Transform
-        current_pose : Transform
-        type         : str
+        initial_pose : Transform=None
+        current_pose : Transform=None
+        type         : str=None
 
 
     """Wrapper class giving object oriented access to PyBullet's rigid bodies.
@@ -226,7 +226,6 @@ class RigidBody(Frame):
         pb.applyExternalTorque(self._bulletId,
                                -1,
                                torque,
-                               Point3.zero(),
                                pb.WORLD_FRAME,
                                self._client_id)
 
@@ -234,7 +233,6 @@ class RigidBody(Frame):
         pb.applyExternalTorque(self._bulletId,
                                -1,
                                torque,
-                               Point3.zero(),
                                pb.LINK_FRAME,
                                self._client_id)
 
@@ -286,9 +284,9 @@ with open(f'{IAI_BULLET_ROOT}/data/urdf/template_single_mesh.urdf', 'r') as f:
 class BoxBody(RigidBody):
     @dataclass
     class Config(RigidBody.Config):
-        size : Vector3
-        mass : float
-        color: Vector3
+        size : Vector3=None
+        mass : float=None
+        color: Vector3=None
 
     def __init__(self, simulator, 
                        size=Vector3(1, 1, 1),
@@ -301,12 +299,12 @@ class BoxBody(RigidBody):
         self.mass  = mass if density is None else volume * density
         self.density = density if density is not None else self.mass / volume
         self.color = color
-        
-        file_hash = md5(f'box_{size}_{mass}_{color}'.encode('utf-8')).hexdigest()
+
+        file_hash = md5(f'box_{size}_{self.mass}_{color}'.encode('utf-8')).hexdigest()
         fpath = Path(f'{tempfile.gettempdir()}/{file_hash}.urdf')
         if not fpath.exists():
             with open(str(fpath), 'w') as f:
-                f.write(_TEMPLATE_BOX.render(mass=mass, size=size, color=color))
+                f.write(_TEMPLATE_BOX.render(mass=self.mass, size=size, color=color))
         
         bulletId = pb.loadURDF(str(fpath),
                                initial_pose.position,
@@ -335,10 +333,10 @@ class BoxBody(RigidBody):
 class CylinderBody(RigidBody):
     @dataclass
     class Config(RigidBody.Config):
-        radius : float
-        length : float
-        mass   : float
-        color  : Vector3
+        radius : float=None
+        length : float=None
+        mass   : float=None
+        color  : Vector3=None
 
     def __init__(self, simulator, 
                        radius=0.5,
@@ -352,14 +350,13 @@ class CylinderBody(RigidBody):
         volume = np.pi * radius**2 * length
         self.mass  = mass if density is None else volume * density
         self.density = density if density is not None else self.mass / volume
-        self.mass   = mass
         self.color  = color
-        
-        file_hash = md5(f'cylinder_{radius}_{length}_{mass}_{color}'.encode('utf-8')).hexdigest()
+
+        file_hash = md5(f'cylinder_{radius}_{length}_{self.mass}_{color}'.encode('utf-8')).hexdigest()
         fpath = Path(f'{tempfile.gettempdir()}/{file_hash}.urdf')
         if not fpath.exists():
             with open(str(fpath), 'w') as f:
-                f.write(_TEMPLATE_CYLINDER.render(mass=mass, radius=radius, length=length, color=color))
+                f.write(_TEMPLATE_CYLINDER.render(mass=self.mass, radius=radius, length=length, color=color))
         
         bulletId = pb.loadURDF(str(fpath),
                                initial_pose.position,
@@ -370,6 +367,7 @@ class CylinderBody(RigidBody):
                                physicsClientId=simulator.client_id)
         
         super().__init__(simulator, bulletId, 'cylinder', initial_pose)
+        self._conf_type = CylinderBody.Config
 
     def conf(self):
         out = super().conf()
@@ -389,9 +387,9 @@ class CylinderBody(RigidBody):
 class SphereBody(RigidBody):
     @dataclass
     class Config(RigidBody.Config):
-        radius : float
-        mass   : float
-        color  : Vector3
+        radius : float=None
+        mass   : float=None
+        color  : Vector3=None
 
     def __init__(self, simulator, 
                        radius=0.5,
@@ -403,14 +401,13 @@ class SphereBody(RigidBody):
         volume = 4 / 3 * np.pi * radius**3
         self.mass  = mass if density is None else volume * density
         self.density = density if density is not None else self.mass / volume
-        self.mass   = mass
         self.color  = color
-        
-        file_hash = md5(f'sphere_{radius}_{mass}_{color}'.encode('utf-8')).hexdigest()
+
+        file_hash = md5(f'sphere_{radius}_{self.mass}_{color}'.encode('utf-8')).hexdigest()
         fpath = Path(f'{tempfile.gettempdir()}/{file_hash}.urdf')
         if not fpath.exists():
             with open(str(fpath), 'w') as f:
-                f.write(_TEMPLATE_SPHERE.render(mass=mass, radius=radius, color=color))
+                f.write(_TEMPLATE_SPHERE.render(mass=self.mass, radius=radius, color=color))
         
         bulletId = pb.loadURDF(str(fpath),
                                initial_pose.position,
@@ -421,6 +418,7 @@ class SphereBody(RigidBody):
                                physicsClientId=simulator.client_id)
         
         super().__init__(simulator, bulletId, 'sphere', initial_pose)
+        self._conf_type = SphereBody.Config
 
     def conf(self):
         out = super().conf()
@@ -438,11 +436,11 @@ class SphereBody(RigidBody):
 class MeshBody(RigidBody):
     @dataclass
     class Config(RigidBody.Config):
-        scale : float
-        visual_mesh : str
-        collision_mesh : str
-        mass  : float
-        color : Vector3
+        scale : float=None
+        visual_mesh : str=None
+        collision_mesh : str=None
+        mass  : float=None
+        color : Vector3=None
 
     def __init__(self, simulator, 
                        visual_mesh,
@@ -479,6 +477,7 @@ class MeshBody(RigidBody):
             raise Exception(f'Exception raised during load of generated urdf "{fpath}": {e}')
         
         super().__init__(simulator, bulletId, 'mesh', initial_pose)
+        self._conf_type = MeshBody.Config
 
     def conf(self):
         out = super().conf()
@@ -500,12 +499,13 @@ class MeshBody(RigidBody):
 class SDFBody(RigidBody):
     @dataclass
     class Config(RigidBody.Config):
-        sdf_path : str
+        sdf_path : str=None
 
     def __init__(self, simulator, bulletId, sdf_path):
         self.sdf_path = sdf_path
 
         super().__init__(simulator, bulletId, 'sdf_mesh', None)
+        self._conf_type   = SDFBody.Config
         self.initial_pose = self.pose
 
     def conf(self):

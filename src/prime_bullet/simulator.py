@@ -28,7 +28,6 @@ from .rigid_body import BoxBody,         \
                         CylinderBody, MeshBody, SDFBody, SDFWorldBody,    \
                         SphereBody,      \
                         RigidBody
-from .constraint import Constraint
 from .debug_visualizer import DebugVisualizer
 
 
@@ -111,32 +110,27 @@ class Simulator(object):
         self.physicsClient = None
         self.bodies        = {}
         self.deletion_cbs  = {}
-        self.constraints   = {}
         self.gravity       = gravity
-        self.constraint_deletion_cbs = {}
-        self.set_step_frequency(step_frequency)
+        self.__egl_plugin  = None
         self._use_egl = use_egl
         self._real_time = real_time
         self.__client_id = 0
         self.__n_updates = 0
         self.__bId_IdMap = {}
-        self.__cId_IdMap = {}
         self.__sdf_worlds = set()
         self.__visualizer = None
         self.__body_id_tuple_map = {}
 
         self.__h = random.random()
         self.__nextId = 0
-        self.__joint_types = {'fixed':  pb.JOINT_FIXED,    'prismatic': pb.JOINT_PRISMATIC, 
-                              'hinge':  pb.JOINT_REVOLUTE, 'spherical': pb.JOINT_SPHERICAL,
-                              'planar': pb.JOINT_PLANAR,   'p2p':       pb.JOINT_POINT2POINT}
 
         self.__plugins = set()
         with open(f'{IAI_BULLET_ROOT}/data/urdf/template_single_mesh.urdf', 'r') as f:
             self.__mesh_template  = Template(f.read())
         self._temp_mesh_urdfs = {}
 
-        self.__egl_plugin = None
+        # Last, as it validates its input: __del__ needs the attributes above to exist
+        self.set_step_frequency(step_frequency)
 
     def __del__(self):
         if self.__egl_plugin is not None:
@@ -598,80 +592,6 @@ class Simulator(object):
             return True
         return False
 
-    def delete_constraint(self, constraintId):
-        if constraintId in self.constraints:
-            constraint = self.constraints[constraintId]
-            if constraintId in self.constraint_deletion_cbs:
-                for cb in self.constraint_deletion_cbs[constraintId]:
-                    cb(self, constraintId, constraint)
-                del self.constraint_deletion_cbs[constraintId]
-            pb.removeConstraint(constraint.bId, self.__client_id)
-            del self.__cId_IdMap[constraint.bId]
-            del self.constraints[constraintId]
-            return True
-        return False
-
-
-    def create_constraint_global(self, parentBody, childBody, jointType='fixed',
-                                 jointPosition=[0,0,0], jointAxis=[1,0,0],
-                                 parentLink=None, childLink=None, name_override=None):
-        parent_pose = parentBody.get_link_state(parentLink) if parentLink is not None else parentBody.pose()
-        if childBody is not None:
-            child_pose = childBody.get_link_state(childLink) if childLink is not None else childBody.pose()
-        else:
-            child_pose = Transform.identity()
-        inv_pp_pos, inv_pp_rot = pb.invertTransform(parent_pose.position, parent_pose.quaternion)
-        inv_cp_pos, inv_cp_rot = pb.invertTransform(child_pose.position,  child_pose.quaternion)
-
-        ZERO_VEC = (0,0,0)
-        ZERO_ROT = (0,0,0,1)
-        pjp, pjo = pb.multiplyTransforms(inv_pp_pos, inv_pp_rot, jointPosition, ZERO_ROT)
-        cjp, cjo = pb.multiplyTransforms(inv_cp_pos, inv_cp_rot, jointPosition, ZERO_ROT)
-        cja,   _ = pb.multiplyTransforms(  ZERO_VEC, inv_cp_rot,     jointAxis, ZERO_ROT)
-
-        return self.create_constraint_local(parentBody, childBody, jointType, parentLink, childLink,
-                                            cja, pjp, cjp, pjo, cjo, name_override)
-
-
-    def create_constraint_local(self, parentBody, childBody, jointType='fixed',
-                                parentLink=None, childLink=None, jointAxis=[1,0,0],
-                                parentJointPosition=[0,0,0], childJointPosition=[0,0,0],
-                                parentJointOrientation=[0,0,0,1], childJointOrientation=[0,0,0,1], name_override=None):
-        if name_override is None:
-            counter = 0
-            constraintName = 'constraint_{}'.format(jointType.lower())
-            constraintId   = constraintName
-            while constraintId in self.bodies:
-                constraintId = '{}.{}'.format(bodyName, counter)
-                counter += 1
-        else:
-            if name_override in self.constraints:
-                raise Exception('Constraint Id "{}" is already taken.'.format(name_override))
-
-            constraintId = name_override
-
-        parent_bid  = parentBody.bId
-        parent_link = parentBody.get_link_index(parentLink) if parentLink is not None else -1
-        
-        child_bid  = childBody.bId if childBody is not None else -1
-        child_link = childBody.get_link_index(childLink) if childLink is not None else -1
-
-        if jointType not in self.__joint_types:
-            raise Exception('Unknown joint type "{}". Supported types are: {}'.format(jointType, ', '.join(self.__joint_types.keys())))
-        type = self.__joint_types[jointType]
-
-        bulletId = pb.createConstraint(parent_bid, parent_link, child_bid, child_link, type, axis, 
-                                       parentJointPosition, childJointPosition, 
-                                       parentJointOrientation, childJointOrientation, physicsClientId=self.__client_id)
-        constraint = Constraint(self, bulletId, jointType, parentBody, childBody,
-                                      parentJointPosition, parentJointOrientation,
-                                      childJointPosition,  childJointOrientation,
-                                      jointAxis, parentLink, childLink)
-        self.constraints[constraintId] = constraint
-        self.__cId_IdMap[bulletId]     = constraintId
-        return constraint
-
-
     # @profile
     def get_overlapping(self, aabb, filter=set()):
         """Returns all objects overlapping the given bounding box.
@@ -682,7 +602,7 @@ class Simulator(object):
         :type  filter: set
         :rtype: list
         """
-        raw_overlap = pb.getOverlappingObjects(vec3_to_list(aabb.min), vec3_to_list(aabb.max), physicsClientId=self.__client_id)
+        raw_overlap = pb.getOverlappingObjects(aabb.min, aabb.max, physicsClientId=self.__client_id)
         if raw_overlap is None:
             return []
 
@@ -726,6 +646,9 @@ class Simulator(object):
         :param world_dict: World configuration
         :type  world_dict: dict
         """
+        raise NotImplementedError('World (de)serialization is unmaintained and does not currently work. '
+                                  'The implementation below is kept for reference.')
+
         driver_registry = {}
         if 'objects' in world_dict:
             if type(world_dict['objects']) != list:
@@ -767,19 +690,6 @@ class Simulator(object):
                     self.create_object(od['geom_type'], od['extents'], od['radius'], od['height'], i_pos, i_rot, od['mass'], od['color'], name)
                 else:
                     raise Exception('Unknown object type "{}"'.format(otype))
-        if 'constraints' in world_dict:
-            for cd in world_dict['constraints']:
-                if cd['parent'] not in self.bodies:
-                    raise Exception('Parent body "{}" for constraint "{}" cannot be found.'.format(cd['parent'], cd['name']))
-                if cd['child'] is not None and cd['child'] not in self.bodies:
-                    raise Exception('Child body "{}" for constraint "{}" cannot be found.'.format(cd['parent'], cd['name']))
-
-                parentBody = self.bodies[cd['parent']]
-                childBody  = self.bodies[cd['child']] if cd['child'] is not None else None
-
-                self.create_constraint_local(parentBody, childBody, cd['type'], cd['parent_link'], cd['child_link'],
-                                             cd['axis'], cd['parent_pose']['position'], cd['child_pose']['position'],
-                                             cd['parent_pose']['rotation'], cd['child_pose']['rotation'], cd['name'])
 
 
     def save_world(self, use_current_state_as_init=False):
@@ -789,7 +699,10 @@ class Simulator(object):
         :type  use_current_state_as_init: bool
         :rtype: dict
         """
-        out = {'objects': [], 'constraints': []}
+        raise NotImplementedError('World (de)serialization is unmaintained and does not currently work. '
+                                  'The implementation below is kept for reference.')
+
+        out = {'objects': []}
 
         for bname, b in self.bodies.items():
             if isinstance(b, MultiBody):
@@ -833,25 +746,6 @@ class Simulator(object):
             else:
                 raise Exception('Can not serialize type "{}"'.format(str(type(b))))
 
-
-        for cname, c in self.constraints.items():
-            parent_name = self.__bId_IdMap[c.parent.bId]
-            child_name  = self.__bId_IdMap[c.child.bId] if c.child is not None else None
-
-            cd = {'name': cname,
-                  'type': c.type,
-                  'parent': parent_name,
-                  'child' : child_name,
-                  'parent_link': c.parent_link,
-                  'child_link' : c.child_link,
-                  'axis' : list(c.axis),
-                  'parent_pose': {
-                    'position': list(c.parent_pos),
-                    'rotation': list(c.parent_rot)},
-                  'child_pose': {
-                    'position': list(c.child_pos),
-                    'rotation': list(c.child_rot)}}
-            out['constraints'].append(cd)
         return out
 
 
@@ -917,7 +811,7 @@ class Simulator(object):
     def __get_obj_link_tuple(self, bulletId, linkIdx):
         """Internal. Turns a bullet id and a link index into a tuple of the corresponding object and the link's name."""
         body = self.bodies[self.__bId_IdMap[bulletId]]
-        link = body.index_link_map[linkIdx] if isinstance(body, MultiBody) else None
+        link = body.i_links[linkIdx] if isinstance(body, MultiBody) else None
         return (body, link)
 
 

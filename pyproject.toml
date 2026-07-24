@@ -28,4 +28,7 @@ mesh-conversion = ["trimesh"]
 where = ["src"]
 
 [tool.setuptools.package-data]
-prime_bullet = ["data/urdf/*.urdf"]
+# .blend files are the mesh sources and are deliberately not shipped
+prime_bullet = ["data/urdf/*.urdf",
+                "urdf/*.urdf",
+                "meshes/*.dae"]

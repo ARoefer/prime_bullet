@@ -1,36 +1,36 @@
 <?xml version="1.0" ?>
 <robot name="scale">
 	<link name="base">
-<!-- 		<inertial>
+ 		<inertial>
 			<mass value="80"/>
 			<inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="1"/>
-		</inertial> -->
+		</inertial> 
 		<visual>
 			<geometry>
-				<mesh filename="package://iai_bullet_sim/meshes/scale_base.dae"/>
+				<mesh filename="package://prime_bullet/meshes/scale_base.dae"/>
 			</geometry>
 		</visual>
 		<collision>
 			<origin rpy="0 0 0" xyz="0 0 0"/>
 			<geometry>
-				<mesh filename="package://iai_bullet_sim/meshes/scale_base.dae"/>
+				<mesh filename="package://prime_bullet/meshes/scale_base.dae"/>
 			</geometry>
 		</collision>
 	</link>
 	<link name="plate">
-<!-- 		<inertial>
+ 		<inertial>
 			<mass value="20"/>
 			<inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="1"/>
-		</inertial> -->
+		</inertial> 
 		<visual>
 			<geometry>
-				<mesh filename="package://iai_bullet_sim/meshes/scale_plate.dae"/>
+				<mesh filename="package://prime_bullet/meshes/scale_plate.dae"/>
 			</geometry>
 		</visual>
 		<collision>
 			<origin rpy="0 0 0" xyz="0 0 0"/>
 			<geometry>
-				<mesh filename="package://iai_bullet_sim/meshes/scale_plate.dae"/>
+				<mesh filename="package://prime_bullet/meshes/scale_plate.dae"/>
 			</geometry>
 		</collision>
 	</link>

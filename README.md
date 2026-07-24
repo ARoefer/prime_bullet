@@ -89,10 +89,10 @@ sphere   = sim.create_sphere(0.3, pb.Transform.from_xyz(0, 2, 0.6))
 cylinder = sim.create_cylinder(0.2, 1, pb.Transform.from_xyz(0, 3, 1))
 
 # A monkey mesh at (0, 4, 1)
-mesh     = sim.create_mesh('package://iai_bullet_sim/meshes/suzanne.dae', pose=pb.Transform.from_xyz(0, 4, 1))
+mesh     = sim.create_mesh('package://prime_bullet/meshes/suzanne.dae', pose=pb.Transform.from_xyz(0, 4, 1))
 
 # A URDF of a windmill at (0, 5, 0)
-windmill = sim.load_urdf('package://iai_bullet_sim/src/iai_bullet_sim/data/urdf/windmill.urdf', pb.Transform.from_xyz(0, 5, 0))
+windmill = sim.load_urdf('package://prime_bullet/urdf/windmill.urdf', pb.Transform.from_xyz(0, 5, 0))
 
 # Simulate
 while not some_stopping_condition:
@@ -147,7 +147,7 @@ import prime_bullet as pb
 sim = pb.Simulator()
 sim.init('gui')
 
-mill = sim.load_urdf('package://iai_bullet_sim/src/iai_bullet_sim/data/urdf/windmill.urdf', pb.Transform.from_xyz(0, 5, 0))
+mill = sim.load_urdf('package://prime_bullet/urdf/windmill.urdf', pb.Transform.from_xyz(0, 5, 0))
 
 # Links
 l = mill.i_links[1]    # Get a link by index

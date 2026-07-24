@@ -29,7 +29,6 @@ from .rigid_body    import RigidBody, \
                            SDFWorldBody
 
 from .multibody     import MultiBody, Link
-from .constraint    import Constraint
 
 
 from .simulator     import Simulator,  \

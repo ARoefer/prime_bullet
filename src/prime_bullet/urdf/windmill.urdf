@@ -1,53 +1,53 @@
 <?xml version="1.0" ?>
 <robot name="windmill">
 	<link name="base">
-<!-- 		<inertial>
+ 		<inertial>
 			<mass value="80"/>
 			<inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="1"/>
-		</inertial> -->
+		</inertial> 
 		<visual>
 			<geometry>
-				<mesh filename="package://iai_bullet_sim/meshes/windmill_base.dae"/>
+				<mesh filename="package://prime_bullet/meshes/windmill_base.dae"/>
 			</geometry>
 		</visual>
 		<collision>
 			<origin rpy="0 0 0" xyz="0 0 0"/>
 			<geometry>
-				<mesh filename="package://iai_bullet_sim/meshes/windmill_base.dae"/>
+				<mesh filename="package://prime_bullet/meshes/windmill_base.dae"/>
 			</geometry>
 		</collision>
 	</link>
 	<link name="head">
-<!-- 		<inertial>
+ 		<inertial>
 			<mass value="20"/>
 			<inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="1"/>
-		</inertial> -->
+		</inertial> 
 		<visual>
 			<geometry>
-				<mesh filename="package://iai_bullet_sim/meshes/windmill_head.dae"/>
+				<mesh filename="package://prime_bullet/meshes/windmill_head.dae"/>
 			</geometry>
 		</visual>
 		<collision>
 			<origin rpy="0 0 0" xyz="0 0 0"/>
 			<geometry>
-				<mesh filename="package://iai_bullet_sim/meshes/windmill_head.dae"/>
+				<mesh filename="package://prime_bullet/meshes/windmill_head.dae"/>
 			</geometry>
 		</collision>
 	</link>
 	<link name="wings">
-<!-- 		<inertial>
+ 		<inertial>
 			<mass value="4"/>
 			<inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="1"/>
-		</inertial> -->
+		</inertial> 
 		<visual>
 			<geometry>
-				<mesh filename="package://iai_bullet_sim/meshes/windmill_wings.dae"/>
+				<mesh filename="package://prime_bullet/meshes/windmill_wings.dae"/>
 			</geometry>
 		</visual>
 		<collision>
 			<origin rpy="0 0 0" xyz="0 0 0"/>
 			<geometry>
-				<mesh filename="package://iai_bullet_sim/meshes/windmill_wings.dae"/>
+				<mesh filename="package://prime_bullet/meshes/windmill_wings.dae"/>
 			</geometry>
 		</collision>
 	</link>

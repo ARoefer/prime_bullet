@@ -181,7 +181,7 @@ class Quaternion(tuple):
         return 2 * np.arccos(qd[3])
 
     def lerp(self, other, fac, epsilon=1e-4):
-        fac = np.clamp(fac, 0.0, 1.0)
+        fac = np.clip(fac, 0.0, 1.0)
         qd  = self.inv().dot(other)
         ang = 2 * np.arccos(qd[3])
         
@@ -195,6 +195,10 @@ class Quaternion(tuple):
 
     def numpy(self):
         return np.asarray(self)
+
+    @staticmethod
+    def from_rpy(r, p, y):
+        return Quaternion.from_euler(r=r, p=p, y=y)
 
     @staticmethod
     def from_euler(r, p, y):

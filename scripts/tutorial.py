@@ -36,7 +36,7 @@ class DemoJoints(object):
         sim = BasicSimulator()
         sim.init(mode='gui')
         floor    = sim.create_box(extents=[10,10,0.1], mass=0)
-        windmill = sim.load_urdf('package://iai_bullet_sim/urdf/windmill.urdf', useFixedBase=1)
+        windmill = sim.load_urdf('package://prime_bullet/urdf/windmill.urdf', useFixedBase=1)
 
         windmill.apply_joint_vel_cmds({'wings_rotor': -2})
 
@@ -57,7 +57,7 @@ class DemoSensor(object):
         sim = BasicSimulator()
         sim.init(mode='gui')
         floor = sim.create_box(extents=[10,10,0.1], mass=0)
-        scale = sim.load_urdf('package://iai_bullet_sim/urdf/scale.urdf', pos=[0,0,0.1], useFixedBase=1)
+        scale = sim.load_urdf('package://prime_bullet/urdf/scale.urdf', pos=[0,0,0.1], useFixedBase=1)
 
         for x in range(5):
             sim.create_box(extents=[0.2,0.2,0.2], pos=[0,0,2 + x*0.5], mass=20)
@@ -81,7 +81,7 @@ class DemoContacts(object):
         sim = BasicSimulator(30)
         sim.init(mode='gui')
         floor = sim.create_box(extents=[10,10,0.1], mass=0)
-        scale = sim.load_urdf('package://iai_bullet_sim/urdf/scale.urdf', 
+        scale = sim.load_urdf('package://prime_bullet/urdf/scale.urdf', 
                               pose=Transform.from_xyz(0,0,0.1), useFixedBase=1)
 
         for x in range(5):
@@ -129,7 +129,7 @@ class DemoPluginUsage(object):
         sim = BasicSimulator()
         sim.init(mode='gui')
         floor    = sim.create_box(extents=[10,10,0.1], mass=0)
-        windmill = sim.load_urdf('package://iai_bullet_sim/urdf/windmill.urdf', useFixedBase=1)
+        windmill = sim.load_urdf('package://prime_bullet/urdf/windmill.urdf', useFixedBase=1)
 
         plugin = SimplePlugin(windmill)
         sim.register_plugin(plugin)
@@ -153,7 +153,7 @@ class DemoMesh(object):
         sim = BasicSimulator()
         sim.init(mode='gui')
         floor    = sim.create_box(extents=[10,10,0.1], mass=0)
-        suzanne  = sim.load_mesh('package://iai_bullet_sim/meshes/suzanne.dae', pos=[0,0,2])
+        suzanne  = sim.load_mesh('package://prime_bullet/meshes/suzanne.dae', pos=[0,0,2])
 
         last_update = time()
         while True:

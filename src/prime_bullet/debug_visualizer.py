@@ -4,7 +4,9 @@ import numpy    as np
 from typing      import List
 from dataclasses import dataclass
 
+from .frame      import Frame
 from .geometry   import Point3, Vector3, Quaternion, Transform
+from .link       import Link
 from .rigid_body import RigidBody
 from .multibody  import MultiBody
 from .utils      import ColorRGBA
@@ -22,15 +24,11 @@ class DebugVisItem():
 
 @dataclass
 class DebugVisItemBatch():
-    bullet_ids : List[int]
-    client_id  : int
+    # Items remove themselves from the visualizer when the batch is collected
+    items : List[DebugVisItem]
 
     def __hash__(self):
-        return hash(self.bullet_id) ^ (hash(self.client_id) << 1)
-    
-    def __del__(self):
-        for bid in self.bullet_ids:
-            pb.removeUserDebugItem(bid, self.client_id)
+        return hash(tuple(self.items))
 
 
 class DebugVisualizer(object):
@@ -101,20 +99,20 @@ class DebugVisualizer(object):
     def draw_path(self, points, color=ColorRGBA.blue(), width=0.1, time=0.0, frame=None):
         if frame is not None and type(frame) not in {RigidBody, MultiBody, Link}:
             tf = frame.pose.matrix()
-            points = tf.dot(np.hstack((points, np.ones((len( points), 1)))).T)[:,:3]
-        
+            points = tf.dot(np.hstack((points, np.ones((len( points), 1)))).T).T[:,:3]
+
         if type(frame) in {RigidBody, MultiBody, Link}:
             body_id  = frame.bId
             link_idx = -1 if type(frame) != Link else frame.idx
         else:
-            body_id  = None
-            link_idx = None 
+            body_id  = -1
+            link_idx = -1
 
-        iids = [pb.addUserDebugLine(p0, p1, color, width, time, 
-                                    body_id, link_idx, 
+        iids = [pb.addUserDebugLine(p0, p1, color, width, time,
+                                    body_id, link_idx,
                                     physicsClientId=self._client_id) for p0, p1 in zip(points[:-1], points[1:])]
 
-        return DebugVisItemBatch(iids, self._client_id) if time == 0.0 else None
+        return DebugVisItemBatch([DebugVisItem(iid, self._client_id) for iid in iids]) if time == 0.0 else None
 
     def draw_vector(self, vector, color=ColorRGBA.red(), width=0.1, time=0.0, frame=None):
         return self.draw_line(Point3.zero(), vector, color, width, time, frame)
@@ -124,25 +122,25 @@ class DebugVisualizer(object):
                 transform.dot(Point3.unit_y() * size),
                 transform.dot(Point3.unit_z() * size)]
         
-        iids = [self.draw_line(transform.position, 
-                               a, c, width, 
-                               time, frame) for a, c in zip(axes, [ColorRGBA.red(), 
-                                                                   ColorRGBA.green(), 
+        iids = [self.draw_line(transform.position,
+                               a, c, width,
+                               time, frame) for a, c in zip(axes, [ColorRGBA.red(),
+                                                                   ColorRGBA.green(),
                                                                    ColorRGBA.blue()])]
-        
-        return DebugVisItemBatch(iids, self._client_id) if iids[0] is not None else None
+
+        return DebugVisItemBatch(iids) if iids[0] is not None else None
 
     def draw_orientation(self, rotation=Quaternion.identity(), width=0.1, size=0.5, time=0.0, frame=None):
         axes = [rotation.dot(Vector3.unit_x() * size),
                 rotation.dot(Vector3.unit_y() * size),
                 rotation.dot(Vector3.unit_z() * size)]
         
-        iids = [self.draw_vector(a, c, width, 
-                                 time, frame) for a, c in zip(axes, [ColorRGBA.red(), 
-                                                                     ColorRGBA.green(), 
+        iids = [self.draw_vector(a, c, width,
+                                 time, frame) for a, c in zip(axes, [ColorRGBA.red(),
+                                                                     ColorRGBA.green(),
                                                                      ColorRGBA.blue()])]
-        
-        return DebugVisItemBatch(iids, self._client_id) if iids[0] is not None else None
+
+        return DebugVisItemBatch(iids) if iids[0] is not None else None
 
     def draw_points(self):
         pass
