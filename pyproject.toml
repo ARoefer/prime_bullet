@@ -1,10 +1,10 @@
 [build-system]
-requires = ["setuptools>=61", "wheel"]
+requires = ["setuptools >= 77.0.3", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "prime_bullet"
-version = "2026.07.10"
+version = "2026.07.26"
 description = "Object-oriented wrapper for PyBullet."
 authors = [
     { name = "Adrian Roefer", email = "aroefer@cs.uni-freiburg.de" },
