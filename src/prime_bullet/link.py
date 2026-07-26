@@ -59,10 +59,19 @@ class Link(Frame):
     def state(self):
         if self._simulator.sim_step != self.__last_sim_pose_update:
             if self._idx == -1:  # Bullet does not handle base joints the same
-                world_pose = self._multibody.pose
-                self.__current_state = LinkState(world_pose,
-                                                 Transform.identity(),
-                                                 world_pose,
+                # getBasePositionAndOrientation reports the base's CENTER OF MASS frame, whereas
+                # getLinkState's world_pose (used for every other link below) reports the URDF link
+                # frame. Returning the COM pose as world_pose here made `pose` mean different things
+                # for base and non-base links, silently offsetting every base-relative computation by
+                # the root link's inertial origin -- e.g. Franka's panda_link0 sits 0.05 m off.
+                # Undo the inertial offset so `world_pose` is the URDF link frame for all links.
+                com_pose       = self._multibody.pose
+                inertial_pos, inertial_orn = pb.getDynamicsInfo(self._multibody.bId, -1,
+                                                                physicsClientId=self._client_id)[3:5]
+                local_inertial = Transform(Point3(*inertial_pos), Quaternion(*inertial_orn))
+                self.__current_state = LinkState(com_pose,
+                                                 local_inertial,
+                                                 com_pose @ local_inertial.inv(),
                                                  self._multibody.linear_velocity,
                                                  self._multibody.angular_velocity)
             else:

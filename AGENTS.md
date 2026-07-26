@@ -10,9 +10,10 @@ check it before debugging anything surprising.
 ## Environment
 
 - Run everything with the workspace interpreter: `pyenv/bin/python` (at the `lh_ws` root).
-- **A stale non-editable copy may be installed at `~/.local/lib/python3.10/site-packages/prime_bullet`.**
-  It shadows the source tree and dies on a missing `data/urdf/template_box.urdf`. If you hit that,
-  either `pip uninstall prime_bullet` or run with `PYTHONPATH=src/prime_bullet/src`.
+- The library is installed **editable** into that venv, so a plain `import prime_bullet` already uses
+  this source tree — no `PYTHONPATH` juggling needed. If an import ever resolves somewhere other than
+  `src/prime_bullet/src`, a second non-editable copy has appeared and is shadowing it (one lived in
+  `~/.local/lib/python3.10/site-packages` until 2026-07-25); remove that copy rather than working around it.
 - Single import surface: `import prime_bullet as pb`.
 
 ## Simulator lifecycle
@@ -144,6 +145,18 @@ ft.get_world_space()
 `LinkState(com_pose, local_inertial_pose, world_pose, linear_velocity, angular_velocity)`.
 Also `link.jacobian(q, q_dot, q_ddot, point)` and `link.ik(world_pose_or_point, max_iterations=50)`,
 which returns a q vector for **all** dynamic joints of the body.
+
+`link.pose` is `state.world_pose`, i.e. the **URDF link frame** — for the base link (`idx == -1`)
+too, whose inertial offset is divided out. That differs from raw pybullet, where
+`getBasePositionAndOrientation` returns the base's centre-of-mass frame; a root link with an
+inertial `<origin>` (Franka's `panda_link0` has `xyz="0 0 0.05"`) would otherwise make base-relative
+poses disagree with any URDF-based FK by exactly that offset. `MultiBody.pose` is still the raw
+bullet base (COM) pose, so prefer `robot.get_link(root).pose` when comparing against a URDF model.
+
+`link.ik()` does **not** pass joint limits to pybullet, so it can return elbow-inverted solutions
+that violate them while reporting a tiny position error. It also seeds from the current joint state.
+For limit-respecting IK call `pybullet.calculateInverseKinematics` yourself with
+`lowerLimits`/`upperLimits`/`jointRanges`/`restPoses`, resetting to a known configuration first.
 
 `Joint`: `.name .index .type .is_dynamic .limits .q_min .q_max .f_max .qd_max .axis .link .parent`.
 
