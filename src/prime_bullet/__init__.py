@@ -1,3 +1,5 @@
+import sys
+
 from pathlib import Path
 
 from .utils         import ColorRGBA, \
@@ -5,7 +7,16 @@ from .utils         import ColorRGBA, \
                            res_pkg_path
 
 
-IAI_BULLET_ROOT = Path(__file__).parent
+# Under a plain source import __file__ points at this file, whose parent holds data/. Under the
+# catkin devel stub, however, this __init__ is exec'd with __file__ pointing into devel/ (which has
+# no data/), so fall back to locating the real source dir -- it is always on sys.path via the stub.
+_here = Path(__file__).parent
+if (_here / 'data').is_dir():
+    IAI_BULLET_ROOT = _here
+else:
+    IAI_BULLET_ROOT = next((Path(p) / 'prime_bullet' for p in sys.path
+                                                     if (Path(p) / 'prime_bullet' / 'data').is_dir()),
+                           _here)
 
 
 from .geometry      import Point3, \
